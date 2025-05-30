@@ -1,9 +1,10 @@
 // Reusable navigation bar component
 // Features: Logo, navigation links, and authentication button placeholder
 
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Zap, ArrowLeft, Menu, X } from 'lucide-react';
+import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
+import { ArrowLeft, Menu, X, Zap } from "lucide-react";
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 // TODO(Navbar):
 // 1. Add scroll-based transparency effect
@@ -14,10 +15,12 @@ import { Zap, ArrowLeft, Menu, X } from 'lucide-react';
 // END TODO
 
 const Navbar = () => {
+  const { setShowAuthFlow, user } = useDynamicContext();
+
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isWorkflowPage = location.pathname === '/run';
-  const isMarketplacePage = location.pathname === '/marketplace';
+  const isWorkflowPage = location.pathname === "/run";
+  const isMarketplacePage = location.pathname === "/marketplace";
   const isOnSpecialPage = isWorkflowPage || isMarketplacePage;
 
   const toggleMobileMenu = () => {
@@ -34,7 +37,11 @@ const Navbar = () => {
       {/* TODO(brutalism): future interactive micro-animations */}
       <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center space-x-2" onClick={closeMobileMenu}>
+        <Link
+          to="/"
+          className="flex items-center space-x-2"
+          onClick={closeMobileMenu}
+        >
           <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-[#FF5484] stroke-2" />
           <span className="text-lg sm:text-xl font-black text-black uppercase tracking-tight">
             <span className="hidden sm:inline">AI Orchestrator</span>
@@ -45,8 +52,8 @@ const Navbar = () => {
         {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
           {isOnSpecialPage && (
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="flex items-center space-x-2 text-black font-bold uppercase text-sm hover:text-[#FF5484] transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -55,28 +62,32 @@ const Navbar = () => {
           )}
           {!isOnSpecialPage && (
             <>
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="text-black font-bold uppercase text-sm hover:text-[#FF5484] transition-colors"
               >
                 Home
               </Link>
-              <Link 
-                to="/marketplace" 
+              <Link
+                to="/marketplace"
                 className="text-black font-bold uppercase text-sm hover:text-[#FF5484] transition-colors"
               >
                 Marketplace
               </Link>
             </>
           )}
-          
+
           {/* Auth Button Placeholder */}
-          <button 
-            onClick={() => {/* TODO: Implement auth */}}
-            className="px-3 py-2 lg:px-4 bg-[#7C82FF] text-white font-bold uppercase text-xs sm:text-sm border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
-          >
-            Sign In
-          </button>
+          {user ? (
+            <></>
+          ) : (
+            <button
+              onClick={() => setShowAuthFlow(true)}
+              className="px-3 py-2 lg:px-4 bg-[#7C82FF] text-white font-bold uppercase text-xs sm:text-sm border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
+            >
+              Sign In
+            </button>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -98,8 +109,8 @@ const Navbar = () => {
         <div className="md:hidden fixed inset-0 top-14 sm:top-16 bg-white border-t-4 border-black z-40">
           <div className="px-4 py-6 space-y-4">
             {isOnSpecialPage && (
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 onClick={closeMobileMenu}
                 className="flex items-center space-x-2 text-black font-bold uppercase text-base hover:text-[#FF5484] transition-colors py-3 border-b-2 border-gray-200"
               >
@@ -109,15 +120,15 @@ const Navbar = () => {
             )}
             {!isOnSpecialPage && (
               <>
-                <Link 
-                  to="/" 
+                <Link
+                  to="/"
                   onClick={closeMobileMenu}
                   className="block text-black font-bold uppercase text-base hover:text-[#FF5484] transition-colors py-3 border-b-2 border-gray-200"
                 >
                   Home
                 </Link>
-                <Link 
-                  to="/marketplace" 
+                <Link
+                  to="/marketplace"
                   onClick={closeMobileMenu}
                   className="block text-black font-bold uppercase text-base hover:text-[#FF5484] transition-colors py-3 border-b-2 border-gray-200"
                 >
@@ -125,11 +136,11 @@ const Navbar = () => {
                 </Link>
               </>
             )}
-            
+
             {/* Mobile Auth Button */}
-            <button 
+            <button
               onClick={() => {
-                /* TODO: Implement auth */
+                setShowAuthFlow(true);
                 closeMobileMenu();
               }}
               className="w-full mt-6 px-4 py-3 bg-[#7C82FF] text-white font-bold uppercase text-base border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
@@ -143,4 +154,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;

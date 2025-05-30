@@ -1,18 +1,28 @@
+import { auth, googleProvider } from "@/config/firebase";
+import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
+import { DynamicContextProvider } from "@dynamic-labs/sdk-react-core";
+import { DynamicWagmiConnector } from "@dynamic-labs/wagmi-connector";
+import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import {
   createContext,
+  JSX,
+  PropsWithChildren,
   useEffect,
   useState,
-  PropsWithChildren,
-  JSX,
 } from "react";
-import { auth, googleProvider } from "@/config/firebase";
-import {
-  User,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
+import { http } from "viem";
+import { hederaTestnet, polygonAmoy } from "viem/chains";
+import { createConfig, WagmiProvider } from "wagmi";
 
+const config = createConfig({
+  chains: [polygonAmoy, hederaTestnet],
+  multiInjectedProviderDiscovery: false,
+  transports: {
+    [polygonAmoy.id]: http(),
+    [hederaTestnet.id]: http(),
+  },
+});
+interface User {}
 interface ContextValueType {
   user: User | null;
   authLoading: boolean;
@@ -72,7 +82,16 @@ export const AuthProvider = (
     <AuthContext.Provider
       value={{ user, authLoading, signInWithGoogle, logout }}
     >
-      {props.children}
+      <DynamicContextProvider
+        settings={{
+          environmentId: "98669622-de8f-4b3b-8aaf-e61ec95f5e23",
+          walletConnectors: [EthereumWalletConnectors],
+        }}
+      >
+        <WagmiProvider config={config}>
+          <DynamicWagmiConnector>{props.children}</DynamicWagmiConnector>
+        </WagmiProvider>
+      </DynamicContextProvider>
     </AuthContext.Provider>
   );
 };
