@@ -1,11 +1,147 @@
-import express from "express";
+import express, { Request, Response } from "express";
 
 const app = express();
+const port = process.env.PORT || 3000;
 
-app.get("/", (req, res) => {
-  res.send("Hello World");
+app.use(express.json());
+
+// Agent metadata - static information for MAHA protocol
+const AGENT_META = {
+  name: "Hello World Agent",
+  description: "A simple greeting agent that personalizes hello messages",
+  wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual wallet
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: {
+        type: "string",
+        maxLength: 100,
+        description: "Name to greet",
+      },
+      language: {
+        type: "string",
+        enum: ["english", "spanish", "french", "german"],
+        default: "english",
+        description: "Language for the greeting",
+      },
+    },
+    required: ["name"],
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      greeting: {
+        type: "string",
+        description: "The personalized greeting message",
+      },
+      language: {
+        type: "string",
+        description: "Language used for the greeting",
+      },
+      timestamp: {
+        type: "string",
+        format: "date-time",
+        description: "When the greeting was generated",
+      },
+    },
+    required: ["greeting", "language", "timestamp"],
+  },
+  previewURI: "ipfs://QmHelloAgentPreview123",
+};
+
+// GET /meta - Return agent metadata (MAHA contract requirement)
+app.get("/meta", (req: Request, res: Response) => {
+  res.json(AGENT_META);
 });
 
-app.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+// POST /run - Execute the agent logic (MAHA contract requirement)
+app.post("/run", async (req: Request, res: Response) => {
+  try {
+    const { name, language = "english" } = req.body;
+
+    // Validate input
+    if (!name || typeof name !== "string") {
+      return res.status(400).json({
+        error: "Invalid input: name is required and must be a string",
+      });
+    }
+
+    if (name.length > 100) {
+      return res.status(400).json({
+        error: "Invalid input: name must be 100 characters or less",
+      });
+    }
+
+    // Simulate some processing time
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Generate greeting based on language
+    let greeting;
+    switch (language) {
+      case "spanish":
+        greeting = `¡Hola, ${name}! ¿Cómo estás?`;
+        break;
+      case "french":
+        greeting = `Bonjour, ${name}! Comment allez-vous?`;
+        break;
+      case "german":
+        greeting = `Hallo, ${name}! Wie geht es Ihnen?`;
+        break;
+      case "english":
+      default:
+        greeting = `Hello, ${name}! How are you doing today?`;
+    }
+
+    // Return result matching output schema
+    const result = {
+      greeting,
+      language,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log(`Generated greeting for ${name} in ${language}: ${greeting}`);
+    res.json(result);
+  } catch (error: any) {
+    console.error("Processing error:", error);
+    res.status(500).json({
+      error: "Internal processing error",
+      details: error.message,
+    });
+  }
+});
+
+// Health check endpoint (optional but recommended)
+app.get("/health", (req: Request, res: Response) => {
+  res.json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+// Legacy endpoint for backward compatibility
+app.get("/", (req: Request, res: Response) => {
+  res.json({
+    message: "Hello World Agent - MAHA Protocol Compatible",
+    endpoints: {
+      meta: "/meta",
+      run: "/run (POST)",
+      health: "/health",
+    },
+  });
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`🤖 Hello World Agent running on port ${port}`);
+  console.log(`📋 Metadata: http://localhost:${port}/meta`);
+  console.log(`🏃 Execute: POST http://localhost:${port}/run`);
+  console.log(`❤️  Health: http://localhost:${port}/health`);
+  console.log(`🌍 Legacy: http://localhost:${port}/`);
+});
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("👋 Shutting down gracefully...");
+  process.exit(0);
 });
