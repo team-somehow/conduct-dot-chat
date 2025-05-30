@@ -51,31 +51,33 @@ const LandingPage = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="min-h-screen flex items-center justify-center px-6 md:px-10 pt-20 pb-20">
-        <div className="mx-auto max-w-screen-xl">
-          <div className="text-center md:text-left">
-            <h1 className="text-5xl md:text-7xl font-black leading-tight text-black tracking-tight mb-6">
+      <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 pt-20 pb-12 sm:pb-20">
+        <div className="mx-auto max-w-screen-xl w-full">
+          <div className="text-center lg:text-left">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight text-black tracking-tight mb-4 sm:mb-6 lg:mb-8">
               Orchestrate AI Models with{' '}
-              <span className="text-[#FF5484]">
+              <span className="text-[#FF5484] block sm:inline">
                 Precision
               </span>
             </h1>
             
-            <div className="max-w-lg md:max-w-4xl mb-16">
-              <p className="text-xl md:text-2xl text-black font-medium leading-relaxed">
+            <div className="max-w-lg sm:max-w-2xl lg:max-w-4xl mx-auto lg:mx-0 mb-8 sm:mb-12 lg:mb-16">
+              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium leading-relaxed">
                 Transform your ideas into powerful AI workflows. Connect, configure, and execute multiple AI models seamlessly.
               </p>
             </div>
           </div>
           
-          <PromptInput onSubmit={handlePromptSubmit} />
+          <div className="w-full max-w-4xl mx-auto lg:mx-0">
+            <PromptInput onSubmit={handlePromptSubmit} />
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20">
-        <div className="mx-auto max-w-screen-xl px-6 md:px-10">
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      <section className="py-12 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
             {features.map((feature, index) => (
               <FeatureCard
                 key={index}

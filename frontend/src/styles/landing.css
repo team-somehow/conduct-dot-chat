@@ -1,0 +1,12 @@
+/* Neo-Brutalist Landing page styles */
+/* TODO(brutalism): future interactive micro-animations */
+
+.neo-brutalist-bg {
+  background-color: #FFFDEE;
+}
+
+/* Remove any residual gradient or blur effects */
+.no-blur {
+  backdrop-filter: none !important;
+  background: none !important;
+} 
