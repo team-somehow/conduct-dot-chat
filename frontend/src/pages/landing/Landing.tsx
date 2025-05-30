@@ -126,14 +126,18 @@ const Header = () => {
   );
 };
 
-// Animated typing for URL input demonstration
+const DEMO_URLS = [
+  "docs.reactjs.org",
+  "openai.com", 
+  "news.ycombinator.com",
+  "github.com",
+];
+
+/**
+ * TypingDemo - Animated typing demonstration for URL input
+ * Shows cycling through different website URLs with typing animation
+ */
 const TypingDemo = () => {
-  const urls = [
-    "docs.reactjs.org",
-    "openai.com",
-    "news.ycombinator.com",
-    "github.com",
-  ];
   const [displayedText, setDisplayedText] = useState("");
   const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
@@ -150,7 +154,7 @@ const TypingDemo = () => {
 
   useEffect(() => {
     if (isFocused) return;
-    const targetUrl = urls[currentUrlIndex];
+    const targetUrl = DEMO_URLS[currentUrlIndex];
     if (isTyping) {
       if (displayedText !== targetUrl) {
         const timeout = setTimeout(() => {
@@ -170,7 +174,7 @@ const TypingDemo = () => {
         return () => clearTimeout(timeout);
       } else {
         setIsTyping(true);
-        setCurrentUrlIndex((currentUrlIndex + 1) % urls.length);
+        setCurrentUrlIndex((currentUrlIndex + 1) % DEMO_URLS.length);
       }
     }
   }, [displayedText, currentUrlIndex, isTyping, isFocused]);

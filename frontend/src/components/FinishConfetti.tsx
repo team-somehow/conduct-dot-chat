@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+// Cleaned by Mega-Prompt – 2024-12-19
+// Purpose: Confetti animation component for workflow completion celebration
+
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface FinishConfettiProps {
@@ -12,10 +15,14 @@ interface ConfettiPiece {
   delay: number;
 }
 
+const EMOJIS = ['🎉', '🎊', '✨', '🌟', '💫', '🎈', '🎁', '🏆'];
+
+/**
+ * FinishConfetti - Displays animated confetti when workflow completes
+ * @param trigger - Boolean to trigger confetti animation
+ */
 const FinishConfetti: React.FC<FinishConfettiProps> = ({ trigger }) => {
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
-
-  const emojis = ['🎉', '🎊', '✨', '🌟', '💫', '🎈', '🎁', '🏆'];
 
   useEffect(() => {
     if (trigger) {
@@ -23,7 +30,7 @@ const FinishConfetti: React.FC<FinishConfettiProps> = ({ trigger }) => {
       for (let i = 0; i < 20; i++) {
         pieces.push({
           id: i,
-          emoji: emojis[Math.floor(Math.random() * emojis.length)],
+          emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
           x: Math.random() * 100,
           delay: Math.random() * 2,
         });

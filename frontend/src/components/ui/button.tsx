@@ -1,3 +1,7 @@
+// Cleaned by Mega-Prompt – 2024-12-19
+// Purpose: Reusable button component with multiple variants and sizes
+// TODO(fast-refresh): Move buttonVariants to separate constants file
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -35,6 +39,13 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * Button - Versatile button component with multiple variants and sizes
+ * @param variant - Visual style variant (default, destructive, outline, etc.)
+ * @param size - Size variant (default, sm, lg, icon)
+ * @param asChild - Render as child component using Slot
+ * @param className - Additional CSS classes
+ */
 function Button({
   className,
   variant,
