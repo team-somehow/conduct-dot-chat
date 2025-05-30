@@ -128,12 +128,11 @@ const MarketplacePage = () => {
       switch (sort) {
         case 'rating':
           return b.rating - a.rating;
-        case 'cost': {
+        case 'cost':
           // Extract first number from price label for comparison
           const priceA = parseFloat(a.priceLabel.match(/\d+\.?\d*/)?.[0] || '0');
           const priceB = parseFloat(b.priceLabel.match(/\d+\.?\d*/)?.[0] || '0');
           return priceA - priceB;
-        }
         case 'name':
           return a.name.localeCompare(b.name);
         default:
