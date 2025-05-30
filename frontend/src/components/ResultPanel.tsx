@@ -35,8 +35,8 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
   const navigate = useNavigate();
 
   const handleModelRating = (modelId: string, rating: number) => {
-    console.log(`Model ${modelId} rated ${rating} stars`);
-    // You can add additional logic here to store the ratings
+    // TODO: Implement rating storage logic here
+    // Store the rating for the specific model in state management or API
   };
 
   const handleEndWorkflow = () => {
