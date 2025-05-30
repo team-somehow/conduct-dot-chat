@@ -1,7 +1,3 @@
-// Cleaned by Mega-Prompt – 2024-12-19
-// Purpose: Badge component with various styling variants
-// TODO(fast-refresh): Move badgeVariants to separate constants file
-
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -38,11 +34,6 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-/**
- * Badge - Displays a small status or category indicator
- * @param variant - Visual style variant for different states
- * @param className - Additional CSS classes
- */
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />

@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
-import LandingPage from '../pages/landing';
-import WorkflowPage from '../pages/workflow';
-import MarketplacePage from '../pages/marketplace';
+import LandingPage from '../pages/Landing';
+import WorkflowPage from '../pages/Workflow';
+import MarketplacePage from '../pages/Marketplace';
 import HistoryPage from '../pages/History';
 import SettingsPage from '../pages/Settings';
 

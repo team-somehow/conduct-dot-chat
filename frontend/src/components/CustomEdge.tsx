@@ -1,20 +1,8 @@
 import React from 'react';
-import { getBezierPath, Position } from 'reactflow';
+import { EdgeProps, getBezierPath } from 'reactflow';
 import { useWorkflowStore } from '../store/workflow';
 
-interface CustomEdgeProps {
-  id: string;
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-  sourcePosition: Position;
-  targetPosition: Position;
-  style?: React.CSSProperties;
-  markerEnd?: string;
-}
-
-const CustomEdge: React.FC<CustomEdgeProps> = ({
+const CustomEdge: React.FC<EdgeProps> = ({
   id,
   sourceX,
   sourceY,
