@@ -1,0 +1,55 @@
+/* Workflow-specific animations for Neo-Brutalist styling */
+
+@keyframes dash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 12;
+  }
+}
+
+.animated-edge {
+  animation: dash 1s linear infinite;
+}
+
+/* Custom ReactFlow node styles */
+.react-flow__node {
+  font-family: inherit;
+}
+
+.react-flow__node-default {
+  border-radius: 8px !important;
+  font-weight: bold !important;
+}
+
+/* Custom ReactFlow controls styling */
+.react-flow__controls {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.react-flow__controls-button {
+  background: #FEEF5D !important;
+  border: 2px solid #000 !important;
+  color: #000 !important;
+  font-weight: bold !important;
+  box-shadow: 2px 2px 0 #000 !important;
+  border-radius: 4px !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #FFE37B !important;
+  transform: translate(-1px, -1px) !important;
+  box-shadow: 3px 3px 0 #000 !important;
+}
+
+/* Custom background pattern */
+.react-flow__background {
+  background-color: #fff !important;
+}
+
+/* Hide attribution */
+.react-flow__attribution {
+  display: none !important;
+} 

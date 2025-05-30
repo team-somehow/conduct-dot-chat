@@ -1,0 +1,73 @@
+/* Neo-Brutalist Workflow Animations */
+
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(1.05); 
+  }
+}
+
+@keyframes dash {
+  to { 
+    stroke-dashoffset: -24; 
+  }
+}
+
+.animated-edge path {
+  animation: dash 2s linear infinite;
+}
+
+/* Confetti burst animation */
+@keyframes confetti {
+  0% { 
+    transform: translateY(0) rotate(0deg); 
+    opacity: 1;
+  }
+  100% { 
+    transform: translateY(200px) rotate(720deg); 
+    opacity: 0;
+  }
+}
+
+.confetti-piece { 
+  animation: confetti 1.2s ease-out forwards; 
+}
+
+/* Additional Neo-Brutalist utilities */
+.shadow-neo {
+  box-shadow: 4px 4px 0 0 #000;
+}
+
+.shadow-neo-sm {
+  box-shadow: 2px 2px 0 0 #000;
+}
+
+.shadow-neo-lg {
+  box-shadow: 8px 8px 0 0 #000;
+}
+
+/* Pulse animation for active nodes */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Terminal-style text effects */
+.terminal-glow {
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* Cost overlay animation */
+@keyframes cost-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--target-width);
+  }
+}
+
+.cost-overlay {
+  animation: cost-fill 0.5s ease-out forwards;
+} 
