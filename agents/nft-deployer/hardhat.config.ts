@@ -3,6 +3,16 @@ import "@nomicfoundation/hardhat-toolbox";
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
+  networks: {
+    hardhat: {
+      chainId: 1337,
+    },
+    flowEvmTestnet: {
+      url: "https://testnet.evm.nodes.onflow.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 545,
+    },
+  },
 };
 
 export default config;

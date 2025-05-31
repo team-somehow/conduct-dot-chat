@@ -1,7 +1,10 @@
 // Marketplace preview section with Neo-Brutalist styling
 // Features: Bold horizontal carousel of AI model cards
 
+import { abi } from "@/abis/Greeting.json";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { useReadContract } from "wagmi";
 import ModelCard from "./ModelCard/index";
 
 // TODO(MarketplacePreview):
@@ -12,42 +15,56 @@ import ModelCard from "./ModelCard/index";
 // 5. Implement touch/swipe gestures
 // END TODO
 
+// Placeholder data
+const MOCK_MODELS = [
+  {
+    name: "GPT-4",
+    description: "Advanced language model for complex reasoning",
+    rating: 4.8,
+    price: 0.03,
+  },
+  {
+    name: "DALL-E 3",
+    description: "State-of-the-art image generation model",
+    rating: 4.7,
+    price: 0.04,
+  },
+  {
+    name: "Claude 3",
+    description: "Helpful, harmless, and honest AI assistant",
+    rating: 4.9,
+    price: 0.025,
+  },
+  {
+    name: "Midjourney",
+    description: "Creative AI for artistic image generation",
+    rating: 4.6,
+    price: 0.035,
+  },
+  {
+    name: "Whisper",
+    description: "Automatic speech recognition system",
+    rating: 4.5,
+    price: 0.006,
+  },
+];
+
 const MarketplacePreview = () => {
   const navigate = useNavigate();
+  const [models, setModels] = useState(MOCK_MODELS);
 
-  // Placeholder data
-  const models = [
-    {
-      name: "GPT-4",
-      description: "Advanced language model for complex reasoning",
-      rating: 4.8,
-      price: 0.03,
-    },
-    {
-      name: "DALL-E 3",
-      description: "State-of-the-art image generation model",
-      rating: 4.7,
-      price: 0.04,
-    },
-    {
-      name: "Claude 3",
-      description: "Helpful, harmless, and honest AI assistant",
-      rating: 4.9,
-      price: 0.025,
-    },
-    {
-      name: "Midjourney",
-      description: "Creative AI for artistic image generation",
-      rating: 4.6,
-      price: 0.035,
-    },
-    {
-      name: "Whisper",
-      description: "Automatic speech recognition system",
-      rating: 4.5,
-      price: 0.006,
-    },
-  ];
+  const { data, isLoading, error } = useReadContract({
+    abi,
+    address: "0x205530e2551aA810c48d317ba0406BbA919b36b2",
+    functionName: "greet",
+  });
+
+  useEffect(() => {
+    if (!isLoading) {
+      // TODO: setModels from contract
+      console.log(data, error);
+    }
+  }, [isLoading, data, error]);
 
   return (
     <section className="py-20 bg-[#FF9BBD] border-t-4 border-b-4 border-black">
