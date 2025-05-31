@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build --mode production",
-    "deploy": "npm run build && firebase deploy --only hosting:pettiboy-rag",
+    "deploy": "npm run build && firebase deploy --only hosting",
     "lint": "eslint .",
     "preview": "vite preview"
   },

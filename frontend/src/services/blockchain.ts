@@ -61,6 +61,7 @@ export class BlockchainService {
       // Try to get provider from window.ethereum (MetaMask, etc.)
       if (typeof window !== "undefined" && window.ethereum) {
         this.provider = new ethers.BrowserProvider(window.ethereum);
+        // @ts-ignore
         this.signer = await this.provider.getSigner();
       } else {
         // Fallback to JSON-RPC provider for local development

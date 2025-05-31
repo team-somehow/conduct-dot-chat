@@ -1,8 +1,11 @@
 {
   "hosting": {
     "public": "dist",
-    "site": "pettiboy-rag-124",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
