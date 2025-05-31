@@ -12,14 +12,23 @@ app.use(express.json());
 const CHAIN_EXPLORERS: { [chainId: number]: string } = {
   545: "https://evm-testnet.flowscan.io", // Flow EVM Testnet (correct explorer)
   747: "https://www.flowscan.io", // Flow EVM Mainnet
+  11155111: "https://sepolia.etherscan.io", // Sepolia Testnet
 };
 
 // Helper to map chainId to Hardhat network name
 function getNetworkName(chainId: number): string {
-  if (chainId === 545) return "flowEvmTestnet";
-  if (chainId === 747) return "flowEvmMainnet";
-  if (chainId === 1337) return "hardhat";
-  throw new Error(`Unsupported chainId: ${chainId}`);
+  switch (chainId) {
+    case 545:
+      return "flowEvmTestnet";
+    case 747:
+      return "flowEvmMainnet";
+    case 1337:
+      return "hardhat";
+    case 11155111:
+      return "sepolia";
+    default:
+      throw new Error(`Unsupported chainId: ${chainId}`);
+  }
 }
 
 // Agent metadata - static information for MAHA protocol
@@ -44,7 +53,7 @@ const AGENT_META = {
       chainId: {
         type: "number",
         description: "Chain ID where the NFT will be deployed",
-        enum: [545, 747],
+        enum: [545, 747, 11155111],
       },
       mints: {
         type: "array",

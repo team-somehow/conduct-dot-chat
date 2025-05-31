@@ -4,7 +4,7 @@ import { NFT } from "../typechain-types";
 export async function mintNFT(nft: NFT, to: string, metadataUrl: string, ethers: any) {
   try {
     const nftContract = await ethers.getContractAt("NFT", nft.target);
-    console.log("🔑 Minting NFT to:", to, "with metadataUrl:", metadataUrl, "on contract:", nft.target);
+    console.log("🔑 Minting NFT to:", to, "with metadataUrl:", metadataUrl);
     const tx = await nftContract.mint(to, metadataUrl);
     return tx.hash;
   } catch (error) {
