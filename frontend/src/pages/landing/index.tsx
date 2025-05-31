@@ -1,6 +1,7 @@
 // Main landing page with Neo-Brutalist hero section and feature showcase
 // Features: Bold, flat design with thick borders and hard shadows
 
+import BlockscoutTransactionWidget from "@/components/BlockscoutTransactionWidget";
 import Navbar from "@/components/Navbar";
 import { useNotification, useTransactionPopup } from "@blockscout/app-sdk";
 import { useNavigate } from "react-router-dom";
@@ -101,6 +102,8 @@ const LandingPage = () => {
               </p>
             </div>
           </div>
+
+          <BlockscoutTransactionWidget txHash="0xc93c92ba22ea93861a5897f7068465b3cdd687a9b367b7b4fc66252690f0aea4" />
 
           <div className="w-full max-w-4xl mx-auto lg:mx-0">
             <PromptInput onSubmit={handlePromptSubmit} />
