@@ -70,30 +70,36 @@ const AGENT_META = {
   outputSchema: {
     type: "object",
     properties: {
-      name: { type: "string", description: "Name of the NFT" },
-      description: { type: "string", description: "Description of the NFT" },
-      image: {
-        type: "string",
-        format: "uri",
-        description: "URL to the NFT image",
-      },
-      external_url: {
-        type: "string",
-        format: "uri",
-        description: "External URL for the NFT (optional)",
-      },
-      attributes: {
-        type: "array",
-        description: "Array of attribute objects for OpenSea traits",
-        items: {
-          type: "object",
-          properties: {
-            trait_type: { type: "string" },
-            value: {},
-            display_type: { type: "string" },
+      metadata: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Name of the NFT" },
+          description: { type: "string", description: "Description of the NFT" },
+          image: {
+            type: "string",
+            format: "uri",
+            description: "URL to the NFT image",
           },
-          required: ["trait_type", "value"],
+          external_url: {
+            type: "string",
+            format: "uri",
+            description: "External URL for the NFT (optional)",
+          },
+          attributes: {
+            type: "array",
+            description: "Array of attribute objects for OpenSea traits",
+            items: {
+              type: "object",
+              properties: {
+                trait_type: { type: "string" },
+                value: {},
+                display_type: { type: "string" },
+              },
+              required: ["trait_type", "value"],
+            },
+          },
         },
+        required: ["name", "description", "image", "attributes"],
       },
       metadataUrl: {
         type: "string",
@@ -101,7 +107,7 @@ const AGENT_META = {
         description: "Publicly accessible URL to the uploaded NFT metadata JSON on IPFS via Lighthouse gateway."
       },
     },
-    required: ["name", "description", "image", "attributes", "metadataUrl"],
+    required: ["metadata", "metadataUrl"],
   },
   previewURI: "ipfs://QmNFTMetadataPreview123",
 };
@@ -210,6 +216,8 @@ app.post("/run", async (req: Request, res: Response) => {
 
     console.log(`Generated OpenSea NFT metadata for '${name}':`, metadata);
 
+    console.log("🌐 Uploading metadata to Lighthouse...");
+
     const lighthouseResponse: {
       data: {
         Name: string;
@@ -230,7 +238,6 @@ app.post("/run", async (req: Request, res: Response) => {
     res.json({
       metadata,
       metadataUrl,
-      lighthouseResponse,
     });
   } catch (error: any) {
     console.error("Processing error:", error);
