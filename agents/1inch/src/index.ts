@@ -1,3 +1,4 @@
+import axios from "axios";
 import express, { Request, Response } from "express";
 
 const app = express();
@@ -106,34 +107,34 @@ app.post(
 
       if (!chain || !["ethereum", "polygon", "bsc"].includes(chain)) {
         return res.status(400).json({
-          error:
-            "Invalid input: chain must be 'ethereum', 'polygon', or 'bsc'.",
+          error: "Invalid input: chain must be 'ethereum', 'polygon' or 'bsc'.",
         });
       }
 
-      // Placeholder for 1inch API call
-      // In a real implementation, you would use a 1inch SDK or make direct API calls here.
-      // For example, to get token balances:
-      // const response = await fetch(`https://api.1inch.io/v5.0/${chain_id}/wallet/balances?address=${address}`);
-      // const data = await response.json();
+      const url = `https://api.1inch.dev/balance/v1.2/1/aggregatedBalancesAndAllowances/${address}`;
+      const config = {
+        headers: {
+          Authorization: "Bearer QGNg6DB1HUWhOmqO0GMq5F5QYkZxXGTZ",
+        },
+        params: {
+          wallets: address,
+          filterEmpty: "true",
+        },
+        paramsSerializer: {
+          indexes: null,
+        },
+      };
 
-      const mockBalances = [
-        {
-          tokenSymbol: "ETH",
-          tokenAddress: "0x...",
-          balance: "1.2345",
-          decimals: 18,
-        },
-        {
-          tokenSymbol: "USDC",
-          tokenAddress: "0x...",
-          balance: "500.00",
-          decimals: 6,
-        },
-      ];
+      let response;
+
+      try {
+        response = await axios.get(url, config);
+      } catch (error) {
+        console.error(error);
+      }
 
       const result = {
-        balances: mockBalances,
+        balances: response?.data,
         timestamp: new Date().toISOString(),
       };
 
