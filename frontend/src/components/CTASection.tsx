@@ -1,8 +1,7 @@
 // Call-to-action section component
 // Features: Neo-Brutalist design with bold CTA
 
-import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight } from "lucide-react";
 
 // TODO(CTASection):
 // 1. Add animated background effects
@@ -22,10 +21,16 @@ const CTASection = () => {
             Ready to Transform Your Workflow?
           </h2>
           <p className="text-white font-bold text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-            Join thousands of users who are already orchestrating AI models with precision and ease.
+            Join thousands of users who are already orchestrating AI models with
+            precision and ease.
           </p>
-          <button 
-            onClick={() => {/* TODO: Implement CTA action */}}
+          <button
+            onClick={() =>
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              })
+            }
             className="inline-flex items-center space-x-2 bg-white text-black font-black uppercase px-8 py-4 border-4 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 text-lg"
           >
             <span>Try It Free</span>
@@ -37,4 +42,4 @@ const CTASection = () => {
   );
 };
 
-export default CTASection; 
+export default CTASection;

@@ -1,8 +1,6 @@
 // How it works timeline component with Neo-Brutalist styling
 // Features: Bold 3-step process visualization with blocky design
 
-import React from 'react';
-
 // TODO(HowItWorks):
 // 1. Add animated timeline progression
 // 2. Implement step-by-step reveal on scroll
@@ -14,19 +12,22 @@ import React from 'react';
 const HowItWorks = () => {
   const steps = [
     {
-      title: 'Describe Your Goal',
-      description: 'Simply tell us what you want to accomplish in natural language.',
-      color: '#FFE37B',
+      title: "Describe Your Goal",
+      description:
+        "Simply tell us what you want to accomplish in natural language.",
+      color: "#FFE37B",
     },
     {
-      title: 'AI Auto-Plans',
-      description: 'Our AI automatically selects and connects the best models for your task.',
-      color: '#7C82FF',
+      title: "AI Auto-Plans",
+      description:
+        "Our AI automatically selects and connects the best models for your task.",
+      color: "#7C82FF",
     },
     {
-      title: 'Watch It Execute',
-      description: 'See your workflow come to life with real-time visualization and results.',
-      color: '#FF5484',
+      title: "Watch It Execute",
+      description:
+        "See your workflow come to life with real-time visualization and results.",
+      color: "#FF5484",
     },
   ];
 
@@ -50,25 +51,39 @@ const HowItWorks = () => {
               <div className="bg-white border-4 border-black shadow-neo-lg p-8 h-80 flex flex-col justify-between hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150">
                 <div className="flex flex-col items-center">
                   {/* Step Number */}
-                  <div 
+                  <div
                     className="w-16 h-16 border-4 border-black shadow-neo flex items-center justify-center mb-6"
                     style={{ backgroundColor: step.color }}
                   >
-                    <span className="text-black font-black text-2xl">{index + 1}</span>
+                    <span className="text-black font-black text-2xl">
+                      {index + 1}
+                    </span>
                   </div>
-                  
+
                   {/* Content */}
-                  <h3 className="text-xl md:text-2xl font-black text-black mb-4 uppercase tracking-tight text-center">{step.title}</h3>
+                  <h3 className="text-xl md:text-2xl font-black text-black mb-4 uppercase tracking-tight text-center">
+                    {step.title}
+                  </h3>
                 </div>
-                
-                <p className="text-black font-medium leading-relaxed text-center">{step.description}</p>
+
+                <p className="text-black font-medium leading-relaxed text-center">
+                  {step.description}
+                </p>
               </div>
             </div>
           ))}
         </div>
-        
+
         <div className="text-center mt-16">
-          <button className="bg-[#FF5484] text-black font-black uppercase px-10 py-4 border-4 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 text-lg tracking-tight">
+          <button
+            className="bg-[#FF5484] text-black font-black uppercase px-10 py-4 border-4 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 text-lg tracking-tight"
+            onClick={() =>
+              window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+              })
+            }
+          >
             Start Building Now
           </button>
         </div>
@@ -77,4 +92,4 @@ const HowItWorks = () => {
   );
 };
 
-export default HowItWorks; 
+export default HowItWorks;

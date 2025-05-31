@@ -1,16 +1,15 @@
 // Main landing page with Neo-Brutalist hero section and feature showcase
 // Features: Bold, flat design with thick borders and hard shadows
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../../components/Navbar';
-import PromptInput from '../../components/PromptInput';
-import FeatureCard from '../../components/FeatureCard';
-import MarketplacePreview from '../../components/MarketplacePreview';
-import HowItWorks from '../../components/HowItWorks';
-import CTASection from '../../components/CTASection';
-import Footer from '../../components/Footer';
-import '../../styles/landing.css';
+import { useNavigate } from "react-router-dom";
+import CTASection from "../../components/CTASection";
+import FeatureCard from "../../components/FeatureCard";
+import Footer from "../../components/Footer";
+import HowItWorks from "../../components/HowItWorks";
+import MarketplacePreview from "../../components/MarketplacePreview";
+import Navbar from "../../components/Navbar";
+import PromptInput from "../../components/PromptInput";
+import "../../styles/landing.css";
 
 // TODO(Landing):
 // 1. Add scroll-based animations and parallax effects
@@ -29,19 +28,22 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: '✨',
-      title: 'Smart Orchestration',
-      description: 'Our AI automatically creates the optimal workflow for your specific task.',
+      icon: "✨",
+      title: "Smart Orchestration",
+      description:
+        "Our AI automatically creates the optimal workflow for your specific task.",
     },
     {
-      icon: '⚡',
-      title: 'Model Marketplace',
-      description: 'Access hundreds of specialized AI models to handle any task in your workflow.',
+      icon: "⚡",
+      title: "Model Marketplace",
+      description:
+        "Access hundreds of specialized AI models to handle any task in your workflow.",
     },
     {
-      icon: '🖥️',
-      title: 'Visual Workflows',
-      description: 'Watch your AI models work together in real-time with our interactive visualization.',
+      icon: "🖥️",
+      title: "Visual Workflows",
+      description:
+        "Watch your AI models work together in real-time with our interactive visualization.",
     },
   ];
 
@@ -49,25 +51,24 @@ const LandingPage = () => {
     <div className="neo-brutalist-bg min-h-screen">
       {/* TODO(brutalism): future interactive micro-animations */}
       <Navbar />
-      
+
       {/* Hero Section */}
       <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 pt-20 pb-12 sm:pb-20">
         <div className="mx-auto max-w-screen-xl w-full">
           <div className="text-center lg:text-left">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight text-black tracking-tight mb-4 sm:mb-6 lg:mb-8">
-              Orchestrate AI Models with{' '}
-              <span className="text-[#FF5484] block sm:inline">
-                Precision
-              </span>
+              Orchestrate AI Models with{" "}
+              <span className="text-[#FF5484] block sm:inline">Precision</span>
             </h1>
-            
+
             <div className="max-w-lg sm:max-w-2xl lg:max-w-4xl mx-auto lg:mx-0 mb-8 sm:mb-12 lg:mb-16">
               <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium leading-relaxed">
-                Transform your ideas into powerful AI workflows. Connect, configure, and execute multiple AI models seamlessly.
+                Transform your ideas into powerful AI workflows. Connect,
+                configure, and execute multiple AI models seamlessly.
               </p>
             </div>
           </div>
-          
+
           <div className="w-full max-w-4xl mx-auto lg:mx-0">
             <PromptInput onSubmit={handlePromptSubmit} />
           </div>
@@ -105,4 +106,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage; 
+export default LandingPage;

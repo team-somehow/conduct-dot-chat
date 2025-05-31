@@ -138,15 +138,19 @@ const Navbar = () => {
             )}
 
             {/* Mobile Auth Button */}
-            <button
-              onClick={() => {
-                setShowAuthFlow(true);
-                closeMobileMenu();
-              }}
-              className="w-full mt-6 px-4 py-3 bg-[#7C82FF] text-white font-bold uppercase text-base border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
-            >
-              Sign In
-            </button>
+            {user ? (
+              <></>
+            ) : (
+              <button
+                onClick={() => {
+                  setShowAuthFlow(true);
+                  closeMobileMenu();
+                }}
+                className="w-full mt-6 px-4 py-3 bg-[#7C82FF] text-white font-bold uppercase text-base border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       )}
