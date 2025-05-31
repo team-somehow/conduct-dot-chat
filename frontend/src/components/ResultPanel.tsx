@@ -72,19 +72,10 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
     }
   };
 
-  // Parse execution results
-  const parseResults = () => {
-    try {
-      if (typeof result === 'string') {
-        return JSON.parse(result);
-      }
-      return result;
-    } catch {
-      return result;
-    }
-  };
+  // Parse the result if it's a string
+  const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+  const summary = parsedResult?.summary || result?.summary;
 
-  const parsedResult = parseResults();
   const stepsCount = workflow?.steps?.length || 2;
   const modelsUsed = workflow?.steps?.map((step: any) => step.agentName).join(", ") || "DALL-E 3, NFT Deployer";
   
@@ -116,9 +107,6 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
     }
   ];
 
-  // Get summary from result if available
-  const summary = parsedResult?.summary || result?.summary;
-  
   // Format results for display
   const formatResultsForDisplay = () => {
     if (parsedResult && typeof parsedResult === 'object') {

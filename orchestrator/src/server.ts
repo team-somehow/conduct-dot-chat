@@ -483,6 +483,64 @@ app.get("/agents/:agentUrl/meta", async (req: Request, res: Response) => {
   }
 });
 
+// Generate AI summary for workflow execution
+app.post("/workflows/generate-summary", async (req: Request, res: Response) => {
+  try {
+    const { workflowId, executionId, workflow, execution, logs, executionType } = req.body;
+
+    if (!workflow && !workflowId) {
+      return res.status(400).json({
+        error: "Missing required field: workflow or workflowId",
+      });
+    }
+
+    if (!execution && !executionId) {
+      return res.status(400).json({
+        error: "Missing required field: execution or executionId",
+      });
+    }
+
+    let workflowData = workflow;
+    let executionData = execution;
+
+    // If IDs are provided instead of objects, fetch the data
+    if (!workflowData && workflowId) {
+      workflowData = workflowManager.getWorkflow(workflowId);
+      if (!workflowData) {
+        return res.status(404).json({
+          error: "Workflow not found",
+        });
+      }
+    }
+
+    if (!executionData && executionId) {
+      executionData = workflowManager.getExecution(executionId);
+      if (!executionData) {
+        return res.status(404).json({
+          error: "Execution not found",
+        });
+      }
+    }
+
+    console.log(`🤖 Generating AI summary for workflow execution...`);
+
+    const summary = await generateExecutionSummary(executionData, workflowData);
+
+    res.json({
+      success: true,
+      summary: summary,
+      generatedAt: Date.now(),
+      executionType: executionType || "api",
+    });
+  } catch (error: any) {
+    console.error("Summary generation failed:", error);
+    res.status(500).json({
+      error: "Summary generation failed",
+      details: error.message,
+    });
+  }
+});
+
 // CLI mode for health checks
 if (process.argv[2] === "health") {
   console.log("🏥 Running health check on all agents...");

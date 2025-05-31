@@ -94,6 +94,25 @@ export interface UserIntent {
   preferences?: Record<string, any>;
 }
 
+export interface SummaryRequest {
+  workflowId?: string;
+  executionId?: string;
+  workflow?: WorkflowDefinition;
+  execution?: WorkflowExecution;
+  logs?: Array<{
+    id: string;
+    timestamp: string;
+    message: string;
+    type: "info" | "success" | "error";
+  }>;
+  executionType: "api" | "simulation";
+}
+
+export interface SummaryResponse {
+  summary: string;
+  generatedAt: number;
+}
+
 // API Functions
 export const orchestratorAPI = {
   // Health check
@@ -201,6 +220,14 @@ export const orchestratorAPI = {
 
     return { workflow, execution };
   },
+
+  // Generate AI summary for workflow execution
+  async generateSummary(
+    summaryRequest: SummaryRequest
+  ): Promise<SummaryResponse> {
+    const response = await api.post("/workflows/generate-summary", summaryRequest);
+    return response.data;
+  },
 };
 
 // Error handling wrapper
@@ -247,6 +274,7 @@ export const safeOrchestratorAPI = {
   createAndExecuteWorkflow: withErrorHandling(
     orchestratorAPI.createAndExecuteWorkflow
   ),
+  generateSummary: withErrorHandling(orchestratorAPI.generateSummary),
 };
 
 export default safeOrchestratorAPI;

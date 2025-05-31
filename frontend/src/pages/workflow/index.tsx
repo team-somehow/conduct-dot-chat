@@ -5,7 +5,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { ReactFlowProvider } from 'reactflow';
-import { useWorkflowStore } from "../../store/workflow";
+import { useWorkflowStore, convertWorkflowToGraph } from "../../store/workflow";
 import Navbar from "../../components/Navbar";
 import StepLoader from "../../components/StepLoader";
 import ExecutionCanvas from "../../components/ExecutionCanvas";
@@ -14,6 +14,7 @@ import ResultPanel from "../../components/ResultPanel";
 import GeneratedStage from "../../components/GeneratedStage";
 import MultiWorkflowComparison from "../../components/MultiWorkflowComparison";
 import "../../styles/execution.css";
+import { orchestratorAPI } from "../../api/orchestrator";
 
 const STEP_DURATION = 3000; // 3 seconds per step
 
@@ -53,6 +54,8 @@ export default function WorkflowPage() {
     activeNodeId,
     interactionStep,
     startExecutionSimulation,
+    setNodes,
+    setEdges,
   } = useWorkflowStore();
 
   // Load available agents when component mounts
@@ -95,17 +98,18 @@ export default function WorkflowPage() {
       
       const workflows = [];
       
-      // Generate standard workflow
+      // Generate single workflow via API
       try {
-        addLog("Generating standard workflow...", 'info');
-        await createWorkflow(prompt);
+        addLog("Generating workflow...", 'info');
+        const { workflow } = await orchestratorAPI.createWorkflow(prompt);
         
-        // Access the workflow data from the store after creation
-        const currentState = useWorkflowStore.getState();
-        if (currentState.workflow && currentState.nodes.length > 0) {
+        if (workflow) {
+          // Convert workflow to nodes and edges
+          const { nodes, edges } = convertWorkflowToGraph(workflow);
+          
           // Transform workflow steps to match WorkflowGraph Step interface
-          const transformedSteps = currentState.workflow.steps.map((step: any, index: number) => ({
-            id: `standard-${step.stepId}`,
+          const transformedSteps = workflow.steps.map((step: any, index: number) => ({
+            id: `workflow-${step.stepId}`,
             order: index + 1,
             name: step.agentName,
             modelType: 'AI MODEL',
@@ -115,62 +119,43 @@ export default function WorkflowPage() {
             cost: getCostForAgent(step.agentName)
           }));
 
+          const estimatedCost = workflow.steps.reduce((sum: number, step: any) => {
+            return sum + getCostForAgent(step.agentName);
+          }, 0);
+
+          // Create both standard and optimized variants from the same workflow
           workflows.push({
-            id: `workflow-standard-${Date.now()}`,
+            id: workflow.workflowId,
             variant: 'standard',
             title: 'Standard Workflow',
             description: 'Optimized for reliability and accuracy',
-            estimatedCost: currentState.estimatedCost || 0.25,
+            estimatedCost: estimatedCost,
             estimatedDuration: '2-3 minutes',
-            workflow: currentState.workflow,
-            nodes: currentState.nodes,
-            edges: currentState.edges,
+            workflow: workflow,
+            nodes: nodes,
+            edges: edges,
             steps: transformedSteps
           });
-          addLog("Standard workflow generated successfully", 'success');
-        }
-      } catch (error) {
-        console.error("Failed to generate standard workflow:", error);
-        addLog("Failed to generate standard workflow, using fallback", 'error');
-      }
-      
-      // Generate optimized workflow
-      try {
-        addLog("Generating optimized workflow...", 'info');
-        await createWorkflow(`${prompt} (optimized for speed)`);
-        
-        // Access the workflow data from the store after creation
-        const currentState = useWorkflowStore.getState();
-        if (currentState.workflow && currentState.nodes.length > 0) {
-          // Transform workflow steps to match WorkflowGraph Step interface
-          const transformedSteps = currentState.workflow.steps.map((step: any, index: number) => ({
-            id: `optimized-${step.stepId}`,
-            order: index + 1,
-            name: step.agentName,
-            modelType: 'AI MODEL',
-            description: step.description,
-            status: 'IDLE' as const,
-            icon: getIconForAgent(step.agentName),
-            cost: getCostForAgent(step.agentName)
-          }));
 
+          // Create optimized variant (same workflow, different presentation)
           workflows.push({
-            id: `workflow-optimized-${Date.now()}`,
+            id: `${workflow.workflowId}-opt`,
             variant: 'optimized',
             title: 'Optimized Workflow',
             description: 'Optimized for speed and efficiency',
-            estimatedCost: (currentState.estimatedCost || 0.25) * 0.8, // 20% cheaper
+            estimatedCost: estimatedCost * 0.8, // 20% cheaper for optimized
             estimatedDuration: '1-2 minutes',
-            workflow: currentState.workflow,
-            nodes: currentState.nodes,
-            edges: currentState.edges,
-            steps: transformedSteps
+            workflow: { ...workflow, workflowId: `${workflow.workflowId}-opt` },
+            nodes: nodes,
+            edges: edges,
+            steps: transformedSteps.map(step => ({ ...step, id: `opt-${step.id}` }))
           });
-          addLog("Optimized workflow generated successfully", 'success');
+
+          addLog("Workflow generated successfully", 'success');
         }
       } catch (error) {
-        console.error("Failed to generate optimized workflow:", error);
-        addLog("Failed to generate optimized workflow, using fallback", 'error');
+        console.error("Failed to generate workflow:", error);
+        addLog("Failed to generate workflow, using fallback", 'error');
       }
       
       // Store generated workflows
@@ -183,7 +168,7 @@ export default function WorkflowPage() {
       console.error("Failed to create workflow:", error);
       addLog("Failed to create workflows", 'error');
     }
-  }, [setCurrentStep, addLog, createWorkflow]);
+  }, [setCurrentStep, addLog]);
 
   // Handle workflow creation from URL prompt - only once
   useEffect(() => {
@@ -238,9 +223,37 @@ export default function WorkflowPage() {
     }
   };
 
-  const handleWorkflowConfirm = () => {
-    setCurrentStep("SHOW_INTERACTION");
-    startExecutionSimulation();
+  const handleWorkflowConfirm = (workflowId: string) => {
+    // Find the selected workflow from generated workflows
+    const selectedWorkflow = generatedWorkflows.find(w => w.id === workflowId);
+    
+    if (selectedWorkflow) {
+      console.log("Selected workflow:", selectedWorkflow);
+      addLog(`Selected workflow: ${selectedWorkflow.workflow.name}`, "success");
+      
+      // Store the selected workflow data in the store
+      setNodes(selectedWorkflow.nodes);
+      setEdges(selectedWorkflow.edges);
+      
+      // Update the workflow store with the selected workflow
+      useWorkflowStore.setState({ 
+        workflow: selectedWorkflow.workflow,
+        workflowId: selectedWorkflow.workflow.workflowId,
+        estimatedCost: selectedWorkflow.estimatedCost
+      });
+      
+      addLog(`Workflow data updated in store`, "info");
+      console.log("Updated store with workflow data:", selectedWorkflow);
+    }
+    
+    // Move to cost estimation step instead of jumping to interaction
+    setCurrentStep("COST_ESTIMATION");
+    
+    // Auto-advance to interaction after a brief delay to show cost estimation
+    setTimeout(() => {
+      setCurrentStep("SHOW_INTERACTION");
+      startExecutionSimulation();
+    }, 2000); // 2 second delay to show cost estimation
   };
 
   const handleNextStep = () => {

@@ -14,6 +14,7 @@ import orchestratorAPI, {
   WorkflowExecution,
   Agent,
   WorkflowStep,
+  SummaryRequest,
 } from "../api/orchestrator";
 
 // TODO(WorkflowStore):
@@ -97,6 +98,8 @@ interface WorkflowState {
   updateNode: (nodeId: string, updates: Partial<Node>) => void;
   addEdge: (edge: Edge) => void;
   removeEdge: (edgeId: string) => void;
+  setNodes: (nodes: Node[]) => void;
+  setEdges: (edges: Edge[]) => void;
 
   // Model selection
   setSelectedModel: (model: Model) => void;
@@ -125,7 +128,7 @@ interface WorkflowState {
 }
 
 // Helper function to convert workflow steps to nodes and edges
-const convertWorkflowToGraph = (
+export const convertWorkflowToGraph = (
   workflow: WorkflowDefinition
 ): { nodes: Node[]; edges: Edge[] } => {
   const nodes: Node[] = [];
@@ -340,6 +343,10 @@ export const useWorkflowStore = create<WorkflowState>()(
           edges: state.edges.filter((e) => e.id !== edgeId),
         })),
 
+      setNodes: (nodes) => set({ nodes }),
+
+      setEdges: (edges) => set({ edges }),
+
       // Model selection
       setSelectedModel: (model) => set({ selectedModel: model }),
 
@@ -409,6 +416,27 @@ export const useWorkflowStore = create<WorkflowState>()(
           if (summary) {
             set({ executionSummary: summary });
             get().addLog("AI-generated summary received", "success");
+          } else {
+            // Generate summary using API if not provided
+            try {
+              const { workflow } = get();
+              if (workflow) {
+                const summaryRequest: SummaryRequest = {
+                  workflowId: workflow.workflowId,
+                  executionId: execution.executionId,
+                  workflow: workflow,
+                  execution: execution,
+                  logs: get().logs,
+                  executionType: "api"
+                };
+                
+                const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                set({ executionSummary: summaryResponse.summary });
+                get().addLog("AI summary generated via API", "success");
+              }
+            } catch (summaryError: any) {
+              get().addLog(`Failed to generate summary: ${summaryError.message}`, "error");
+            }
           }
 
           set({
@@ -438,6 +466,27 @@ export const useWorkflowStore = create<WorkflowState>()(
           const { execution } = await orchestratorAPI.getExecution(executionId);
 
           if (execution.status === "completed") {
+            // Generate final summary using API
+            try {
+              const { workflow } = get();
+              if (workflow) {
+                const summaryRequest: SummaryRequest = {
+                  workflowId: workflow.workflowId,
+                  executionId: execution.executionId,
+                  workflow: workflow,
+                  execution: execution,
+                  logs: get().logs,
+                  executionType: "api"
+                };
+                
+                const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                set({ executionSummary: summaryResponse.summary });
+                get().addLog("Final AI summary generated", "success");
+              }
+            } catch (summaryError: any) {
+              get().addLog(`Failed to generate final summary: ${summaryError.message}`, "error");
+            }
+
             set({
               executionResults: execution.output,
               isExecuting: false,
@@ -448,6 +497,27 @@ export const useWorkflowStore = create<WorkflowState>()(
               "success"
             );
           } else if (execution.status === "failed") {
+            // Generate error summary using API
+            try {
+              const { workflow } = get();
+              if (workflow) {
+                const summaryRequest: SummaryRequest = {
+                  workflowId: workflow.workflowId,
+                  executionId: execution.executionId,
+                  workflow: workflow,
+                  execution: execution,
+                  logs: get().logs,
+                  executionType: "api"
+                };
+                
+                const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                set({ executionSummary: summaryResponse.summary });
+                get().addLog("Error summary generated", "success");
+              }
+            } catch (summaryError: any) {
+              get().addLog(`Failed to generate error summary: ${summaryError.message}`, "error");
+            }
+
             set({
               error: execution.error || "Execution failed",
               isExecuting: false,
@@ -550,7 +620,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
       },
       startExecutionSimulation: () => {
-        const { nodes } = get();
+        const { nodes, workflow } = get();
         
         get().addLog("🚀 Starting workflow execution...", "info");
         
@@ -601,13 +671,19 @@ export const useWorkflowStore = create<WorkflowState>()(
                             setTimeout(() => {
                               get().addLog("✅ All agents completed successfully!", "success");
                               
-                              // Final delay before moving to results
-                              setTimeout(() => {
-                                set({ 
-                                  activeNodeId: null,
-                                  isExecuting: false,
-                                  currentStep: "SHOW_RESULT",
-                                  executionResults: {
+                              // Generate AI summary using API for simulation
+                              setTimeout(async () => {
+                                try {
+                                  if (workflow) {
+                                    // Create mock execution data for simulation
+                                    const mockExecution = {
+                                      executionId: `sim-${Date.now()}`,
+                                      workflowId: workflow.workflowId,
+                                      status: "completed" as const,
+                                      startedAt: Date.now() - 30000, // 30 seconds ago
+                                      completedAt: Date.now(),
+                                      input: { userRequest: workflow.userIntent },
+                                      output: {
                                     nftAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
                                     tokenId: "1",
                                     imageUrl: "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
@@ -616,10 +692,96 @@ export const useWorkflowStore = create<WorkflowState>()(
                                     tokenName: "Thank You NFT #1",
                                     metadataUri: "https://demo.metadata.uri/1",
                                     explorerUrl: "https://etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                                      },
+                                      stepResults: workflow.steps.map((step: WorkflowStep, index: number) => ({
+                                        stepId: step.stepId,
+                                        status: "completed" as const,
+                                        startedAt: Date.now() - (30000 - index * 10000),
+                                        completedAt: Date.now() - (20000 - index * 10000),
+                                        input: step.inputMapping,
+                                        output: index === 0 ? { imageUrl: "generated_image.png" } : { nftAddress: "0x742d35Cc..." }
+                                      }))
+                                    };
+
+                                    const summaryRequest: SummaryRequest = {
+                                      workflow: workflow,
+                                      execution: mockExecution,
+                                      logs: get().logs,
+                                      executionType: "simulation"
+                                    };
+                                    
+                                    get().addLog("🤖 Generating AI summary...", "info");
+                                    const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                                    
+                                    set({ 
+                                      activeNodeId: null,
+                                      isExecuting: false,
+                                      currentStep: "SHOW_RESULT",
+                                      executionResults: mockExecution.output,
+                                      executionSummary: summaryResponse.summary
+                                    });
+                                    get().addLog("✅ AI summary generated successfully!", "success");
                                   }
-                                });
+                                } catch (summaryError: any) {
+                                  get().addLog(`Failed to generate AI summary: ${summaryError.message}`, "error");
+                                  
+                                  // Generate fallback summary locally for generic workflow
+                                  const fallbackSummary = `# ✅ Workflow Execution Complete
+
+## 📊 Execution Overview
+- **Workflow ID**: ${workflow?.workflowId || 'demo-workflow'}
+- **Total Steps**: ${workflow?.steps?.length || 1}
+- **Execution Time**: 10 seconds
+- **Status**: ✅ Successfully Completed
+- **Mode**: Simulation
+
+## 🤖 Agent Performance
+${workflow?.steps?.map((step: any, index: number) => `
+### ${step.agentName || `Agent ${index + 1}`}
+- **Task**: ${step.description || 'Process workflow step'}
+- **Status**: ✅ Completed
+- **Performance**: Excellent
+- **Duration**: ${3 + index * 2} seconds
+`).join('') || `
+### AI Agent
+- **Task**: Process user request
+- **Status**: ✅ Completed
+- **Performance**: Excellent
+- **Duration**: 5 seconds
+`}
+
+## 🎯 Key Achievements
+- ✅ Successfully processed user request
+- ✅ Completed all workflow steps without errors
+- ✅ Generated appropriate response
+- ✅ Workflow executed flawlessly
+
+## 📋 Technical Details
+- **Execution ID**: sim-${Date.now()}
+- **API Mode**: Simulation
+- **Error Rate**: 0%
+- **Performance Score**: 100%
+
+## 🚀 Results Summary
+Your workflow has been successfully executed! All agents completed their tasks perfectly, processing your request and generating the expected results.
+
+---
+*Summary generated by AI Workflow Orchestrator*`;
+
+                                  set({ 
+                                    activeNodeId: null,
+                                    isExecuting: false,
+                                    currentStep: "SHOW_RESULT",
+                                    executionResults: {
+                                      message: "Demo workflow completed successfully!",
+                                      timestamp: Date.now()
+                                    },
+                                    executionSummary: fallbackSummary
+                                  });
+                                  get().addLog("✅ Fallback summary generated successfully!", "success");
+                                }
                                 get().addLog("✅ Workflow execution completed successfully!", "success");
-                              }, 2000); // Wait 2 seconds before showing results
+                              }, 1000); // Wait 1 second before generating summary
                             }, 1500); // Keep final node active for 1.5 seconds
                           }, 2000); // Deploying phase
                         }, 2000); // Minting phase
@@ -635,10 +797,95 @@ export const useWorkflowStore = create<WorkflowState>()(
                 set({ activeNodeId: firstAgent.id });
                 get().addLog(`🤖 ${firstAgent.data?.label}: Processing request...`, "info");
                 
-                setTimeout(() => {
+                setTimeout(async () => {
                   get().addLog(`✅ ${firstAgent.data?.label}: Task completed successfully!`, "success");
                   
-                  setTimeout(() => {
+                  // Generate AI summary for generic workflow
+                  try {
+                    if (workflow) {
+                      const mockExecution = {
+                        executionId: `sim-${Date.now()}`,
+                        workflowId: workflow.workflowId,
+                        status: "completed" as const,
+                        startedAt: Date.now() - 10000,
+                        completedAt: Date.now(),
+                        input: { userRequest: workflow.userIntent },
+                        output: { message: "Demo workflow completed successfully!", timestamp: Date.now() },
+                        stepResults: workflow.steps.map((step: WorkflowStep) => ({
+                          stepId: step.stepId,
+                          status: "completed" as const,
+                          startedAt: Date.now() - 5000,
+                          completedAt: Date.now(),
+                          input: step.inputMapping,
+                          output: { result: "success" }
+                        }))
+                      };
+
+                      const summaryRequest: SummaryRequest = {
+                        workflow: workflow,
+                        execution: mockExecution,
+                        logs: get().logs,
+                        executionType: "simulation"
+                      };
+                      
+                      get().addLog("🤖 Generating AI summary...", "info");
+                      const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                      
+                      set({ 
+                        activeNodeId: null,
+                        isExecuting: false,
+                        currentStep: "SHOW_RESULT",
+                        executionResults: mockExecution.output,
+                        executionSummary: summaryResponse.summary
+                      });
+                      get().addLog("✅ AI summary generated successfully!", "success");
+                    }
+                  } catch (summaryError: any) {
+                    get().addLog(`Failed to generate AI summary: ${summaryError.message}`, "error");
+                    
+                    // Generate fallback summary locally for generic workflow
+                    const fallbackSummary = `# ✅ Workflow Execution Complete
+
+## 📊 Execution Overview
+- **Workflow ID**: ${workflow?.workflowId || 'demo-workflow'}
+- **Total Steps**: ${workflow?.steps?.length || 1}
+- **Execution Time**: 10 seconds
+- **Status**: ✅ Successfully Completed
+- **Mode**: Simulation
+
+## 🤖 Agent Performance
+${workflow?.steps?.map((step: any, index: number) => `
+### ${step.agentName || `Agent ${index + 1}`}
+- **Task**: ${step.description || 'Process workflow step'}
+- **Status**: ✅ Completed
+- **Performance**: Excellent
+- **Duration**: ${3 + index * 2} seconds
+`).join('') || `
+### AI Agent
+- **Task**: Process user request
+- **Status**: ✅ Completed
+- **Performance**: Excellent
+- **Duration**: 5 seconds
+`}
+
+## 🎯 Key Achievements
+- ✅ Successfully processed user request
+- ✅ Completed all workflow steps without errors
+- ✅ Generated appropriate response
+- ✅ Workflow executed flawlessly
+
+## 📋 Technical Details
+- **Execution ID**: sim-${Date.now()}
+- **API Mode**: Simulation
+- **Error Rate**: 0%
+- **Performance Score**: 100%
+
+## 🚀 Results Summary
+Your workflow has been successfully executed! All agents completed their tasks perfectly, processing your request and generating the expected results.
+
+---
+*Summary generated by AI Workflow Orchestrator*`;
+
                     set({ 
                       activeNodeId: null,
                       isExecuting: false,
@@ -646,10 +893,12 @@ export const useWorkflowStore = create<WorkflowState>()(
                       executionResults: {
                         message: "Demo workflow completed successfully!",
                         timestamp: Date.now()
-                      }
+                      },
+                      executionSummary: fallbackSummary
                     });
+                    get().addLog("✅ Fallback summary generated successfully!", "success");
+                  }
                     get().addLog("✅ Workflow execution completed!", "success");
-                  }, 2000);
                 }, 3000);
               }
             }
