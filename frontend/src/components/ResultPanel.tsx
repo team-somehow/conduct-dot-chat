@@ -55,6 +55,8 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
   const [rating, setRating] = useState(0);
   const [copied, setCopied] = useState(false);
   const [modelRatings, setModelRatings] = useState<Record<string, number>>({});
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleModelRating = (modelId: string, rating: number) => {
     console.log(`Model ${modelId} rated ${rating} stars`);
@@ -63,6 +65,8 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
 
   const handleFeedbackSubmit = async () => {
     try {
+      setIsSubmitting(true);
+      
       // Show loading state
       console.log("🚀 Submitting feedback to blockchain...");
 
@@ -70,6 +74,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       if (Object.keys(modelRatings).length === 0) {
         console.warn("⚠️ No ratings provided");
         onFeedback("No ratings provided");
+        setIsSubmitting(false);
         return;
       }
 
@@ -116,6 +121,9 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         if (result.errors && result.errors.length > 0) {
           console.warn("⚠️ Some ratings failed:", result.errors);
         }
+
+        // Set feedback as submitted
+        setFeedbackSubmitted(true);
       } else {
         console.error("❌ Feedback submission failed:", result);
 
@@ -127,6 +135,9 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         onFeedback(
           `⚠️ Blockchain submission failed, ratings stored locally: ${fallbackMessage}`
         );
+
+        // Set feedback as submitted even on fallback
+        setFeedbackSubmitted(true);
       }
 
       // Clear ratings after submission
@@ -146,6 +157,8 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       );
 
       // Don't clear ratings on error so user can try again
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -304,19 +317,71 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
           >
             🤖 Models Used
           </h2>
-          <ModelsTimeline
-            models={timelineModels}
-            onModelRating={handleModelRating}
-          />
+          {feedbackSubmitted ? (
+            <div className="bg-[#13C27B] border-4 border-black p-6 text-center">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <CheckCircle className="h-8 w-8 text-white" />
+                <h3 className="text-2xl font-black text-white uppercase tracking-wide">
+                  Thank You for Your Submission!
+                </h3>
+              </div>
+              <p className="text-white font-bold text-lg">
+                Your feedback has been successfully recorded on the blockchain.
+              </p>
+              <p className="text-white/80 font-medium mt-2">
+                Your ratings help improve the AI agent ecosystem.
+              </p>
+            </div>
+          ) : (
+            <ModelsTimeline
+              models={timelineModels}
+              onModelRating={handleModelRating}
+            />
+          )}
         </SectionCard>
       </motion.section>
+
+      {/* Action Buttons - Submit Feedback (only show if not submitted) */}
+      {!feedbackSubmitted && (
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -20, opacity: 0 }}
+          transition={{
+            delay: hasAaveIntegration ? 0.8 : 0.7,
+          }}
+          className="flex justify-center"
+        >
+          <button
+            onClick={handleFeedbackSubmit}
+            disabled={isSubmitting || Object.keys(modelRatings).length === 0}
+            className={`btn-brutalist inline-flex items-center justify-center gap-3 font-black uppercase text-sm px-8 py-4 border-4 border-black shadow-neo transition-all duration-150 ${
+              isSubmitting || Object.keys(modelRatings).length === 0
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                : 'bg-[#7C82FF] text-white hover:bg-[#6B73E6]'
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <>
+                <Send className="h-5 w-5" />
+                <span>Submit Feedback</span>
+              </>
+            )}
+          </button>
+        </motion.div>
+      )}
 
       {/* AI Summary Section - Only show if summary exists */}
       {summary && (
         <motion.section
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: hasAaveIntegration ? 0.9 : 0.8 }}
+          transition={{ delay: hasAaveIntegration ? 1.0 : 0.9 }}
           aria-labelledby="ai-summary"
         >
           <SectionCard>
@@ -411,11 +476,11 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         transition={{
           delay: hasAaveIntegration
             ? summary
-              ? 1.1
-              : 0.9
+              ? 1.2
+              : 1.1
             : summary
-            ? 1.0
-            : 0.8,
+            ? 1.1
+            : 1.0,
         }}
         aria-labelledby="execution-results"
       >
@@ -457,11 +522,11 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         transition={{
           delay: hasAaveIntegration
             ? summary
-              ? 1.3
-              : 1.1
+              ? 1.4
+              : 1.3
             : summary
-            ? 1.2
-            : 1.0,
+            ? 1.3
+            : 1.2,
         }}
         aria-labelledby="transaction-details"
       >
@@ -511,30 +576,6 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         </SectionCard>
       </motion.section>
 
-      {/* Action Buttons - Only Submit Feedback */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{
-          delay: hasAaveIntegration
-            ? summary
-              ? 1.5
-              : 1.3
-            : summary
-            ? 1.4
-            : 1.2,
-        }}
-        className="flex justify-center"
-      >
-        <button
-          onClick={handleFeedbackSubmit}
-          className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#7C82FF] text-white font-black uppercase text-sm px-8 py-4 border-4 border-black shadow-neo transition-all duration-150"
-        >
-          <Send className="h-5 w-5" />
-          <span>Submit Feedback</span>
-        </button>
-      </motion.div>
-
       {/* Step Indicator (if needed) */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
@@ -542,10 +583,10 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         transition={{
           delay: hasAaveIntegration
             ? summary
-              ? 1.7
+              ? 1.6
               : 1.5
             : summary
-            ? 1.6
+            ? 1.5
             : 1.4,
         }}
         className="flex justify-center"

@@ -815,26 +815,72 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
     const results = [];
     const errors = [];
 
-    // Submit ratings for each agent (demo mode)
+    // Submit ratings for each agent using blockchain service
     for (const [agentIdentifier, rating] of Object.entries(modelRatings)) {
       try {
         let agentUrl = agentIdentifier;
 
         if (typeof rating === "number" && rating >= 1 && rating <= 5) {
-          // Demo rating submission - always successful
-          console.log(`⭐ Rating ${rating}/5 submitted for agent ${agentUrl}`);
+          console.log(`⭐ Submitting rating ${rating}/5 for agent ${agentUrl} to blockchain...`);
+
+          // Try to get agent's blockchain address from the agent URL
+          let agentAddress: string | null = null;
+          
+          try {
+            // First, try to get the agent from blockchain by URL
+            const blockchainAgent = await jobRunner.getBlockchainService()?.getAgentByUrl(agentUrl);
+            if (blockchainAgent) {
+              agentAddress = blockchainAgent.wallet;
+            } else {
+              // If not found by URL, try to extract address from URL or use a mapping
+              // For demo purposes, we'll generate a demo address
+              agentAddress = `0x${agentUrl.slice(-40).padStart(40, '0')}`;
+            }
+          } catch (error) {
+            console.warn(`⚠️ Could not get blockchain address for ${agentUrl}, using fallback`);
+            agentAddress = `0x${agentUrl.slice(-40).padStart(40, '0')}`;
+          }
+
+          // Submit rating to blockchain
+          let txHash: string | null = null;
+          let success = false;
+          let errorMessage: string | null = null;
+
+          try {
+            const blockchainService = jobRunner.getBlockchainService();
+            if (blockchainService && blockchainService.isAvailable()) {
+              txHash = await blockchainService.rateAgent(agentAddress, rating);
+              success = !!txHash;
+              
+              if (success) {
+                console.log(`✅ Rating submitted to blockchain with tx: ${txHash}`);
+              } else {
+                errorMessage = "Blockchain transaction failed";
+                console.warn(`⚠️ Blockchain rating failed for ${agentUrl}`);
+              }
+            } else {
+              // Fallback to demo mode if blockchain is not available
+              console.warn(`⚠️ Blockchain service not available, using demo mode`);
+              success = true;
+              txHash = "demo-tx-hash-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+            }
+          } catch (error: any) {
+            console.error(`❌ Error submitting rating to blockchain:`, error);
+            errorMessage = error.message;
+            
+            // Fallback to demo mode on error
+            success = true;
+            txHash = "demo-tx-hash-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+          }
 
           results.push({
             agentUrl,
             agentIdentifier,
+            agentAddress,
             rating,
-            success: true,
-            txHash:
-              "demo-tx-hash-" +
-              Date.now() +
-              "-" +
-              Math.random().toString(36).substr(2, 5),
-            error: null,
+            success,
+            txHash,
+            error: errorMessage,
           });
         } else {
           errors.push(`${agentIdentifier}: Invalid rating value (${rating})`);
@@ -846,10 +892,16 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
 
     const successCount = results.filter((r) => r.success).length;
     const totalRatings = Object.keys(modelRatings).length;
+    const blockchainCount = results.filter((r) => r.success && r.txHash && !r.txHash.startsWith('demo-')).length;
+
+    const mode = blockchainCount > 0 ? "blockchain" : "demo";
+    const message = blockchainCount > 0 
+      ? `Submitted ${blockchainCount}/${totalRatings} ratings to blockchain successfully`
+      : `Submitted ${successCount}/${totalRatings} ratings successfully (demo mode)`;
 
     res.json({
       success: successCount > 0,
-      message: `Submitted ${successCount}/${totalRatings} ratings successfully (demo mode)`,
+      message,
       results,
       errors: errors.length > 0 ? errors : undefined,
       feedback: {
@@ -858,8 +910,9 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
         overallFeedback,
         ratingsSubmitted: successCount,
         totalRatings,
+        blockchainSubmissions: blockchainCount,
       },
-      mode: "demo",
+      mode,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

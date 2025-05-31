@@ -8,17 +8,18 @@ import { DynamicWagmiConnector } from "@dynamic-labs/wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
-import { hederaTestnet, polygonAmoy } from "viem/chains";
+import { hederaTestnet, polygonAmoy, sepolia } from "viem/chains";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { router } from "./app/router";
 import { ThemeProvider } from "./context/global/theme/ThemeContext";
 
 const config = createConfig({
-  chains: [polygonAmoy, hederaTestnet],
+  chains: [polygonAmoy, hederaTestnet, sepolia],
   multiInjectedProviderDiscovery: false,
   transports: {
     [polygonAmoy.id]: http(),
     [hederaTestnet.id]: http(),
+    [sepolia.id]: http(),
   },
 });
 

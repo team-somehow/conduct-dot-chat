@@ -828,6 +828,13 @@ export class JobRunner {
   }
 
   /**
+   * Get blockchain service instance
+   */
+  getBlockchainService(): BlockchainService {
+    return this.blockchainService;
+  }
+
+  /**
    * Rating functionality for blockchain integration
    */
   async submitRating(
