@@ -25,7 +25,7 @@ const GeneratedStage: React.FC<GeneratedStageProps> = ({ onApprove }) => {
   const { workflow, nodes } = useWorkflowStore();
   const { activeId, setActive } = useSyncHighlight();
 
-  // Transform workflow data to steps format
+  // Transform workflow data to steps format - only show unique agents
   const transformToSteps = useCallback((): Step[] => {
     if (!workflow?.steps || workflow.steps.length === 0) {
       // Fallback to demo data if no workflow
@@ -60,15 +60,24 @@ const GeneratedStage: React.FC<GeneratedStageProps> = ({ onApprove }) => {
       ];
     }
 
-    return workflow.steps.map((step: any, index: number) => ({
-      id: step.stepId,
-      order: index + 1,
-      name: step.agentName,
-      modelType: 'AI MODEL',
-      description: step.description,
-      status: 'IDLE' as const,
-      icon: getIconForAgent(step.agentName)
-    }));
+    // Filter for unique agents based on agent name
+    const uniqueAgents = new Map();
+    workflow.steps.forEach((step: any, index: number) => {
+      const agentName = step.agentName;
+      if (!uniqueAgents.has(agentName)) {
+        uniqueAgents.set(agentName, {
+          id: step.stepId,
+          order: uniqueAgents.size + 1,
+          name: agentName,
+          modelType: 'AI MODEL',
+          description: step.description,
+          status: 'IDLE' as const,
+          icon: getIconForAgent(agentName)
+        });
+      }
+    });
+
+    return Array.from(uniqueAgents.values());
   }, [workflow]);
 
   const getIconForAgent = (agentName: string): string => {

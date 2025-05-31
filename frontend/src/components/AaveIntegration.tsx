@@ -84,6 +84,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
   const [amount, setAmount] = useState("0.00000001");
   const [storageWarning, setStorageWarning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [completedTxHash, setCompletedTxHash] = useState<string>("");
 
   // Check storage availability on component mount
   useEffect(() => {
@@ -196,6 +197,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       }
 
       console.log("Address & amount & chain:", address, amount, chain?.name);
+      onTransactionStart?.();
 
       // Step 1: Approve LINK tokens
       console.log("Step 1: Approving LINK token...");
@@ -239,7 +241,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
         });
       }
 
-      // Step 3: Deposit LINK tokens to Aave
+      // Step 2: Deposit LINK tokens to Aave
       console.log("Step 2: Depositing LINK tokens to Aave...");
       const depositHash = await writeContractAsync({
         address: "0x20E9e291716580f5248C94F232C91d1D14923cC8", // Aave Investor contract
@@ -250,16 +252,24 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
         chain: sepolia,
       });
 
-      // Wait for approval transaction
+      console.log("Deposit transaction sent:", depositHash);
+      if (depositHash) {
+        openTxToast(sepolia.id.toString(), depositHash);
+      }
+
+      // Wait for deposit transaction to be confirmed
       await waitForTransactionReceipt(config, {
         hash: depositHash,
         chainId: sepolia.id,
       });
 
-      console.log("Deposit transaction sent:", depositHash);
-      if (depositHash) {
-        openTxToast(sepolia.id.toString(), depositHash);
-      }
+      console.log("Deposit transaction confirmed:", depositHash);
+      
+      // Store the real transaction hash and show success
+      setCompletedTxHash(depositHash);
+      onTransactionComplete?.(depositHash);
+      setShowSuccess(true);
+
     } catch (error) {
       console.error("Transaction error:", error);
 
@@ -280,13 +290,6 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       }
       return;
     }
-
-    // Generate a mock transaction hash
-    const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-    onTransactionComplete?.(mockTxHash);
-
-    // Show success state
-    setShowSuccess(true);
   };
 
   const handleWithdraw = async () => {
@@ -295,25 +298,57 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       return;
     }
 
-    const hash = await writeContractAsync({
-      address: "0x20E9e291716580f5248C94F232C91d1D14923cC8",
-      abi,
-      functionName: "withdraw",
-      account: address,
-      args: [],
-      chain: sepolia,
-    });
-    if (hash) {
-      openTxToast(sepolia.id.toString(), hash);
-    }
-    onTransactionComplete?.(hash);
+    try {
+      onTransactionStart?.();
 
-    // Show success state
-    setShowSuccess(true);
+      const hash = await writeContractAsync({
+        address: "0x20E9e291716580f5248C94F232C91d1D14923cC8",
+        abi,
+        functionName: "withdrawAll",
+        account: address,
+        args: [],
+        chain: sepolia,
+      });
+
+      console.log("Withdraw transaction sent:", hash);
+      if (hash) {
+        openTxToast(sepolia.id.toString(), hash);
+      }
+
+      // Wait for withdraw transaction to be confirmed
+      await waitForTransactionReceipt(config, {
+        hash: hash,
+        chainId: sepolia.id,
+      });
+
+      console.log("Withdraw transaction confirmed:", hash);
+      
+      // Store the real transaction hash and show success
+      setCompletedTxHash(hash);
+      onTransactionComplete?.(hash);
+      setShowSuccess(true);
+
+    } catch (error) {
+      console.error("Withdraw transaction error:", error);
+
+      if (error instanceof Error) {
+        if (error.message.includes("User rejected")) {
+          alert("Transaction was rejected by user.");
+        } else if (error.message.includes("insufficient funds")) {
+          alert("Insufficient funds for transaction.");
+        } else {
+          alert(`Transaction failed: ${error.message}`);
+        }
+      } else {
+        alert("Transaction failed. Please check your wallet and try again.");
+      }
+      return;
+    }
   };
 
   const resetComponent = () => {
     setShowSuccess(false);
+    setCompletedTxHash("");
   };
 
   // Success state - big green block

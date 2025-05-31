@@ -57,6 +57,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
   const [modelRatings, setModelRatings] = useState<Record<string, number>>({});
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aaveTransactionHash, setAaveTransactionHash] = useState<string>("");
 
   const handleModelRating = (modelId: string, rating: number) => {
     console.log(`Model ${modelId} rated ${rating} stars`);
@@ -191,14 +192,23 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
   const executionTime = "8.2s";
   const successRate = "100%";
 
-  // Prepare models for timeline
-  const timelineModels = workflow?.steps?.map((step: any, index: number) => ({
-    id: step.id || `step-${index}`,
-    name: step.agentName || `Agent ${index + 1}`,
-    type: step.type || "AI Agent",
-    status: "completed" as const,
-    rating: 5,
-  })) || [
+  // Prepare models for timeline - only show unique agents
+  const timelineModels = workflow?.steps ? (() => {
+    const uniqueAgents = new Map();
+    workflow.steps.forEach((step: any, index: number) => {
+      const agentName = step.agentName || `Agent ${index + 1}`;
+      if (!uniqueAgents.has(agentName)) {
+        uniqueAgents.set(agentName, {
+          id: step.id || step.stepId || `step-${index}`,
+          name: agentName,
+          type: step.type || "AI Agent",
+          status: "completed" as const,
+          rating: 5,
+        });
+      }
+    });
+    return Array.from(uniqueAgents.values());
+  })() : [
     {
       id: "dalle-3",
       name: "DALL-E 3 Image Generator",
@@ -293,10 +303,11 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
             <AaveIntegration
               onTransactionStart={() => {
                 console.log("Aave transaction started");
+                setAaveTransactionHash(""); // Clear previous transaction hash
               }}
-              onTransactionComplete={(txHash) => {
+              onTransactionComplete={(txHash: string) => {
                 console.log("Aave transaction completed:", txHash);
-                // Could show a toast notification here
+                setAaveTransactionHash(txHash);
               }}
             />
           </SectionCard>
@@ -376,8 +387,8 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         </motion.div>
       )}
 
-      {/* AI Summary Section - Only show if summary exists */}
-      {summary && (
+      {/* AI Summary Section - Only show if summary exists and either no Aave integration or Aave transaction is successful */}
+      {summary && (!hasAaveIntegration || aaveTransactionHash) && (
         <motion.section
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -515,66 +526,68 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         </SectionCard>
       </motion.section>
 
-      {/* Blockscout Transaction Widget */}
-      <motion.section
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{
-          delay: hasAaveIntegration
-            ? summary
-              ? 1.4
-              : 1.3
-            : summary
-            ? 1.3
-            : 1.2,
-        }}
-        aria-labelledby="transaction-details"
-      >
-        <SectionCard>
-          <div className="flex items-center justify-between mb-6">
-            <h2
-              id="transaction-details"
-              className="text-2xl font-black uppercase tracking-wide"
-            >
-              🔗 Transaction Details
-            </h2>
-            <div className="bg-[#7C82FF] border-2 border-black px-4 py-3 flex items-center justify-center">
-              <img
-                src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjMyIiB2aWV3Qm94PSIwIDAgMTIwIDMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNOCAyNEMxMi40MTgzIDI0IDE2IDIwLjQxODMgMTYgMTZDMTYgMTEuNTgxNyAxMi40MTgzIDggOCA4QzMuNTgxNzIgOCAwIDExLjU4MTcgMCAxNkMwIDIwLjQxODMgMy41ODE3MiAyNCA4IDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTggMjBDMTAuMjA5MSAyMCAxMiAxOC4yMDkxIDEyIDE2QzEyIDEzLjc5MDkgMTAuMjA5MSAxMiA4IDEyQzUuNzkwODYgMTIgNCAxMy43OTA5IDQgMTZDNCAyMC40MTgzIDUuNzkwODYgMjAgOCAyMFoiIGZpbGw9IiM3QzgyRkYiLz4KPHRleHQgeD0iMjQiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QmxvY2tzY291dDwvdGV4dD4KPC9zdmc+Cg=="
-                alt="Blockscout"
-                className="h-6 w-auto filter brightness-0 invert"
-              />
-            </div>
-          </div>
-
-          {/* Enhanced container for the widget */}
-          <div className="bg-gradient-to-br from-[#FEEF5D] to-[#FFE37B] border-4 border-black shadow-neo p-2">
-            <div className="bg-white border-2 border-black p-6 shadow-inner">
-              <BlockscoutTransactionWidget txHash="0xc93c92ba22ea93861a5897f7068465b3cdd687a9b367b7b4fc66252690f0aea4" />
-            </div>
-          </div>
-
-          {/* Additional transaction info footer */}
-          <div className="mt-4 bg-black text-white p-4 border-4 border-black">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#13C27B] border border-white"></div>
-                <span className="font-black text-sm uppercase">
-                  Verified on Mainnet
-                </span>
-              </div>
-              <a
-                href="https://eth.blockscout.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#7C82FF] hover:text-[#FEEF5D] font-black text-sm uppercase underline transition-colors"
+      {/* Blockscout Transaction Widget - Only show if there's a transaction hash */}
+      {aaveTransactionHash && (
+        <motion.section
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{
+            delay: hasAaveIntegration
+              ? summary
+                ? 1.4
+                : 1.3
+              : summary
+              ? 1.3
+              : 1.2,
+          }}
+          aria-labelledby="transaction-details"
+        >
+          <SectionCard>
+            <div className="flex items-center justify-between mb-6">
+              <h2
+                id="transaction-details"
+                className="text-2xl font-black uppercase tracking-wide"
               >
-                View on Blockscout →
-              </a>
+                🔗 Transaction Details
+              </h2>
+              <div className="bg-[#7C82FF] border-2 border-black px-4 py-3 flex items-center justify-center">
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjMyIiB2aWV3Qm94PSIwIDAgMTIwIDMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNOCAyNEMxMi40MTgzIDI0IDE2IDIwLjQxODMgMTYgMTZDMTYgMTEuNTgxNyAxMi40MTgzIDggOCA4QzMuNTgxNzIgOCAwIDExLjU4MTcgMCAxNkMwIDIwLjQxODMgMy41ODE3MiAyNCA4IDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTggMjBDMTAuMjA5MSAyMCAxMiAxOC4yMDkxIDEyIDE2QzEyIDEzLjc5MDkgMTAuMjA5MSAxMiA4IDEyQzUuNzkwODYgMTIgNCAxMy43OTA5IDQgMTZDNCAyMC40MTgzIDUuNzkwODYgMjAgOCAyMFoiIGZpbGw9IiM3QzgyRkYiLz4KPHRleHQgeD0iMjQiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QmxvY2tzY291dDwvdGV4dD4KPC9zdmc+Cg=="
+                  alt="Blockscout"
+                  className="h-6 w-auto filter brightness-0 invert"
+                />
+              </div>
             </div>
-          </div>
-        </SectionCard>
-      </motion.section>
+
+            {/* Enhanced container for the widget */}
+            <div className="bg-gradient-to-br from-[#FEEF5D] to-[#FFE37B] border-4 border-black shadow-neo p-2">
+              <div className="bg-white border-2 border-black p-6 shadow-inner">
+                <BlockscoutTransactionWidget txHash={aaveTransactionHash} />
+              </div>
+            </div>
+
+            {/* Additional transaction info footer */}
+            <div className="mt-4 bg-black text-white p-4 border-4 border-black">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-[#13C27B] border border-white"></div>
+                  <span className="font-black text-sm uppercase">
+                    Verified on Sepolia
+                  </span>
+                </div>
+                <a
+                  href={`https://eth-sepolia.blockscout.com/tx/${aaveTransactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#7C82FF] hover:text-[#FEEF5D] font-black text-sm uppercase underline transition-colors"
+                >
+                  View on Blockscout →
+                </a>
+              </div>
+            </div>
+          </SectionCard>
+        </motion.section>
+      )}
 
       {/* Step Indicator (if needed) */}
       <motion.div

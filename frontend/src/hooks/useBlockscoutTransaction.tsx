@@ -44,7 +44,7 @@ const useBlockscoutTransaction = () => {
   async function fetchTransactionDetails(
     txHash: string
   ): Promise<TransactionResponse | null> {
-    const url = `https://eth.blockscout.com/api/v2/transactions/${txHash}`;
+    const url = `https://eth-sepolia.blockscout.com/api/v2/transactions/${txHash}`;
 
     try {
       const response = await fetch(url, {
