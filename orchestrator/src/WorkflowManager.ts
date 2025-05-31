@@ -197,7 +197,10 @@ export class WorkflowManager {
           defaultInput[agentField] =
             this.extractImagePromptFromIntent(intent) ||
             "A creative illustration";
-        } else if (workflowField.toLowerCase().includes("language")) {
+        } else if (
+          typeof workflowField === "string" &&
+          workflowField.toLowerCase().includes("language")
+        ) {
           defaultInput[agentField] = "english";
         }
       }

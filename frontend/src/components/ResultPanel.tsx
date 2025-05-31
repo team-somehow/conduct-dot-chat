@@ -11,6 +11,7 @@ import MetricTile from './MetricTile';
 import ModelsTimeline from './ModelsTimeline';
 import SectionCard from './SectionCard';
 import BlockscoutTransactionWidget from './BlockscoutTransactionWidget';
+import AaveIntegration from './AaveIntegration';
 import '../styles/result.css';
 
 interface Model {
@@ -76,6 +77,10 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
   // Parse the result if it's a string
   const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
   const summary = parsedResult?.summary || result?.summary;
+
+  // Check if Aave is mentioned in the summary (case-insensitive)
+  const hasAaveIntegration = summary && typeof summary === 'string' && 
+    summary.toLowerCase().includes('aave');
 
   const stepsCount = workflow?.steps?.length || 2;
   const modelsUsed = workflow?.steps?.map((step: any) => step.agentName).join(", ") || "DALL-E 3, NFT Deployer";
@@ -161,11 +166,36 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         </div>
       </motion.section>
 
+      {/* Aave Integration - Only show if "aave" is mentioned in summary */}
+      {hasAaveIntegration && (
+        <motion.section
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          aria-labelledby="aave-integration"
+        >
+          <SectionCard>
+            <h2 id="aave-integration" className="text-2xl font-black uppercase tracking-wide mb-6">
+              💰 DeFi Integration Detected
+            </h2>
+            <AaveIntegration 
+              onTransactionStart={() => {
+                console.log('Aave transaction started');
+              }}
+              onTransactionComplete={(txHash) => {
+                console.log('Aave transaction completed:', txHash);
+                // Could show a toast notification here
+              }}
+            />
+          </SectionCard>
+        </motion.section>
+      )}
+
       {/* Models Used - Timeline */}
       <motion.section
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.6 }}
+        transition={{ delay: hasAaveIntegration ? 0.7 : 0.6 }}
         aria-labelledby="models-used"
       >
         <SectionCard>
@@ -181,7 +211,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         <motion.section
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: hasAaveIntegration ? 0.9 : 0.8 }}
           aria-labelledby="ai-summary"
         >
           <SectionCard>
@@ -228,7 +258,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       <motion.section
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: summary ? 1.0 : 0.8 }}
+        transition={{ delay: hasAaveIntegration ? (summary ? 1.1 : 0.9) : (summary ? 1.0 : 0.8) }}
         aria-labelledby="execution-results"
       >
         <SectionCard>
@@ -261,7 +291,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       <motion.section
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: summary ? 1.2 : 1.0 }}
+        transition={{ delay: hasAaveIntegration ? (summary ? 1.3 : 1.1) : (summary ? 1.2 : 1.0) }}
         aria-labelledby="transaction-details"
       >
         <SectionCard>
@@ -271,7 +301,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
             </h2>
             <div className="bg-[#7C82FF] border-2 border-black px-4 py-3 flex items-center justify-center">
               <img 
-                src="https://raw.githubusercontent.com/blockscout/blockscout/master/apps/block_scout_web/assets/static/images/blockscout_logo.svg" 
+                src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjMyIiB2aWV3Qm94PSIwIDAgMTIwIDMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNOCAyNEMxMi40MTgzIDI0IDE2IDIwLjQxODMgMTYgMTZDMTYgMTEuNTgxNyAxMi40MTgzIDggOCA4QzMuNTgxNzIgOCAwIDExLjU4MTcgMCAxNkMwIDIwLjQxODMgMy41ODE3MiAyNCA4IDI0WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTggMjBDMTAuMjA5MSAyMCAxMiAxOC4yMDkxIDEyIDE2QzEyIDEzLjc5MDkgMTAuMjA5MSAxMiA4IDEyQzUuNzkwODYgMTIgNCAxMy43OTA5IDQgMTZDNCAyMC40MTgzIDUuNzkwODYgMjAgOCAyMFoiIGZpbGw9IiM3QzgyRkYiLz4KPHRleHQgeD0iMjQiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QmxvY2tzY291dDwvdGV4dD4KPC9zdmc+Cg==" 
                 alt="Blockscout" 
                 className="h-6 w-auto filter brightness-0 invert"
               />
@@ -309,7 +339,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: summary ? 1.6 : 1.4 }}
+        transition={{ delay: hasAaveIntegration ? (summary ? 1.5 : 1.3) : (summary ? 1.4 : 1.2) }}
         className="flex justify-center"
       >
         <button 
@@ -325,7 +355,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: summary ? 1.8 : 1.6 }}
+        transition={{ delay: hasAaveIntegration ? (summary ? 1.7 : 1.5) : (summary ? 1.6 : 1.4) }}
         className="flex justify-center"
       >
         <div className="bg-white border-4 border-black shadow-neo px-6 py-3 rounded-full">

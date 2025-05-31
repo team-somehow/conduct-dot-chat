@@ -11,15 +11,16 @@ import {
   useState,
 } from "react";
 import { http } from "viem";
-import { hederaTestnet, polygonAmoy } from "viem/chains";
+import { hederaTestnet, polygonAmoy, sepolia } from "viem/chains";
 import { createConfig, WagmiProvider } from "wagmi";
 
 const config = createConfig({
-  chains: [polygonAmoy, hederaTestnet],
+  chains: [polygonAmoy, hederaTestnet, sepolia],
   multiInjectedProviderDiscovery: false,
   transports: {
     [polygonAmoy.id]: http(),
     [hederaTestnet.id]: http(),
+    [sepolia.id]: http(),
   },
 });
 interface User {}
