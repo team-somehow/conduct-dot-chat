@@ -1,4 +1,4 @@
-// Main landing page with Neo-Brutalist hero section and feature showcase
+// Main landing page with Neo-Brutalist hero section and conductor theme
 // Features: Bold, flat design with thick borders and hard shadows
 
 import Navbar from "@/components/Navbar";
@@ -6,10 +6,10 @@ import { useNotification, useTransactionPopup } from "@blockscout/app-sdk";
 import { useNavigate } from "react-router-dom";
 import HeroTitle from "../../components/HeroTitle";
 import PromptPanel from "../../components/PromptPanel";
-import FeatureTiles from "../../components/FeatureTiles";
-import ModelMarquee from "../../components/ModelMarquee";
-import HowItWorksSteps from "../../components/HowItWorksSteps";
-import CTABanner from "../../components/CTABanner";
+import ConductorFeatures from "../../components/ConductorFeatures";
+import AgentMarquee from "../../components/AgentMarquee";
+import ConductorSteps from "../../components/ConductorSteps";
+import ConductorCTA from "../../components/ConductorCTA";
 import Footer from "../../components/Footer";
 import "../../styles/landing-brutal.css";
 
@@ -19,6 +19,8 @@ import "../../styles/landing-brutal.css";
 // 3. Add performance monitoring and analytics
 // 4. Create interactive demo section
 // 5. Add testimonials and social proof
+// 6. Integrate real agent data from marketplace
+// 7. Add conductor tutorial walkthrough
 // END TODO
 
 const LandingPage = () => {
@@ -63,17 +65,17 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <FeatureTiles />
+      {/* Conductor Features Section */}
+      <ConductorFeatures />
 
-      {/* Model Marquee */}
-      <ModelMarquee />
+      {/* AI Agent Orchestra */}
+      <AgentMarquee />
 
-      {/* How It Works */}
-      <HowItWorksSteps />
+      {/* How to Conduct */}
+      <ConductorSteps />
 
       {/* Call to Action */}
-      <CTABanner />
+      <ConductorCTA />
 
       {/* Footer */}
       <Footer />

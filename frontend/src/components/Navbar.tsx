@@ -2,7 +2,7 @@
 // Features: Logo, navigation links, and authentication button placeholder
 
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
-import { ArrowLeft, Menu, X, Zap } from "lucide-react";
+import { ArrowLeft, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -12,6 +12,7 @@ import { Link, useLocation } from "react-router-dom";
 // 3. Add authentication state handling
 // 4. Create dropdown menus for complex navigation
 // 5. Add search functionality
+// 6. Add conductor-themed animations
 // END TODO
 
 const Navbar = () => {
@@ -39,13 +40,15 @@ const Navbar = () => {
         {/* Logo */}
         <Link
           to="/"
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-2 group"
           onClick={closeMobileMenu}
         >
-          <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-[#FF5484] stroke-2" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#FF5484] to-[#7C82FF] border-3 border-black flex items-center justify-center text-white text-lg sm:text-xl font-black group-hover:rotate-12 transition-transform duration-200">
+            🎼
+          </div>
           <span className="text-lg sm:text-xl font-black text-black uppercase tracking-tight">
-            <span className="hidden sm:inline">AI Orchestrator</span>
-            <span className="sm:hidden">AI Orch</span>
+            <span className="hidden sm:inline">conduct.chat</span>
+            <span className="sm:hidden">conduct</span>
           </span>
         </Link>
 
@@ -72,7 +75,7 @@ const Navbar = () => {
                 to="/marketplace"
                 className="text-black font-bold uppercase text-sm hover:text-[#FF5484] transition-colors"
               >
-                Marketplace
+                Agent Orchestra
               </Link>
             </>
           )}
@@ -85,7 +88,7 @@ const Navbar = () => {
               onClick={() => setShowAuthFlow(true)}
               className="px-3 py-2 lg:px-4 bg-[#7C82FF] text-white font-bold uppercase text-xs sm:text-sm border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
             >
-              Sign In
+              Start Conducting
             </button>
           )}
         </div>
@@ -132,7 +135,7 @@ const Navbar = () => {
                   onClick={closeMobileMenu}
                   className="block text-black font-bold uppercase text-base hover:text-[#FF5484] transition-colors py-3 border-b-2 border-gray-200"
                 >
-                  Marketplace
+                  Agent Orchestra
                 </Link>
               </>
             )}
@@ -148,7 +151,7 @@ const Navbar = () => {
                 }}
                 className="w-full mt-6 px-4 py-3 bg-[#7C82FF] text-white font-bold uppercase text-base border-3 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150"
               >
-                Sign In
+                Start Conducting
               </button>
             )}
           </div>

@@ -9,7 +9,7 @@ interface PromptPanelProps {
 
 const PromptPanel: React.FC<PromptPanelProps> = ({
   onSubmit,
-  placeholder = 'Create a marketing campaign for a new eco-friendly product',
+  placeholder = 'Orchestrate a symphony of AI agents to create a marketing campaign',
   initialValue = '',
 }) => {
   const [value, setValue] = React.useState(initialValue);
@@ -17,7 +17,7 @@ const PromptPanel: React.FC<PromptPanelProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!value.trim()) {
-      alert('Please enter a prompt to continue');
+      alert('Please enter a prompt to begin conducting');
       return;
     }
     onSubmit(value.trim());
@@ -45,10 +45,10 @@ const PromptPanel: React.FC<PromptPanelProps> = ({
         <button
           type="submit"
           className="h-12 px-6 bg-[#FF5484] text-black font-bold uppercase border-4 border-black shadow-neo hover:-translate-x-1 hover:-translate-y-1 hover:shadow-none transition-all duration-150 flex items-center justify-center gap-2 whitespace-nowrap"
-          aria-label="Generate workflow"
+          aria-label="Start conducting"
         >
-          <span className="hidden sm:inline">Generate Workflow</span>
-          <span className="sm:hidden">Generate</span>
+          <span className="hidden sm:inline">Start Conducting</span>
+          <span className="sm:hidden">Conduct</span>
           <ArrowRight className="h-4 w-4 stroke-2" />
         </button>
       </form>

@@ -39,14 +39,140 @@
   transform: translate(-4px, -4px);
 }
 
+/* Neumorphism styles for conductor theme */
+.neumorph-card {
+  background: linear-gradient(145deg, #f0f0f0, #cacaca);
+  box-shadow: 
+    20px 20px 60px #bebebe,
+    -20px -20px 60px #ffffff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.neumorph-card:hover {
+  box-shadow: 
+    25px 25px 75px #bebebe,
+    -25px -25px 75px #ffffff,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.neumorph-button {
+  background: linear-gradient(145deg, #e6e6e6, #ffffff);
+  box-shadow: 
+    8px 8px 16px #d1d1d1,
+    -8px -8px 16px #ffffff;
+  border: none;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.neumorph-button:hover {
+  box-shadow: 
+    4px 4px 8px #d1d1d1,
+    -4px -4px 8px #ffffff;
+  transform: translateY(1px);
+}
+
+.neumorph-button:active {
+  box-shadow: 
+    inset 4px 4px 8px #d1d1d1,
+    inset -4px -4px 8px #ffffff;
+  transform: translateY(2px);
+}
+
+.neumorph-inset {
+  background: linear-gradient(145deg, #cacaca, #f0f0f0);
+  box-shadow: 
+    inset 8px 8px 16px #bebebe,
+    inset -8px -8px 16px #ffffff;
+  border-radius: 12px;
+}
+
+/* Conductor-specific animations */
+@keyframes conductor-wave {
+  0%, 100% { 
+    transform: rotate(-5deg) translateY(0px); 
+  }
+  25% { 
+    transform: rotate(10deg) translateY(-3px); 
+  }
+  50% { 
+    transform: rotate(-2deg) translateY(-6px); 
+  }
+  75% { 
+    transform: rotate(8deg) translateY(-3px); 
+  }
+}
+
+@keyframes musical-float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  33% { 
+    transform: translateY(-10px) rotate(5deg); 
+  }
+  66% { 
+    transform: translateY(-5px) rotate(-3deg); 
+  }
+}
+
+@keyframes symphony-pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 0.9; 
+  }
+}
+
+.conductor-wave {
+  animation: conductor-wave 3s ease-in-out infinite;
+}
+
+.musical-float {
+  animation: musical-float 4s ease-in-out infinite;
+}
+
+.symphony-pulse {
+  animation: symphony-pulse 2s ease-in-out infinite;
+}
+
+/* Enhanced shadow variations */
+.shadow-neo-soft {
+  box-shadow: 
+    6px 6px 12px rgba(0, 0, 0, 0.1),
+    -6px -6px 12px rgba(255, 255, 255, 0.8);
+}
+
+.shadow-neo-medium {
+  box-shadow: 
+    10px 10px 20px rgba(0, 0, 0, 0.15),
+    -10px -10px 20px rgba(255, 255, 255, 0.9);
+}
+
+.shadow-neo-deep {
+  box-shadow: 
+    15px 15px 30px rgba(0, 0, 0, 0.2),
+    -15px -15px 30px rgba(255, 255, 255, 1);
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .wiggle-slow,
-  .marquee {
+  .marquee,
+  .conductor-wave,
+  .musical-float,
+  .symphony-pulse {
     animation: none;
   }
   
-  .hover-wiggle:hover {
+  .hover-wiggle:hover,
+  .neumorph-card:hover,
+  .neumorph-button:hover {
     transform: none;
   }
 }
