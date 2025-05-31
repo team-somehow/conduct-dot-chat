@@ -6,7 +6,7 @@ export const useTheme = () => {
   // Check if we're in the browser
   const isBrowser = typeof window !== "undefined";
 
-  // Get initial theme from localStorage or system preference
+  // Get initial theme from localStorage or default to light
   const getInitialTheme = (): Theme => {
     if (isBrowser) {
       const savedTheme = localStorage.getItem("theme") as Theme | null;
@@ -16,11 +16,9 @@ export const useTheme = () => {
         return savedTheme;
       }
 
-      // Otherwise, check system preference
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
-      return prefersDark ? "dark" : "light";
+      // Default to light theme for Neo-Brutalist design
+      // (instead of checking system preference)
+      return "light";
     }
 
     // Default to light theme on server
