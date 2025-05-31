@@ -1,13 +1,14 @@
 // Main landing page with Neo-Brutalist hero section and feature showcase
 // Features: Bold, flat design with thick borders and hard shadows
 
+import Navbar from "@/components/Navbar";
+import { useNotification, useTransactionPopup } from "@blockscout/app-sdk";
 import { useNavigate } from "react-router-dom";
 import CTASection from "../../components/CTASection";
 import FeatureCard from "../../components/FeatureCard";
 import Footer from "../../components/Footer";
 import HowItWorks from "../../components/HowItWorks";
 import MarketplacePreview from "../../components/MarketplacePreview";
-import Navbar from "../../components/Navbar";
 import PromptInput from "../../components/PromptInput";
 import "../../styles/landing.css";
 
@@ -21,6 +22,22 @@ import "../../styles/landing.css";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+
+  const { openTxToast } = useNotification();
+  const { openPopup } = useTransactionPopup();
+
+  const sendTransaction = async () => {
+    const txHash =
+      "0xc93c92ba22ea93861a5897f7068465b3cdd687a9b367b7b4fc66252690f0aea4"; // Your transaction hash
+    await openTxToast("1", txHash);
+  };
+
+  const viewHistory = () => {
+    openPopup({
+      chainId: "1",
+      address: "0x0Dd7D7Ad21d15A999dcc7218E7Df3F25700e696f", // Optional
+    });
+  };
 
   const handlePromptSubmit = (prompt: string) => {
     navigate(`/run?prompt=${encodeURIComponent(prompt)}`);
@@ -54,6 +71,22 @@ const LandingPage = () => {
 
       {/* Hero Section */}
       <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 pt-20 pb-12 sm:pb-20">
+        {/* <div>
+          <button
+            onClick={sendTransaction}
+            className="w-full lg:w-auto h-10 sm:h-12 px-4 sm:px-6 lg:px-8 bg-[#FF5484] text-black font-bold uppercase border-4 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 flex items-center justify-center space-x-2 text-sm sm:text-base"
+            aria-label="Generate workflow"
+          >
+            Send Transaction
+          </button>
+          <button
+            onClick={viewHistory}
+            className="w-full lg:w-auto h-10 sm:h-12 px-4 sm:px-6 lg:px-8 bg-[#FF5484] text-black font-bold uppercase border-4 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all duration-150 flex items-center justify-center space-x-2 text-sm sm:text-base"
+            aria-label="Generate workflow"
+          >
+            View Transaction History
+          </button>
+        </div> */}
         <div className="mx-auto max-w-screen-xl w-full">
           <div className="text-center lg:text-left">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black leading-tight text-black tracking-tight mb-4 sm:mb-6 lg:mb-8">
