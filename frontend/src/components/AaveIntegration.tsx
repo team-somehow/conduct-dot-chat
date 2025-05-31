@@ -12,7 +12,8 @@ import {
 import React, { useEffect, useState } from "react";
 import { parseUnits } from "viem";
 import { sepolia } from "viem/chains";
-import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
+import { useAccount, useConfig, useSwitchChain, useWriteContract } from "wagmi";
+import { readContract, waitForTransactionReceipt } from "@wagmi/core";
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
@@ -39,6 +40,29 @@ const ERC20_ABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
+  {
+    constant: true,
+    inputs: [
+      {
+        name: "_owner",
+        type: "address",
+      },
+      {
+        name: "_spender",
+        type: "address",
+      },
+    ],
+    name: "allowance",
+    outputs: [
+      {
+        name: "",
+        type: "uint256",
+      },
+    ],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
 ];
 
 interface AaveIntegrationProps {
@@ -50,6 +74,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
   onTransactionStart,
   onTransactionComplete,
 }) => {
+  const config = useConfig();
   const { setShowAuthFlow } = useDynamicContext();
   const { address, isConnected, chain } = useAccount();
   const { switchChain } = useSwitchChain();
@@ -173,53 +198,68 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       console.log("Address & amount & chain:", address, amount, chain?.name);
 
       // Step 1: Approve LINK tokens
-      console.log("Step 1: Approving LINK tokens...");
-      const approvalHash = await writeContractAsync({
-        address: "0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5", // LINK token
+      console.log("Step 1: Approving LINK token...");
+
+      // Check allowance
+      const allowance: bigint = (await readContract(config, {
+        address: "0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5",
         abi: ERC20_ABI,
-        functionName: "approve",
+        functionName: "allowance",
+        args: [address, "0x20E9e291716580f5248C94F232C91d1D14923cC8"],
+        chainId: sepolia.id,
+      })) as bigint;
+
+      console.log("Allowance:", allowance);
+
+      if (allowance < parseUnits(amount, 18)) {
+        const approvalHash = await writeContractAsync({
+          address: "0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5", // LINK token
+          abi: ERC20_ABI,
+          functionName: "approve",
+          account: address,
+          args: [
+            "0x20E9e291716580f5248C94F232C91d1D14923cC8",
+            parseUnits(amount, 18),
+          ],
+          chain: sepolia,
+        });
+
+        console.log("Approval transaction sent:", approvalHash);
+        openTxToast(sepolia.id.toString(), approvalHash);
+
+        // // Wait for approval transaction to be mined
+        alert(
+          "Approval transaction sent. Please wait for it to be confirmed before the deposit..."
+        );
+
+        // Wait for approval transaction
+        await waitForTransactionReceipt(config, {
+          hash: approvalHash,
+          chainId: sepolia.id,
+        });
+      }
+
+      // Step 3: Deposit LINK tokens to Aave
+      console.log("Step 2: Depositing LINK tokens to Aave...");
+      const depositHash = await writeContractAsync({
+        address: "0x20E9e291716580f5248C94F232C91d1D14923cC8", // Aave Investor contract
+        abi,
+        functionName: "deposit",
         account: address,
-        args: [
-          "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
-          parseUnits(amount, 18),
-        ],
+        args: [parseUnits(amount, 18)],
         chain: sepolia,
       });
 
-      console.log("Approval transaction sent:", approvalHash);
-      openTxToast(sepolia.id.toString(), approvalHash);
+      // Wait for approval transaction
+      await waitForTransactionReceipt(config, {
+        hash: depositHash,
+        chainId: sepolia.id,
+      });
 
-      // // Wait for approval transaction to be mined
-      // alert(
-      //   "Approval transaction sent. Please wait for it to be confirmed before the deposit..."
-      // );
-
-      // Wait a bit for the transaction to be picked up by nodes
-      // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      // Step 2: Wait for user confirmation before proceeding
-      // const proceed = confirm(
-      //   "Approval transaction sent. Click OK when it's confirmed to proceed with the deposit."
-      // );
-      // if (!proceed) {
-      //   return;
-      // }
-
-      // // Step 3: Deposit LINK tokens to Aave
-      // console.log("Step 2: Depositing LINK tokens to Aave...");
-      // const depositHash = await writeContractAsync({
-      //   address: "0x20E9e291716580f5248C94F232C91d1D14923cC8", // Aave Investor contract
-      //   abi,
-      //   functionName: "deposit",
-      //   account: address,
-      //   args: [parseUnits(amount, 18)],
-      //   chain: sepolia,
-      // });
-
-      // console.log("Deposit transaction sent:", depositHash);
-      // if (depositHash) {
-      //   openTxToast(sepolia.id.toString(), depositHash);
-      // }
+      console.log("Deposit transaction sent:", depositHash);
+      if (depositHash) {
+        openTxToast(sepolia.id.toString(), depositHash);
+      }
     } catch (error) {
       console.error("Transaction error:", error);
 
