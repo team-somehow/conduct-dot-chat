@@ -1,15 +1,17 @@
 #!/bin/bash
 # file: /usr/local/bin/kill_ports
-PS3='Please enter your choice: '
-options=$(lsof -PiTCP -sTCP:LISTEN | awk '{print $9}' | sed -n '1!p')
+
 RED='\033[0;31m'
 NC='\033[0m' # No Color
-select port in $options
-do
-  echo "Selected character: $port"
-  echo "Selected number: $REPLY"
-  var2=$(echo $port | cut -f2 -d:)
-  echo -e "killing ${RED}port $var2 ${NC}!"
-  echo $(lsof -ti tcp:$var2 | xargs kill)
-  exit 0
+
+# Kill ports 3001-3006
+for port in {3001..3006}; do
+  echo -e "Killing ${RED}port $port${NC}..."
+  lsof -ti tcp:$port | xargs kill 2>/dev/null
 done
+
+# Kill port 8080
+echo -e "Killing ${RED}port 8080${NC}..."
+lsof -ti tcp:8080 | xargs kill 2>/dev/null
+
+echo "Done killing ports!"
