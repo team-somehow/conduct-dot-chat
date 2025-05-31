@@ -140,6 +140,7 @@ const convertWorkflowToGraph = (
       label: "AI Orchestrator",
       color: "#FEEF5D",
       status: "idle",
+      cost: 0.01, // Orchestrator cost
     },
   });
 
@@ -148,6 +149,19 @@ const convertWorkflowToGraph = (
     // Better spacing: arrange in a more spread out pattern
     const x = 150 + (index % 2) * 500; // Alternate between left and right
     const y = 250 + Math.floor(index / 2) * 200; // Stack vertically every 2 nodes
+
+    // Calculate cost based on agent type
+    const getCostForAgent = (agentName: string): number => {
+      const costMap: Record<string, number> = {
+        "Hello World Agent": 0.02,
+        "DALL-E 3 Image Generator": 0.15,
+        "NFT Deployer": 0.08,
+        "GPT-4": 0.12,
+        "Stable Diffusion": 0.10,
+        "Claude": 0.09,
+      };
+      return costMap[agentName] || 0.05 + Math.random() * 0.1;
+    };
 
     nodes.push({
       id: step.stepId,
@@ -158,6 +172,7 @@ const convertWorkflowToGraph = (
         color: getAgentColor(step.agentName),
         status: "idle",
         description: step.description,
+        cost: getCostForAgent(step.agentName),
       },
     });
 
@@ -218,6 +233,7 @@ const DEMO_NODES: Node[] = [
       label: "AI Orchestrator",
       color: "#FEEF5D",
       status: "idle",
+      cost: 0.01,
     },
   },
   {
@@ -229,6 +245,7 @@ const DEMO_NODES: Node[] = [
       color: "#FF5484",
       status: "idle",
       description: "Generates high-quality images using DALL-E 3",
+      cost: 0.15,
     },
   },
   {
@@ -240,6 +257,7 @@ const DEMO_NODES: Node[] = [
       color: "#7C82FF",
       status: "idle",
       description: "Deploys NFTs to blockchain with smart contracts",
+      cost: 0.08,
     },
   },
 ];
