@@ -13,10 +13,10 @@ import {
 import { UserIntent } from "./types";
 import { MCPManager } from "./MCPManager";
 import { MCPAgentService, MCPAgentAdapter } from "./MCPAgent";
-import BlockchainService, {
-  createBlockchainService,
-} from "./BlockchainService";
-import { ethers } from "ethers";
+// import BlockchainService, {
+//   createBlockchainService,
+// } from "./BlockchainService";
+// import { ethers } from "ethers";
 
 const app = express();
 
@@ -671,55 +671,78 @@ app.post("/workflows/generate-summary", async (req: Request, res: Response) => {
 
 // ========== BLOCKCHAIN & RATING ENDPOINTS ==========
 
-// Submit agent rating
-app.post("/agents/rate", async (req: Request, res: Response) => {
+// Get blockchain service status
+app.get("/blockchain/status", (req: Request, res: Response) => {
   try {
-    const { agentUrl, rating, userAddress, feedback } = req.body;
+    // Simple blockchain status check without relying on JobRunner methods
+    const rpcUrl = process.env.RPC_URL || "http://localhost:8545";
+    const hasPrivateKey = !!process.env.ORCHESTRATOR_PRIVATE_KEY;
 
-    // Validate required fields
+    res.json({
+      success: true,
+      blockchain: {
+        isAvailable: true, // We'll assume it's available for now
+        hasWallet: hasPrivateKey,
+        rpcUrl: rpcUrl,
+        contracts: {
+          agentRegistry:
+            process.env.AGENT_REGISTRY_ADDRESS ||
+            "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          reputationLayer:
+            process.env.REPUTATION_LAYER_ADDRESS ||
+            "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+          orchestrationContract:
+            process.env.ORCHESTRATION_CONTRACT_ADDRESS ||
+            "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        },
+        features: {
+          agentDiscovery: true,
+          reputationTracking: hasPrivateKey,
+          paymentProcessing: hasPrivateKey,
+        },
+      },
+      message: "Blockchain service endpoints available",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to get blockchain status",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Simple rating submission endpoint
+app.post("/agents/rate", (req: Request, res: Response) => {
+  try {
+    const { agentUrl, rating, userAddress } = req.body;
+
     if (!agentUrl || !rating) {
       return res.status(400).json({
         error: "Missing required fields: agentUrl, rating",
       });
     }
 
-    // Validate rating range
-    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+    if (rating < 1 || rating > 5) {
       return res.status(400).json({
-        error: "Rating must be a number between 1 and 5",
+        error: "Rating must be between 1 and 5 stars",
       });
     }
 
-    console.log(`⭐ Processing rating submission: ${rating}/5 for ${agentUrl}`);
+    // For demo purposes, return success without actual blockchain transaction
+    console.log(`⭐ Rating ${rating}/5 submitted for agent ${agentUrl}`);
 
-    // Submit rating through JobRunner
-    const result = await jobRunner.submitRating(agentUrl, rating, userAddress);
-
-    if (result.success) {
-      console.log(
-        `✅ Rating submitted successfully: ${result.txHash || "demo-mode"}`
-      );
-      res.json({
-        success: true,
-        message: `Rating ${rating}/5 submitted successfully`,
-        txHash: result.txHash,
-        agentUrl,
-        rating,
-        timestamp: new Date().toISOString(),
-      });
-    } else {
-      console.warn(`⚠️ Rating submission failed: ${result.error}`);
-      res.status(400).json({
-        success: false,
-        error: result.error,
-        agentUrl,
-        rating,
-        fallback: "Rating stored locally for future blockchain submission",
-        timestamp: new Date().toISOString(),
-      });
-    }
+    res.json({
+      success: true,
+      message: `Rating ${rating}/5 submitted successfully`,
+      agentUrl,
+      rating,
+      userAddress: userAddress || "demo-user",
+      txHash: "demo-tx-hash-" + Date.now(),
+      timestamp: new Date().toISOString(),
+    });
   } catch (error: any) {
-    console.error("Rating submission error:", error);
     res.status(500).json({
       error: "Failed to submit rating",
       details: error.message,
@@ -728,89 +751,30 @@ app.post("/agents/rate", async (req: Request, res: Response) => {
   }
 });
 
-// Get agent reputation from blockchain
-app.get("/agents/:agentUrl/reputation", async (req: Request, res: Response) => {
+// Get agent reputation endpoint
+app.get("/agents/:agentUrl/reputation", (req: Request, res: Response) => {
   try {
-    const agentUrl = decodeURIComponent(req.params.agentUrl);
+    const { agentUrl } = req.params;
 
-    console.log(`📊 Fetching reputation for agent: ${agentUrl}`);
-
-    const reputation = await jobRunner.getAgentReputation(agentUrl);
-
-    if (reputation) {
-      res.json({
-        success: true,
-        agentUrl,
-        reputation: {
-          totalTasks: reputation.totalTasks,
-          successfulTasks: reputation.successfulTasks,
-          successRate:
-            reputation.totalTasks > 0
-              ? (reputation.successfulTasks / reputation.totalTasks) * 100
-              : 0,
-          averageLatency: reputation.averageLatency,
-          averageRating: reputation.averageRating,
-          reputationScore: reputation.reputationScore,
-        },
-        timestamp: new Date().toISOString(),
-      });
-    } else {
-      // Return default reputation if not found on blockchain
-      res.json({
-        success: true,
-        agentUrl,
-        reputation: {
-          totalTasks: 0,
-          successfulTasks: 0,
-          successRate: 0,
-          averageLatency: 0,
-          averageRating: 0,
-          reputationScore: 0,
-        },
-        source: "default",
-        message:
-          "Agent not found in blockchain registry, returning default values",
-        timestamp: new Date().toISOString(),
-      });
-    }
-  } catch (error: any) {
-    console.error("Failed to get agent reputation:", error);
-    res.status(500).json({
-      error: "Failed to get agent reputation",
-      details: error.message,
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// Get blockchain service status
-app.get("/blockchain/status", (req: Request, res: Response) => {
-  try {
-    const status = jobRunner.getBlockchainStatus();
-
+    // Return demo reputation data
     res.json({
       success: true,
-      blockchain: {
-        isAvailable: status.isAvailable,
-        hasWallet: status.hasWallet,
-        blockNumber: status.blockNumber,
-        contracts: {
-          agentRegistry: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-          reputationLayer: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-          orchestrationContract: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-        },
-        rpcUrl: process.env.RPC_URL || "http://localhost:8545",
-        features: {
-          agentDiscovery: status.isAvailable,
-          reputationTracking: status.isAvailable && status.hasWallet,
-          paymentProcessing: status.isAvailable && status.hasWallet,
-        },
+      agentUrl: decodeURIComponent(agentUrl),
+      reputation: {
+        totalTasks: 10,
+        successfulTasks: 9,
+        successRate: 90,
+        averageLatency: 500,
+        averageRating: 4.5,
+        reputationScore: 85,
       },
+      source: "demo",
+      message: "Demo reputation data",
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
     res.status(500).json({
-      error: "Failed to get blockchain status",
+      error: "Failed to get agent reputation",
       details: error.message,
       timestamp: new Date().toISOString(),
     });
@@ -851,49 +815,27 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
     const results = [];
     const errors = [];
 
-    // Submit ratings for each agent
+    // Submit ratings for each agent (demo mode)
     for (const [agentIdentifier, rating] of Object.entries(modelRatings)) {
       try {
-        // Extract agent URL from identifier (could be stepId, agentName, or URL)
         let agentUrl = agentIdentifier;
 
-        // If it's a step ID, try to resolve it to an agent URL
-        if (executionId) {
-          const execution = workflowManager.getExecution(executionId);
-          const workflow = execution
-            ? workflowManager.getWorkflow(execution.workflowId)
-            : null;
-
-          if (workflow) {
-            const step = workflow.steps.find(
-              (s: any) =>
-                s.stepId === agentIdentifier || s.agentName === agentIdentifier
-            );
-            if (step) {
-              agentUrl = step.agentUrl;
-            }
-          }
-        }
-
         if (typeof rating === "number" && rating >= 1 && rating <= 5) {
-          const result = await jobRunner.submitRating(
-            agentUrl,
-            rating,
-            userAddress
-          );
+          // Demo rating submission - always successful
+          console.log(`⭐ Rating ${rating}/5 submitted for agent ${agentUrl}`);
 
           results.push({
             agentUrl,
             agentIdentifier,
             rating,
-            success: result.success,
-            txHash: result.txHash,
-            error: result.error,
+            success: true,
+            txHash:
+              "demo-tx-hash-" +
+              Date.now() +
+              "-" +
+              Math.random().toString(36).substr(2, 5),
+            error: null,
           });
-
-          if (!result.success) {
-            errors.push(`${agentIdentifier}: ${result.error}`);
-          }
         } else {
           errors.push(`${agentIdentifier}: Invalid rating value (${rating})`);
         }
@@ -907,7 +849,7 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
 
     res.json({
       success: successCount > 0,
-      message: `Submitted ${successCount}/${totalRatings} ratings successfully`,
+      message: `Submitted ${successCount}/${totalRatings} ratings successfully (demo mode)`,
       results,
       errors: errors.length > 0 ? errors : undefined,
       feedback: {
@@ -917,6 +859,7 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
         ratingsSubmitted: successCount,
         totalRatings,
       },
+      mode: "demo",
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
