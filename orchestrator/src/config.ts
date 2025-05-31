@@ -3,8 +3,9 @@ import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
-export const AGENT_ENDPOINTS = [
-  "http://localhost:3000", // Hello World Agent (local)
+export const AGENTS = [
+  "http://localhost:3001", // Hello World Agent
+  "http://localhost:3002", // DALL-E 3 Image Generator Agent
 ];
 
 // Basic configuration (no blockchain for now)

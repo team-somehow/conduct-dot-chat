@@ -1,5 +1,6 @@
 import { HttpAgent, loadAgent, runAgent } from "./agents.http";
-import { AGENT_ENDPOINTS } from "./config";
+import { AGENTS } from "./config";
+import { AgentMetadata, JobData, TaskExecution } from "./types";
 
 export interface JobConfig {
   jobId: string;
@@ -34,7 +35,7 @@ export class JobRunner {
   async discoverAgents(): Promise<HttpAgent[]> {
     const agents: HttpAgent[] = [];
 
-    for (const endpoint of AGENT_ENDPOINTS) {
+    for (const endpoint of AGENTS) {
       try {
         const agent = await this.loadAgent(endpoint);
         agents.push(agent);

@@ -2,7 +2,7 @@
 import express, { Request, Response } from "express";
 import { JobRunner } from "./JobRunner";
 import { loadAgent } from "./agents.http";
-import { AGENT_ENDPOINTS, config } from "./config";
+import { AGENTS, config } from "./config";
 
 const app = express();
 app.use(express.json());
@@ -32,24 +32,11 @@ app.get("/health", async (req: Request, res: Response) => {
 });
 
 // Discover available agents
-app.get("/agents", async (req: Request, res: Response) => {
-  try {
-    const agents = await jobRunner.discoverAgents();
-    res.json({
-      agents: agents.map((agent) => ({
-        name: agent.name,
-        url: agent.url,
-        description: agent.description,
-        wallet: agent.wallet,
-        previewURI: agent.previewURI,
-      })),
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      error: "Failed to discover agents",
-      details: error.message,
-    });
-  }
+app.get("/agents", (req: Request, res: Response) => {
+  res.json({
+    agents: AGENTS,
+    count: AGENTS.length,
+  });
 });
 
 // Execute a single agent task
@@ -156,7 +143,7 @@ if (process.argv[2] === "health") {
 
   (async () => {
     try {
-      for (const endpoint of AGENT_ENDPOINTS) {
+      for (const endpoint of AGENTS) {
         try {
           const agent = await loadAgent(endpoint);
           console.log(`✅ ${agent.name} (${endpoint}) - healthy`);
