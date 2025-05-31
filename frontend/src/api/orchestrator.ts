@@ -225,7 +225,108 @@ export const orchestratorAPI = {
   async generateSummary(
     summaryRequest: SummaryRequest
   ): Promise<SummaryResponse> {
-    const response = await api.post("/workflows/generate-summary", summaryRequest);
+    const response = await api.post(
+      "/workflows/generate-summary",
+      summaryRequest
+    );
+    return response.data;
+  },
+
+  // ========== BLOCKCHAIN & RATING METHODS ==========
+
+  // Submit agent rating
+  async submitRating(
+    agentUrl: string,
+    rating: number,
+    userAddress?: string,
+    feedback?: string
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    txHash?: string;
+    error?: string;
+  }> {
+    const response = await api.post("/agents/rate", {
+      agentUrl,
+      rating,
+      userAddress,
+      feedback,
+    });
+    return response.data;
+  },
+
+  // Get agent reputation from blockchain
+  async getAgentReputation(agentUrl: string): Promise<{
+    success: boolean;
+    agentUrl: string;
+    reputation: {
+      totalTasks: number;
+      successfulTasks: number;
+      successRate: number;
+      averageLatency: number;
+      averageRating: number;
+      reputationScore: number;
+    };
+    source?: string;
+    message?: string;
+  }> {
+    const encodedUrl = encodeURIComponent(agentUrl);
+    const response = await api.get(`/agents/${encodedUrl}/reputation`);
+    return response.data;
+  },
+
+  // Get blockchain service status
+  async getBlockchainStatus(): Promise<{
+    success: boolean;
+    blockchain: {
+      isAvailable: boolean;
+      hasWallet: boolean;
+      blockNumber?: number;
+      contracts: {
+        agentRegistry: string;
+        reputationLayer: string;
+        orchestrationContract: string;
+      };
+      rpcUrl: string;
+      features: {
+        agentDiscovery: boolean;
+        reputationTracking: boolean;
+        paymentProcessing: boolean;
+      };
+    };
+  }> {
+    const response = await api.get("/blockchain/status");
+    return response.data;
+  },
+
+  // Submit comprehensive feedback with multiple ratings
+  async submitFeedback(feedbackData: {
+    executionId?: string;
+    workflowId?: string;
+    modelRatings: Record<string, number>;
+    overallFeedback?: string;
+    userAddress?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    results: Array<{
+      agentUrl: string;
+      agentIdentifier: string;
+      rating: number;
+      success: boolean;
+      txHash?: string;
+      error?: string;
+    }>;
+    errors?: string[];
+    feedback: {
+      executionId?: string;
+      workflowId?: string;
+      overallFeedback?: string;
+      ratingsSubmitted: number;
+      totalRatings: number;
+    };
+  }> {
+    const response = await api.post("/feedback/submit", feedbackData);
     return response.data;
   },
 };
@@ -275,6 +376,10 @@ export const safeOrchestratorAPI = {
     orchestratorAPI.createAndExecuteWorkflow
   ),
   generateSummary: withErrorHandling(orchestratorAPI.generateSummary),
+  submitRating: withErrorHandling(orchestratorAPI.submitRating),
+  getAgentReputation: withErrorHandling(orchestratorAPI.getAgentReputation),
+  getBlockchainStatus: withErrorHandling(orchestratorAPI.getBlockchainStatus),
+  submitFeedback: withErrorHandling(orchestratorAPI.submitFeedback),
 };
 
 export default safeOrchestratorAPI;

@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { ReactFlowProvider } from 'reactflow';
+import { ReactFlowProvider } from "reactflow";
 import { useWorkflowStore, convertWorkflowToGraph } from "../../store/workflow";
 import Navbar from "../../components/Navbar";
 import StepLoader from "../../components/StepLoader";
@@ -13,8 +13,9 @@ import LiveLogPanel from "../../components/LiveLogPanel";
 import ResultPanel from "../../components/ResultPanel";
 import GeneratedStage from "../../components/GeneratedStage";
 import MultiWorkflowComparison from "../../components/MultiWorkflowComparison";
-import "../../styles/execution.css";
 import { orchestratorAPI } from "../../api/orchestrator";
+import { blockchainService } from "../../services/blockchain";
+import "../../styles/execution.css";
 
 const STEP_DURATION = 3000; // 3 seconds per step
 
@@ -24,8 +25,23 @@ export default function WorkflowPage() {
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
   const [promptInput, setPromptInput] = useState("");
   const [hasCreatedWorkflow, setHasCreatedWorkflow] = useState(false);
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(
+    null
+  );
   const [generatedWorkflows, setGeneratedWorkflows] = useState<any[]>([]);
+
+  // Blockchain status state
+  const [blockchainStatus, setBlockchainStatus] = useState<{
+    isAvailable: boolean;
+    hasWallet: boolean;
+    isConnected: boolean;
+    userAddress?: string;
+    features?: any;
+  }>({
+    isAvailable: false,
+    hasWallet: false,
+    isConnected: false,
+  });
 
   const {
     currentStep,
@@ -61,16 +77,89 @@ export default function WorkflowPage() {
   // Load available agents when component mounts
   useEffect(() => {
     loadAvailableAgents();
+    checkBlockchainStatus();
   }, []); // Empty dependency array - only run once
+
+  // Check blockchain status
+  const checkBlockchainStatus = async () => {
+    try {
+      console.log("🔍 Checking blockchain status...");
+
+      // Check if blockchain service has connection
+      const hasConnection = blockchainService.hasBlockchainConnection();
+      const isConnected = blockchainService.isConnected();
+
+      let userAddress: string | undefined;
+      if (isConnected) {
+        try {
+          userAddress =
+            (await blockchainService.getConnectedAddress()) || undefined;
+        } catch (error) {
+          console.warn("⚠️ Could not get user address:", error);
+        }
+      }
+
+      // Get backend blockchain status
+      let backendStatus: any = null;
+      try {
+        backendStatus = await orchestratorAPI.getBlockchainStatus();
+      } catch (error) {
+        console.warn("⚠️ Could not get backend blockchain status:", error);
+      }
+
+      setBlockchainStatus({
+        isAvailable:
+          hasConnection && (backendStatus?.blockchain?.isAvailable || false),
+        hasWallet: isConnected,
+        isConnected: isConnected,
+        userAddress: userAddress,
+        features: backendStatus?.blockchain?.features,
+      });
+
+      console.log("📊 Blockchain status updated:", {
+        hasConnection,
+        isConnected,
+        userAddress,
+        backendAvailable: backendStatus?.blockchain?.isAvailable,
+      });
+    } catch (error) {
+      console.error("❌ Failed to check blockchain status:", error);
+    }
+  };
+
+  // Connect wallet function
+  const connectWallet = async () => {
+    try {
+      console.log("🔗 Connecting wallet...");
+      const success = await blockchainService.connectWallet();
+
+      if (success) {
+        console.log("✅ Wallet connected successfully");
+        await checkBlockchainStatus(); // Refresh status
+        addLog("Wallet connected successfully", "success");
+      } else {
+        console.warn("⚠️ Wallet connection failed");
+        addLog("Failed to connect wallet", "error");
+      }
+    } catch (error) {
+      console.error("❌ Wallet connection error:", error);
+      addLog(
+        `Wallet connection error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "error"
+      );
+    }
+  };
 
   // Helper functions for workflow transformation
   const getIconForAgent = (agentName: string): string => {
     const name = agentName.toLowerCase();
-    if (name.includes('hello') || name.includes('greet')) return '👋';
-    if (name.includes('image') || name.includes('dall')) return '🎨';
-    if (name.includes('nft') || name.includes('deploy')) return '💎';
-    if (name.includes('gpt') || name.includes('claude')) return '🧠';
-    return '⚡';
+    if (name.includes("hello") || name.includes("greet")) return "👋";
+    if (name.includes("image") || name.includes("dall")) return "🎨";
+    if (name.includes("nft") || name.includes("deploy")) return "💎";
+    if (name.includes("gpt") || name.includes("claude")) return "🧠";
+    return "⚡";
   };
 
   const getCostForAgent = (agentName: string): number => {
@@ -79,96 +168,110 @@ export default function WorkflowPage() {
       "DALL-E 3 Image Generator": 0.15,
       "NFT Deployer Agent": 0.08,
       "GPT-4": 0.12,
-      "Stable Diffusion": 0.10,
-      "Claude": 0.09,
+      "Stable Diffusion": 0.1,
+      Claude: 0.09,
     };
     return costMap[agentName] || 0.05 + Math.random() * 0.1;
   };
 
-  const handleCreateWorkflow = useCallback(async (prompt: string) => {
-    if (!prompt.trim()) return;
-    
-    try {
-      console.log("Creating workflow with prompt:", prompt);
-      setCurrentStep("GENERATING_WORKFLOW");
-      setUserPrompt(prompt);
-      
-      // Generate workflows during the loading step
-      addLog(`Starting workflow creation for: "${prompt}"`, 'info');
-      
-      const workflows = [];
-      
-      // Generate single workflow via API
+  const handleCreateWorkflow = useCallback(
+    async (prompt: string) => {
+      if (!prompt.trim()) return;
+
       try {
-        addLog("Generating workflow...", 'info');
-        const { workflow } = await orchestratorAPI.createWorkflow(prompt);
-        
-        if (workflow) {
-          // Convert workflow to nodes and edges
-          const { nodes, edges } = convertWorkflowToGraph(workflow);
-          
-          // Transform workflow steps to match WorkflowGraph Step interface
-          const transformedSteps = workflow.steps.map((step: any, index: number) => ({
-            id: `workflow-${step.stepId}`,
-            order: index + 1,
-            name: step.agentName,
-            modelType: 'AI MODEL',
-            description: step.description,
-            status: 'IDLE' as const,
-            icon: getIconForAgent(step.agentName),
-            cost: getCostForAgent(step.agentName)
-          }));
+        console.log("Creating workflow with prompt:", prompt);
+        setCurrentStep("GENERATING_WORKFLOW");
+        setUserPrompt(prompt);
 
-          const estimatedCost = workflow.steps.reduce((sum: number, step: any) => {
-            return sum + getCostForAgent(step.agentName);
-          }, 0);
+        // Generate workflows during the loading step
+        addLog(`Starting workflow creation for: "${prompt}"`, "info");
 
-          // Create both standard and optimized variants from the same workflow
-          workflows.push({
-            id: workflow.workflowId,
-            variant: 'standard',
-            title: 'Standard Workflow',
-            description: 'Optimized for reliability and accuracy',
-            estimatedCost: estimatedCost,
-            estimatedDuration: workflow.steps.length * 30, // 30 seconds per step
-            workflow: workflow,
-            nodes: nodes,
-            edges: edges,
-            steps: transformedSteps
-          });
+        const workflows = [];
 
-          // Create optimized variant (same workflow, different presentation)
-          workflows.push({
-            id: `${workflow.workflowId}-opt`,
-            variant: 'optimized',
-            title: 'Optimized Workflow',
-            description: 'Optimized for speed and efficiency',
-            estimatedCost: estimatedCost * 0.8, // 20% cheaper for optimized
-            estimatedDuration: workflow.steps.length * 20, // 20 seconds per step (faster)
-            workflow: { ...workflow, workflowId: `${workflow.workflowId}-opt` },
-            nodes: nodes,
-            edges: edges,
-            steps: transformedSteps.map(step => ({ ...step, id: `opt-${step.id}` }))
-          });
+        // Generate single workflow via API
+        try {
+          addLog("Generating workflow...", "info");
+          const { workflow } = await orchestratorAPI.createWorkflow(prompt);
 
-          addLog("Workflow generated successfully", 'success');
+          if (workflow) {
+            // Convert workflow to nodes and edges
+            const { nodes, edges } = convertWorkflowToGraph(workflow);
+
+            // Transform workflow steps to match WorkflowGraph Step interface
+            const transformedSteps = workflow.steps.map(
+              (step: any, index: number) => ({
+                id: `workflow-${step.stepId}`,
+                order: index + 1,
+                name: step.agentName,
+                modelType: "AI MODEL",
+                description: step.description,
+                status: "IDLE" as const,
+                icon: getIconForAgent(step.agentName),
+                cost: getCostForAgent(step.agentName),
+              })
+            );
+
+            const estimatedCost = workflow.steps.reduce(
+              (sum: number, step: any) => {
+                return sum + getCostForAgent(step.agentName);
+              },
+              0
+            );
+
+            // Create both standard and optimized variants from the same workflow
+            workflows.push({
+              id: workflow.workflowId,
+              variant: "standard",
+              title: "Standard Workflow",
+              description: "Optimized for reliability and accuracy",
+              estimatedCost: estimatedCost,
+              estimatedDuration: workflow.steps.length * 30, // 30 seconds per step
+              workflow: workflow,
+              nodes: nodes,
+              edges: edges,
+              steps: transformedSteps,
+            });
+
+            // Create optimized variant (same workflow, different presentation)
+            workflows.push({
+              id: `${workflow.workflowId}-opt`,
+              variant: "optimized",
+              title: "Optimized Workflow",
+              description: "Optimized for speed and efficiency",
+              estimatedCost: estimatedCost * 0.8, // 20% cheaper for optimized
+              estimatedDuration: workflow.steps.length * 20, // 20 seconds per step (faster)
+              workflow: {
+                ...workflow,
+                workflowId: `${workflow.workflowId}-opt`,
+              },
+              nodes: nodes,
+              edges: edges,
+              steps: transformedSteps.map((step) => ({
+                ...step,
+                id: `opt-${step.id}`,
+              })),
+            });
+
+            addLog("Workflow generated successfully", "success");
+          }
+        } catch (error) {
+          console.error("Failed to generate workflow:", error);
+          addLog("Failed to generate workflow, using fallback", "error");
         }
+
+        // Store generated workflows
+        setGeneratedWorkflows(workflows);
+        addLog(`Generated ${workflows.length} workflow options`, "success");
+
+        // Move to next step
+        setCurrentStep("SHOW_WORKFLOW");
       } catch (error) {
-        console.error("Failed to generate workflow:", error);
-        addLog("Failed to generate workflow, using fallback", 'error');
+        console.error("Failed to create workflow:", error);
+        addLog("Failed to create workflows", "error");
       }
-      
-      // Store generated workflows
-      setGeneratedWorkflows(workflows);
-      addLog(`Generated ${workflows.length} workflow options`, 'success');
-      
-      // Move to next step
-      setCurrentStep("SHOW_WORKFLOW");
-    } catch (error) {
-      console.error("Failed to create workflow:", error);
-      addLog("Failed to create workflows", 'error');
-    }
-  }, [setCurrentStep, addLog]);
+    },
+    [setCurrentStep, addLog]
+  );
 
   // Handle workflow creation from URL prompt - only once
   useEffect(() => {
@@ -177,7 +280,13 @@ export default function WorkflowPage() {
       setHasCreatedWorkflow(true);
       handleCreateWorkflow(initialPrompt);
     }
-  }, [initialPrompt, hasCreatedWorkflow, isLoading, workflowId, handleCreateWorkflow]);
+  }, [
+    initialPrompt,
+    hasCreatedWorkflow,
+    isLoading,
+    workflowId,
+    handleCreateWorkflow,
+  ]);
 
   // Auto-proceed from cost estimation to interaction if conditions are met
   useEffect(() => {
@@ -195,7 +304,14 @@ export default function WorkflowPage() {
       // }, 3000);
       // return () => clearTimeout(timer);
     }
-  }, [currentStep, estimatedCost, workflowId, isExecuting, setCurrentStep, startExecutionSimulation]);
+  }, [
+    currentStep,
+    estimatedCost,
+    workflowId,
+    isExecuting,
+    setCurrentStep,
+    startExecutionSimulation,
+  ]);
 
   const handleExecuteWorkflow = useCallback(async () => {
     try {
@@ -225,30 +341,32 @@ export default function WorkflowPage() {
 
   const handleWorkflowConfirm = (workflowId: string) => {
     // Find the selected workflow from generated workflows
-    const selectedWorkflow = generatedWorkflows.find(w => w.id === workflowId);
-    
+    const selectedWorkflow = generatedWorkflows.find(
+      (w) => w.id === workflowId
+    );
+
     if (selectedWorkflow) {
       console.log("Selected workflow:", selectedWorkflow);
       addLog(`Selected workflow: ${selectedWorkflow.workflow.name}`, "success");
-      
+
       // Store the selected workflow data in the store
       setNodes(selectedWorkflow.nodes);
       setEdges(selectedWorkflow.edges);
-      
+
       // Update the workflow store with the selected workflow
-      useWorkflowStore.setState({ 
+      useWorkflowStore.setState({
         workflow: selectedWorkflow.workflow,
         workflowId: selectedWorkflow.workflow.workflowId,
-        estimatedCost: selectedWorkflow.estimatedCost
+        estimatedCost: selectedWorkflow.estimatedCost,
       });
-      
+
       addLog(`Workflow data updated in store`, "info");
       console.log("Updated store with workflow data:", selectedWorkflow);
     }
-    
+
     // Move to cost estimation step instead of jumping to interaction
     setCurrentStep("COST_ESTIMATION");
-    
+
     // Auto-advance to interaction after a brief delay to show cost estimation
     setTimeout(() => {
       setCurrentStep("SHOW_INTERACTION");
@@ -284,58 +402,63 @@ export default function WorkflowPage() {
       // Default demo steps
       return [
         {
-          id: 'orchestrator',
-          name: 'AI Orchestrator',
-          type: 'COORDINATOR',
-          description: 'Analyzes your request and coordinates the workflow execution',
-          status: 'idle' as const,
-          color: 'bg-[#FEEF5D]'
+          id: "orchestrator",
+          name: "AI Orchestrator",
+          type: "COORDINATOR",
+          description:
+            "Analyzes your request and coordinates the workflow execution",
+          status: "idle" as const,
+          color: "bg-[#FEEF5D]",
         },
         {
-          id: 'dalle-3',
-          name: 'DALL-E 3 Image Generator',
-          type: 'AI MODEL',
-          description: 'Generates high-quality images based on text descriptions',
-          status: 'idle' as const,
-          color: 'bg-[#FF5484]'
+          id: "dalle-3",
+          name: "DALL-E 3 Image Generator",
+          type: "AI MODEL",
+          description:
+            "Generates high-quality images based on text descriptions",
+          status: "idle" as const,
+          color: "bg-[#FF5484]",
         },
         {
-          id: 'nft-deployer',
-          name: 'NFT Deployer Agent',
-          type: 'AI MODEL',
-          description: 'Deploys NFTs to the blockchain with smart contract integration',
-          status: 'idle' as const,
-          color: 'bg-[#7C82FF]'
-        }
+          id: "nft-deployer",
+          name: "NFT Deployer Agent",
+          type: "AI MODEL",
+          description:
+            "Deploys NFTs to the blockchain with smart contract integration",
+          status: "idle" as const,
+          color: "bg-[#7C82FF]",
+        },
       ];
     }
 
-    return nodes.map(node => {
-      let status = 'idle';
-      
+    return nodes.map((node) => {
+      let status = "idle";
+
       // Determine status based on interaction progress
       if (node.id === activeNodeId) {
-        status = 'active';
+        status = "active";
       } else if (
-        (node.id === 'orchestrator' && interactionStep > 0) ||
-        (node.id === 'gpt4' && interactionStep > 1) ||
-        (node.id === 'stable-diffusion' && interactionStep > 3)
+        (node.id === "orchestrator" && interactionStep > 0) ||
+        (node.id === "gpt4" && interactionStep > 1) ||
+        (node.id === "stable-diffusion" && interactionStep > 3)
       ) {
-        status = 'completed';
+        status = "completed";
       } else if (
-        (node.id === 'gpt4' && interactionStep < 1) ||
-        (node.id === 'stable-diffusion' && interactionStep < 3)
+        (node.id === "gpt4" && interactionStep < 1) ||
+        (node.id === "stable-diffusion" && interactionStep < 3)
       ) {
-        status = 'pending';
+        status = "pending";
       }
 
       return {
         id: node.id,
-        name: node.data?.label || node.data?.name || 'AI Agent',
-        type: node.data?.type || 'AI MODEL',
-        description: node.data?.description || 'Processes data using advanced AI capabilities',
-        status: status as 'idle' | 'active' | 'completed' | 'pending',
-        color: node.data?.color || 'bg-[#FEEF5D]'
+        name: node.data?.label || node.data?.name || "AI Agent",
+        type: node.data?.type || "AI MODEL",
+        description:
+          node.data?.description ||
+          "Processes data using advanced AI capabilities",
+        status: status as "idle" | "active" | "completed" | "pending",
+        color: node.data?.color || "bg-[#FEEF5D]",
       };
     });
   };
@@ -345,15 +468,13 @@ export default function WorkflowPage() {
       case "GENERATING_WORKFLOW":
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <StepLoader
-              text="Generating Workflow - AI is analyzing your request and selecting optimal agents..."
-            />
+            <StepLoader text="Generating Workflow - AI is analyzing your request and selecting optimal agents..." />
           </div>
         );
 
       case "SHOW_WORKFLOW":
         return (
-          <MultiWorkflowComparison 
+          <MultiWorkflowComparison
             prompt={userPrompt}
             onConfirmWorkflow={handleWorkflowConfirm}
             preGeneratedWorkflows={generatedWorkflows}
@@ -363,13 +484,9 @@ export default function WorkflowPage() {
       case "COST_ESTIMATION":
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <StepLoader
-              text="Preparing Execution - Setting up your selected workflow..."
-            />
+            <StepLoader text="Preparing Execution - Setting up your selected workflow..." />
             <div className="mt-8 text-center">
-              <p className="text-2xl font-bold">
-                Selected Workflow Ready
-              </p>
+              <p className="text-2xl font-bold">Selected Workflow Ready</p>
               <p className="text-gray-600 mt-2">
                 Initializing execution environment...
               </p>
@@ -384,9 +501,9 @@ export default function WorkflowPage() {
               <header className="text-center py-4 text-xs uppercase font-bold text-black/70">
                 Watch your workflow execute in real-time
               </header>
-              
+
               <ExecutionCanvas nodes={nodes} edges={edges} />
-              
+
               <LiveLogPanel />
             </div>
           </ReactFlowProvider>
@@ -396,15 +513,15 @@ export default function WorkflowPage() {
         return (
           <div className="space-y-8">
             {executionResults && (
-              <ResultPanel 
+              <ResultPanel
                 result={{
                   ...executionResults,
-                  summary: executionSummary
+                  summary: executionSummary,
                 }}
                 workflow={workflow}
                 executionId={executionId || undefined}
                 onFeedback={(feedback) => {
-                  console.log('Feedback received:', feedback);
+                  console.log("Feedback received:", feedback);
                   addLog(`User feedback: ${feedback}`, "info");
                 }}
                 onRunAgain={handleReset}
@@ -427,12 +544,15 @@ export default function WorkflowPage() {
             <h2 className="text-3xl font-bold mb-8">
               AI Workflow Orchestrator
             </h2>
-            
+
             {/* Prompt Input Form */}
             <form onSubmit={handlePromptSubmit} className="w-full max-w-2xl">
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="prompt" className="block text-sm font-bold text-gray-700 mb-2">
+                  <label
+                    htmlFor="prompt"
+                    className="block text-sm font-bold text-gray-700 mb-2"
+                  >
                     Describe what you want to accomplish:
                   </label>
                   <textarea
@@ -461,7 +581,7 @@ export default function WorkflowPage() {
                 {[
                   "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague",
                   "Generate an image of a sunset and create a greeting message",
-                  "Create a personalized NFT for my friend's birthday"
+                  "Create a personalized NFT for my friend's birthday",
                 ].map((example, index) => (
                   <button
                     key={index}
@@ -501,26 +621,89 @@ export default function WorkflowPage() {
       <div className="p-4 bg-gray-100 border-b">
         <div className="max-w-7xl mx-auto flex gap-4 items-center text-sm">
           <span className="font-bold">Status:</span>
-          <span className={`px-2 py-1 rounded ${
-            error ? "bg-red-200 text-red-800" :
-            isLoading || isExecuting ? "bg-yellow-200 text-yellow-800" :
-            "bg-green-200 text-green-800"
-          }`}>
-            {error ? "Error" : isLoading || isExecuting ? "Processing" : "Ready"}
+          <span
+            className={`px-2 py-1 rounded ${
+              error
+                ? "bg-red-200 text-red-800"
+                : isLoading || isExecuting
+                ? "bg-yellow-200 text-yellow-800"
+                : "bg-green-200 text-green-800"
+            }`}
+          >
+            {error
+              ? "Error"
+              : isLoading || isExecuting
+              ? "Processing"
+              : "Ready"}
           </span>
           <span>Available Agents: {availableAgents.length}</span>
           {selectedWorkflowId && (
-            <span className="text-blue-600">Selected: {selectedWorkflowId.slice(0, 8)}...</span>
+            <span className="text-blue-600">
+              Selected: {selectedWorkflowId.slice(0, 8)}...
+            </span>
           )}
-          {error && (
-            <span className="text-red-600 ml-4">Error: {error}</span>
-          )}
+
+          {/* Blockchain Status */}
+          <div className="flex items-center gap-2 ml-4 pl-4 border-l border-gray-300">
+            <span className="font-bold">Blockchain:</span>
+            <span
+              className={`px-2 py-1 rounded text-xs ${
+                blockchainStatus.isAvailable
+                  ? "bg-green-200 text-green-800"
+                  : "bg-red-200 text-red-800"
+              }`}
+            >
+              {blockchainStatus.isAvailable ? "Connected" : "Offline"}
+            </span>
+
+            {blockchainStatus.isAvailable && (
+              <>
+                <span
+                  className={`px-2 py-1 rounded text-xs ${
+                    blockchainStatus.isConnected
+                      ? "bg-blue-200 text-blue-800"
+                      : "bg-yellow-200 text-yellow-800"
+                  }`}
+                >
+                  {blockchainStatus.isConnected
+                    ? "Wallet Connected"
+                    : "Wallet Disconnected"}
+                </span>
+
+                {blockchainStatus.userAddress && (
+                  <span className="text-xs text-gray-600">
+                    {blockchainStatus.userAddress.slice(0, 6)}...
+                    {blockchainStatus.userAddress.slice(-4)}
+                  </span>
+                )}
+
+                {!blockchainStatus.isConnected && (
+                  <button
+                    onClick={connectWallet}
+                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+              </>
+            )}
+
+            {blockchainStatus.features && (
+              <span className="text-xs text-gray-500">
+                Features:{" "}
+                {Object.entries(blockchainStatus.features)
+                  .filter(([_, enabled]) => enabled)
+                  .map(([feature, _]) => feature)
+                  .join(", ") || "None"}
+              </span>
+            )}
+          </div>
+
+          {error && <span className="text-red-600 ml-4">Error: {error}</span>}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-8">
-        {renderCurrentStep()}
-      </div>
+      <div className="max-w-7xl mx-auto p-8">{renderCurrentStep()}</div>
 
       {/* Step Indicator */}
       <motion.div

@@ -2,9 +2,21 @@
 import express, { Request, Response } from "express";
 import { JobRunner } from "./JobRunner";
 import { WorkflowManager } from "./WorkflowManager";
-import { loadAgent } from "./agents.http";
-import { AGENTS, config, createSampleMCPConfig } from "./config";
+import { loadAgent, runAgent } from "./agents.http";
+import {
+  AGENTS,
+  config,
+  createSampleMCPConfig,
+  loadMCPConfig,
+  validateMCPConfig,
+} from "./config";
 import { UserIntent } from "./types";
+import { MCPManager } from "./MCPManager";
+import { MCPAgentService, MCPAgentAdapter } from "./MCPAgent";
+import BlockchainService, {
+  createBlockchainService,
+} from "./BlockchainService";
+import { ethers } from "ethers";
 
 const app = express();
 
@@ -595,7 +607,14 @@ app.get("/agents/:agentUrl/meta", async (req: Request, res: Response) => {
 // Generate AI summary for workflow execution
 app.post("/workflows/generate-summary", async (req: Request, res: Response) => {
   try {
-    const { workflowId, executionId, workflow, execution, logs, executionType } = req.body;
+    const {
+      workflowId,
+      executionId,
+      workflow,
+      execution,
+      logs,
+      executionType,
+    } = req.body;
 
     if (!workflow && !workflowId) {
       return res.status(400).json({
@@ -649,6 +668,268 @@ app.post("/workflows/generate-summary", async (req: Request, res: Response) => {
     });
   }
 });
+
+// ========== BLOCKCHAIN & RATING ENDPOINTS ==========
+
+// Submit agent rating
+app.post("/agents/rate", async (req: Request, res: Response) => {
+  try {
+    const { agentUrl, rating, userAddress, feedback } = req.body;
+
+    // Validate required fields
+    if (!agentUrl || !rating) {
+      return res.status(400).json({
+        error: "Missing required fields: agentUrl, rating",
+      });
+    }
+
+    // Validate rating range
+    if (typeof rating !== "number" || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        error: "Rating must be a number between 1 and 5",
+      });
+    }
+
+    console.log(`⭐ Processing rating submission: ${rating}/5 for ${agentUrl}`);
+
+    // Submit rating through JobRunner
+    const result = await jobRunner.submitRating(agentUrl, rating, userAddress);
+
+    if (result.success) {
+      console.log(
+        `✅ Rating submitted successfully: ${result.txHash || "demo-mode"}`
+      );
+      res.json({
+        success: true,
+        message: `Rating ${rating}/5 submitted successfully`,
+        txHash: result.txHash,
+        agentUrl,
+        rating,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      console.warn(`⚠️ Rating submission failed: ${result.error}`);
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        agentUrl,
+        rating,
+        fallback: "Rating stored locally for future blockchain submission",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (error: any) {
+    console.error("Rating submission error:", error);
+    res.status(500).json({
+      error: "Failed to submit rating",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get agent reputation from blockchain
+app.get("/agents/:agentUrl/reputation", async (req: Request, res: Response) => {
+  try {
+    const agentUrl = decodeURIComponent(req.params.agentUrl);
+
+    console.log(`📊 Fetching reputation for agent: ${agentUrl}`);
+
+    const reputation = await jobRunner.getAgentReputation(agentUrl);
+
+    if (reputation) {
+      res.json({
+        success: true,
+        agentUrl,
+        reputation: {
+          totalTasks: reputation.totalTasks,
+          successfulTasks: reputation.successfulTasks,
+          successRate:
+            reputation.totalTasks > 0
+              ? (reputation.successfulTasks / reputation.totalTasks) * 100
+              : 0,
+          averageLatency: reputation.averageLatency,
+          averageRating: reputation.averageRating,
+          reputationScore: reputation.reputationScore,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      // Return default reputation if not found on blockchain
+      res.json({
+        success: true,
+        agentUrl,
+        reputation: {
+          totalTasks: 0,
+          successfulTasks: 0,
+          successRate: 0,
+          averageLatency: 0,
+          averageRating: 0,
+          reputationScore: 0,
+        },
+        source: "default",
+        message:
+          "Agent not found in blockchain registry, returning default values",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (error: any) {
+    console.error("Failed to get agent reputation:", error);
+    res.status(500).json({
+      error: "Failed to get agent reputation",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get blockchain service status
+app.get("/blockchain/status", (req: Request, res: Response) => {
+  try {
+    const status = jobRunner.getBlockchainStatus();
+
+    res.json({
+      success: true,
+      blockchain: {
+        isAvailable: status.isAvailable,
+        hasWallet: status.hasWallet,
+        blockNumber: status.blockNumber,
+        contracts: {
+          agentRegistry: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+          reputationLayer: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+          orchestrationContract: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+        },
+        rpcUrl: process.env.RPC_URL || "http://localhost:8545",
+        features: {
+          agentDiscovery: status.isAvailable,
+          reputationTracking: status.isAvailable && status.hasWallet,
+          paymentProcessing: status.isAvailable && status.hasWallet,
+        },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to get blockchain status",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Submit feedback with multiple ratings (enhanced endpoint)
+app.post("/feedback/submit", async (req: Request, res: Response) => {
+  try {
+    const {
+      executionId,
+      workflowId,
+      modelRatings,
+      overallFeedback,
+      userAddress,
+    } = req.body;
+
+    if (!executionId && !workflowId) {
+      return res.status(400).json({
+        error: "Missing required field: executionId or workflowId",
+      });
+    }
+
+    if (!modelRatings || typeof modelRatings !== "object") {
+      return res.status(400).json({
+        error:
+          "Missing required field: modelRatings (object with agentUrl: rating mappings)",
+      });
+    }
+
+    console.log(
+      `📝 Processing feedback submission for execution: ${
+        executionId || workflowId
+      }`
+    );
+    console.log(`🎯 Model ratings:`, modelRatings);
+
+    const results = [];
+    const errors = [];
+
+    // Submit ratings for each agent
+    for (const [agentIdentifier, rating] of Object.entries(modelRatings)) {
+      try {
+        // Extract agent URL from identifier (could be stepId, agentName, or URL)
+        let agentUrl = agentIdentifier;
+
+        // If it's a step ID, try to resolve it to an agent URL
+        if (executionId) {
+          const execution = workflowManager.getExecution(executionId);
+          const workflow = execution
+            ? workflowManager.getWorkflow(execution.workflowId)
+            : null;
+
+          if (workflow) {
+            const step = workflow.steps.find(
+              (s: any) =>
+                s.stepId === agentIdentifier || s.agentName === agentIdentifier
+            );
+            if (step) {
+              agentUrl = step.agentUrl;
+            }
+          }
+        }
+
+        if (typeof rating === "number" && rating >= 1 && rating <= 5) {
+          const result = await jobRunner.submitRating(
+            agentUrl,
+            rating,
+            userAddress
+          );
+
+          results.push({
+            agentUrl,
+            agentIdentifier,
+            rating,
+            success: result.success,
+            txHash: result.txHash,
+            error: result.error,
+          });
+
+          if (!result.success) {
+            errors.push(`${agentIdentifier}: ${result.error}`);
+          }
+        } else {
+          errors.push(`${agentIdentifier}: Invalid rating value (${rating})`);
+        }
+      } catch (error: any) {
+        errors.push(`${agentIdentifier}: ${error.message}`);
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    const totalRatings = Object.keys(modelRatings).length;
+
+    res.json({
+      success: successCount > 0,
+      message: `Submitted ${successCount}/${totalRatings} ratings successfully`,
+      results,
+      errors: errors.length > 0 ? errors : undefined,
+      feedback: {
+        executionId,
+        workflowId,
+        overallFeedback,
+        ratingsSubmitted: successCount,
+        totalRatings,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Feedback submission error:", error);
+    res.status(500).json({
+      error: "Failed to submit feedback",
+      details: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// ========== END BLOCKCHAIN & RATING ENDPOINTS ==========
 
 // CLI mode for health checks
 if (process.argv[2] === "health") {
