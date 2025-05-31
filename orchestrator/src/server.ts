@@ -3,19 +3,22 @@ import express, { Request, Response } from "express";
 import { JobRunner } from "./JobRunner";
 import { WorkflowManager } from "./WorkflowManager";
 import { loadAgent } from "./agents.http";
-import { AGENTS, config } from "./config";
+import { AGENTS, config, createSampleMCPConfig } from "./config";
 import { UserIntent } from "./types";
 
 const app = express();
 
 // Add CORS middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
   // Handle preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     res.sendStatus(200);
   } else {
     next();
@@ -158,20 +161,41 @@ Make it engaging and informative, written in markdown format.`,
 app.get("/health", async (req: Request, res: Response) => {
   try {
     const agents = await jobRunner.discoverAgents();
+    const mcpServerStatuses = jobRunner.getMCPServerStatuses();
+
     res.json({
       status: "healthy",
       timestamp: new Date().toISOString(),
-      agents: agents.map((agent) => ({
-        name: agent.name,
-        url: agent.url,
-        description: agent.description,
-        vendor: agent.vendor,
-        category: agent.category,
-        tags: agent.tags,
-        pricing: agent.pricing,
-        rating: agent.rating,
-        performance: agent.performance,
-      })),
+      agents: agents.map((agent) => {
+        const baseInfo = {
+          name: agent.name,
+          description: agent.description,
+          type: agent.type,
+          previewURI: agent.previewURI,
+        };
+
+        if (agent.type === "http") {
+          return {
+            ...baseInfo,
+            url: (agent as any).url,
+            vendor: (agent as any).vendor,
+            category: (agent as any).category,
+            tags: (agent as any).tags,
+            pricing: (agent as any).pricing,
+            rating: (agent as any).rating,
+            performance: (agent as any).performance,
+          };
+        } else {
+          return {
+            ...baseInfo,
+            serverName: (agent as any).serverName,
+            tools: (agent as any).tools?.length || 0,
+            resources: (agent as any).resources?.length || 0,
+            prompts: (agent as any).prompts?.length || 0,
+          };
+        }
+      }),
+      mcpServers: mcpServerStatuses,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -187,24 +211,109 @@ app.get("/agents", async (req: Request, res: Response) => {
   try {
     const agents = await jobRunner.discoverAgents();
     res.json({
-      agents: agents.map((agent) => ({
-        name: agent.name,
-        url: agent.url,
-        description: agent.description,
-        vendor: agent.vendor,
-        category: agent.category,
-        tags: agent.tags,
-        pricing: agent.pricing,
-        rating: agent.rating,
-        performance: agent.performance,
-        wallet: agent.wallet,
-        previewURI: agent.previewURI,
-      })),
+      agents: agents.map((agent) => {
+        const baseInfo = {
+          name: agent.name,
+          description: agent.description,
+          type: agent.type,
+          previewURI: agent.previewURI,
+        };
+
+        if (agent.type === "http") {
+          return {
+            ...baseInfo,
+            url: (agent as any).url,
+            vendor: (agent as any).vendor,
+            category: (agent as any).category,
+            tags: (agent as any).tags,
+            pricing: (agent as any).pricing,
+            rating: (agent as any).rating,
+            performance: (agent as any).performance,
+            wallet: (agent as any).wallet,
+          };
+        } else {
+          return {
+            ...baseInfo,
+            serverName: (agent as any).serverName,
+            tools: (agent as any).tools,
+            resources: (agent as any).resources,
+            prompts: (agent as any).prompts,
+          };
+        }
+      }),
       count: agents.length,
     });
   } catch (error: any) {
     res.status(500).json({
       error: "Failed to discover agents",
+      details: error.message,
+    });
+  }
+});
+
+// MCP-specific endpoints
+
+// Get MCP server statuses
+app.get("/mcp/servers", (req: Request, res: Response) => {
+  try {
+    const statuses = jobRunner.getMCPServerStatuses();
+    res.json({
+      success: true,
+      servers: statuses,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to get MCP server statuses",
+      details: error.message,
+    });
+  }
+});
+
+// Refresh MCP agents
+app.post("/mcp/refresh", async (req: Request, res: Response) => {
+  try {
+    await jobRunner.refreshMCPAgents();
+    const agents = await jobRunner.discoverAgents();
+    const mcpAgents = agents.filter((agent) => agent.type === "mcp");
+
+    res.json({
+      success: true,
+      message: "MCP agents refreshed successfully",
+      mcpAgents: mcpAgents.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to refresh MCP agents",
+      details: error.message,
+    });
+  }
+});
+
+// Get sample MCP configuration
+app.get("/mcp/config/sample", (req: Request, res: Response) => {
+  try {
+    const sampleConfig = createSampleMCPConfig();
+    res.json({
+      success: true,
+      sampleConfig: JSON.parse(sampleConfig),
+      configString: sampleConfig,
+      instructions: {
+        message:
+          "Save this configuration as 'mcp.json' in your project root or orchestrator directory",
+        envVars:
+          "Replace placeholder values with your actual API keys and secrets",
+        locations: [
+          "./mcp.json",
+          "./orchestrator/mcp.json",
+          "Set MCP_CONFIG environment variable with JSON string",
+        ],
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to generate sample MCP configuration",
       details: error.message,
     });
   }

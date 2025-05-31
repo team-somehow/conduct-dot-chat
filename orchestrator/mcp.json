@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "akave": {
+      "command": "npx",
+      "args": ["-y", "akave-mcp-js"],
+      "env": {
+        "AKAVE_ACCESS_KEY_ID": "O3_6THFMI6LDIIJR41QF",
+        "AKAVE_SECRET_ACCESS_KEY": "b7DBOkhUhuWbEas4tScYer4E0YzRfyEa7DvLLJ11",
+        "AKAVE_ENDPOINT_URL": "https://o3-rc1.akave.xyz"
+      }
+    }
+  }
+}

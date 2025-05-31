@@ -21,7 +21,7 @@ async function testThankYouNFT() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt:
-          "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague",
+          "in the bucket called 'maha' put image https://picsum.photos/200/300",
       }),
     });
 

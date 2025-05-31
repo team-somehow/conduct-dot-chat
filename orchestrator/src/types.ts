@@ -119,3 +119,58 @@ export interface UserIntent {
     cost?: "low" | "medium" | "high";
   };
 }
+
+// MCP Server Configuration Types
+export interface MCPServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  timeout?: number;
+}
+
+export interface MCPServersConfig {
+  mcpServers: Record<string, MCPServerConfig>;
+}
+
+// MCP Server Runtime Types
+export interface MCPServerProcess {
+  name: string;
+  config: MCPServerConfig;
+  process?: any; // Node.js ChildProcess
+  client?: any; // MCP Client instance
+  status: "starting" | "running" | "stopped" | "error";
+  startedAt?: number;
+  error?: string;
+}
+
+// Extended Agent types to support both HTTP and MCP
+export interface BaseAgent {
+  name: string;
+  description: string;
+  type: "http" | "mcp";
+  inputSchema: any;
+  outputSchema: any;
+  previewURI: string;
+}
+
+export interface HttpAgent extends BaseAgent {
+  type: "http";
+  url: string;
+  wallet: `0x${string}`;
+  vendor?: string;
+  category?: string;
+  tags?: string[];
+  pricing?: any;
+  rating?: any;
+  performance?: any;
+}
+
+export interface MCPAgent extends BaseAgent {
+  type: "mcp";
+  serverName: string;
+  tools: any[]; // MCP tools available
+  resources?: any[]; // MCP resources available
+  prompts?: any[]; // MCP prompts available
+}
+
+export type Agent = HttpAgent | MCPAgent;

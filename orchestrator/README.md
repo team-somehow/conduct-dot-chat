@@ -1,6 +1,28 @@
 # MAHA Orchestrator
 
-A simplified multi-agent orchestration system that creates and executes AI workflows from natural language prompts.
+A simplified multi-agent orchestration system that creates and executes AI workflows from natural language prompts. **Now with Model Context Protocol (MCP) support!**
+
+## ✨ New: MCP Integration
+
+The orchestrator now supports **Model Context Protocol (MCP) servers** alongside traditional HTTP agents. Simply provide an MCP-compliant JSON configuration and everything works automatically:
+
+```json
+{
+  "mcpServers": {
+    "akave": {
+      "command": "npx",
+      "args": ["-y", "akave-mcp-js"],
+      "env": {
+        "AKAVE_ACCESS_KEY_ID": "your_access_key",
+        "AKAVE_SECRET_ACCESS_KEY": "your_secret_key",
+        "AKAVE_ENDPOINT_URL": "https://o3-rc1.akave.xyz"
+      }
+    }
+  }
+}
+```
+
+See [MCP_INTEGRATION.md](./MCP_INTEGRATION.md) for complete documentation.
 
 ## 🚀 Quick Start
 
@@ -8,7 +30,7 @@ A simplified multi-agent orchestration system that creates and executes AI workf
 
 - Node.js 18+
 - OpenAI API key (for workflow planning)
-- Running MAHA agents (Hello World, DALL-E 3, NFT Deployer)
+- Running MAHA agents (Hello World, DALL-E 3, NFT Deployer) or MCP servers
 
 ### Installation
 
@@ -25,6 +47,25 @@ cp .env.example .env
 # Edit .env with your OpenAI API key
 ```
 
+**For MCP servers**, create an `mcp.json` file:
+
+```bash
+# Create MCP configuration
+echo '{
+  "mcpServers": {
+    "akave": {
+      "command": "npx",
+      "args": ["-y", "akave-mcp-js"],
+      "env": {
+        "AKAVE_ACCESS_KEY_ID": "your_key",
+        "AKAVE_SECRET_ACCESS_KEY": "your_secret",
+        "AKAVE_ENDPOINT_URL": "https://o3-rc1.akave.xyz"
+      }
+    }
+  }
+}' > mcp.json
+```
+
 ### Start the Orchestrator
 
 ```bash
@@ -32,62 +73,28 @@ npm run build
 npm start
 ```
 
-The orchestrator will start on `http://localhost:8080`
+The orchestrator will start on `http://localhost:8080` and automatically discover both HTTP agents and MCP servers.
 
-## 📡 Simplified API
+## 📡 API Endpoints
 
-### Create Workflow
+### Core Workflow API
 
-Create a workflow from a natural language prompt.
+#### Create Workflow
+
+Create a workflow from a natural language prompt (works with both HTTP agents and MCP servers).
 
 ```bash
 POST /workflows/create
 Content-Type: application/json
 
 {
-  "prompt": "Create a personalized greeting for Alice and generate a sunset image"
+  "prompt": "Store a file using Akave and generate a sunset image"
 }
 ```
 
-**Response:**
+#### Execute Workflow
 
-```json
-{
-  "success": true,
-  "workflow": {
-    "workflowId": "workflow_1234567890_abc123",
-    "name": "Create A Greeting Workflow",
-    "description": "Workflow for: Create a personalized greeting for Alice and generate a sunset image",
-    "userIntent": "Create a personalized greeting for Alice and generate a sunset image",
-    "steps": [
-      {
-        "stepId": "step_1",
-        "agentUrl": "http://localhost:3001",
-        "agentName": "Hello World Agent",
-        "description": "Generate a personalized greeting message.",
-        "inputMapping": { "name": "name", "language": "language" },
-        "outputMapping": { "greeting": "personalizedGreeting" }
-      },
-      {
-        "stepId": "step_2",
-        "agentUrl": "http://localhost:3002",
-        "agentName": "DALL-E 3 Image Generator",
-        "description": "Generate a sunset image.",
-        "inputMapping": { "prompt": "A beautiful sunset" },
-        "outputMapping": { "imageUrl": "generatedImageUrl" }
-      }
-    ],
-    "executionMode": "sequential",
-    "estimatedDuration": 10000,
-    "createdAt": 1234567890123
-  },
-  "message": "Workflow created with 2 steps"
-}
-```
-
-### Execute Workflow
-
-Execute a workflow using only its ID. The orchestrator automatically generates appropriate input.
+Execute a workflow using only its ID.
 
 ```bash
 POST /workflows/execute
@@ -98,58 +105,58 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
+### Agent Discovery
+
+#### List All Agents
+
+```bash
+GET /agents
+```
+
+Returns both HTTP and MCP agents:
 
 ```json
 {
-  "success": true,
-  "execution": {
-    "executionId": "exec_1234567890_xyz789",
-    "workflowId": "workflow_1234567890_abc123",
-    "status": "completed",
-    "startedAt": 1234567890123,
-    "completedAt": 1234567890456,
-    "input": {
-      "name": "Alice",
-      "language": "english"
+  "agents": [
+    {
+      "type": "http",
+      "name": "Hello World Agent",
+      "url": "http://localhost:3001"
     },
-    "output": {
-      "imageUrl": "https://oaidalleapiprodscus.blob.core.windows.net/...",
-      "prompt": "A beautiful sunset",
-      "size": "1024x1024"
-    },
-    "stepResults": [
-      {
-        "stepId": "step_1",
-        "status": "completed",
-        "input": { "name": "Alice", "language": "english" },
-        "output": {
-          "greeting": "Hello, Alice! How are you doing today?",
-          "language": "english",
-          "timestamp": "2024-01-01T00:00:00.000Z"
-        }
-      },
-      {
-        "stepId": "step_2",
-        "status": "completed",
-        "input": { "prompt": "A beautiful sunset" },
-        "output": {
-          "imageUrl": "https://oaidalleapiprodscus.blob.core.windows.net/...",
-          "prompt": "A beautiful sunset",
-          "size": "1024x1024",
-          "quality": "standard",
-          "style": "vivid"
-        }
-      }
-    ]
-  }
+    {
+      "type": "mcp",
+      "name": "akave",
+      "serverName": "akave",
+      "tools": ["store_file", "get_file"],
+      "resources": []
+    }
+  ]
 }
+```
+
+### MCP-Specific Endpoints
+
+#### Get MCP Server Status
+
+```bash
+GET /mcp/servers
+```
+
+#### Refresh MCP Agents
+
+```bash
+POST /mcp/refresh
+```
+
+#### Get Sample MCP Configuration
+
+```bash
+GET /mcp/config/sample
 ```
 
 ### Other Endpoints
 
-- `GET /health` - Health check with agent status
-- `GET /agents` - List all discovered agents
+- `GET /health` - Health check with both HTTP and MCP agent status
 - `GET /workflows` - List all created workflows
 - `GET /workflows/:workflowId` - Get specific workflow
 - `GET /executions` - List all executions
@@ -157,7 +164,7 @@ Content-Type: application/json
 
 ## 🧪 Testing
 
-### Test All Agents
+### Test All Agents (HTTP + MCP)
 
 ```bash
 node test-agents.js
@@ -177,10 +184,27 @@ node test-hello-agent.js
 
 ## 🏗️ Architecture
 
+### Unified Agent System
+
+The orchestrator now supports two types of agents:
+
+1. **HTTP Agents**: Traditional REST API endpoints
+2. **MCP Servers**: Model Context Protocol compliant servers
+
+Both agent types are treated uniformly in the workflow system.
+
+### MCP Integration Flow
+
+1. **Configuration Loading**: Automatically loads MCP config from `mcp.json` or environment
+2. **Server Management**: Spawns and manages MCP server processes
+3. **Agent Discovery**: Discovers tools, resources, and prompts from MCP servers
+4. **Workflow Integration**: MCP servers appear as regular agents in workflows
+5. **Execution**: Seamless execution of both HTTP and MCP agents
+
 ### Workflow Creation Process
 
 1. **Prompt Analysis**: LLM analyzes the natural language prompt
-2. **Agent Selection**: Determines which agents are needed
+2. **Agent Selection**: Determines which agents (HTTP/MCP) are needed
 3. **Step Planning**: Creates sequential workflow steps
 4. **Input/Output Mapping**: Maps data flow between agents
 
@@ -190,15 +214,6 @@ node test-hello-agent.js
 2. **Sequential Execution**: Runs agents in order, passing outputs to next step
 3. **Result Aggregation**: Combines all step results into final output
 
-### Smart Input Generation
-
-The orchestrator automatically extracts information from prompts:
-
-- **Names**: "for Alice" → `name: "Alice"`
-- **Languages**: "in Spanish" → `language: "spanish"`
-- **Image descriptions**: "sunset image" → `prompt: "A beautiful sunset"`
-- **Collections**: "collection called Dreams" → `collectionName: "Dreams"`
-
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -207,9 +222,12 @@ The orchestrator automatically extracts information from prompts:
 OPENAI_API_KEY=your_openai_api_key_here
 PORT=8080
 NODE_ENV=development
+
+# Optional: MCP configuration as JSON string
+MCP_CONFIG={"mcpServers":{"akave":{"command":"npx","args":["-y","akave-mcp-js"]}}}
 ```
 
-### Agent Endpoints
+### HTTP Agent Endpoints
 
 Configure in `src/config.ts`:
 
@@ -221,31 +239,51 @@ export const AGENTS = [
 ];
 ```
 
+### MCP Server Configuration
+
+Create `mcp.json` file or set `MCP_CONFIG` environment variable. See [MCP_INTEGRATION.md](./MCP_INTEGRATION.md) for details.
+
 ## 📝 Example Prompts
 
-The orchestrator can handle various types of requests:
+The orchestrator can handle various types of requests with both HTTP and MCP agents:
 
 - **Simple Greeting**: `"Generate a greeting for Bob"`
-- **Multi-step**: `"Create a personalized hello and generate an image"`
-- **Specific Instructions**: `"Make a Spanish greeting for Maria and create a landscape photo"`
+- **File Operations**: `"Store 'Hello World' in a file using Akave"`
+- **Multi-step Workflows**: `"Create a personalized hello, save it to Akave, and generate an image"`
+- **GitHub Integration**: `"Read a file and create a GitHub issue about it"`
 - **NFT Creation**: `"Create an NFT collection called 'Digital Dreams' with AI artwork"`
+
+## 🔍 MCP Server Examples
+
+### Popular MCP Servers
+
+- **Akave Storage**: `akave-mcp-js`
+- **GitHub**: `@modelcontextprotocol/server-github`
+- **File System**: `@modelcontextprotocol/server-filesystem`
+- **Web Fetch**: `@modelcontextprotocol/server-fetch`
+- **SQLite**: `@modelcontextprotocol/server-sqlite`
+
+### Configuration Examples
+
+See [MCP_INTEGRATION.md](./MCP_INTEGRATION.md) for complete configuration examples and setup instructions.
 
 ## 🚨 Error Handling
 
-The API returns structured error responses:
+The API returns structured error responses for both HTTP and MCP agents:
 
 ```json
 {
   "error": "Workflow creation failed",
-  "details": "Agent not available: http://localhost:3001"
+  "details": "MCP server not available: akave"
 }
 ```
 
 ## 🔍 Monitoring
 
-- Check `/health` for system status
+- Check `/health` for system status (includes MCP server status)
 - Monitor execution status via `/executions/:executionId`
-- View all workflows and executions via list endpoints
+- View MCP server status via `/mcp/servers`
+- Use `/mcp/refresh` to refresh MCP agent capabilities
 
 ## 🤝 Contributing
 

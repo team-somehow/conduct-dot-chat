@@ -1,11 +1,13 @@
 import { HttpAgent, loadAgent, runAgent } from "./agents.http";
-import { AGENTS } from "./config";
-import { AgentMetadata, JobData, TaskExecution } from "./types";
+import { AGENTS, loadMCPConfig, validateMCPConfig } from "./config";
+import { AgentMetadata, JobData, TaskExecution, Agent } from "./types";
+import { MCPManager } from "./MCPManager";
+import { MCPAgentService, MCPAgentAdapter } from "./MCPAgent";
 
 export interface JobConfig {
   jobId: string;
   jobData: any;
-  agents: HttpAgent[];
+  agents: Agent[];
 }
 
 export interface TaskResult {
@@ -16,49 +18,161 @@ export interface TaskResult {
 }
 
 export class JobRunner {
-  private agents: Map<string, HttpAgent> = new Map();
+  private httpAgents: Map<string, HttpAgent> = new Map();
+  private mcpManager: MCPManager;
+  private mcpAgentService: MCPAgentService;
+  private mcpAgentAdapters: Map<string, MCPAgentAdapter> = new Map();
 
-  constructor() {}
+  constructor() {
+    this.mcpManager = new MCPManager();
+    this.mcpAgentService = new MCPAgentService(this.mcpManager);
+    this.initializeMCPServers();
+  }
 
-  // Load and cache an agent
+  /**
+   * Initialize MCP servers from configuration
+   */
+  private async initializeMCPServers(): Promise<void> {
+    try {
+      const mcpConfig = loadMCPConfig();
+
+      // Validate configuration
+      const errors = validateMCPConfig(mcpConfig);
+      if (errors.length > 0) {
+        console.error("❌ MCP configuration errors:", errors);
+        return;
+      }
+
+      // Start MCP servers
+      if (Object.keys(mcpConfig.mcpServers).length > 0) {
+        console.log("🚀 Starting MCP servers...");
+        await this.mcpManager.startServers(mcpConfig.mcpServers);
+
+        // Give servers time to initialize
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Load MCP agent adapters
+        await this.refreshMCPAgents();
+      }
+    } catch (error) {
+      console.error("❌ Failed to initialize MCP servers:", error);
+    }
+  }
+
+  /**
+   * Refresh MCP agent adapters
+   */
+  async refreshMCPAgents(): Promise<void> {
+    try {
+      const adapters = await this.mcpAgentService.getMCPAgentAdapters();
+      this.mcpAgentAdapters.clear();
+
+      for (const adapter of adapters) {
+        this.mcpAgentAdapters.set(adapter.url, adapter);
+        console.log(`✅ Loaded MCP agent: ${adapter.name} (${adapter.url})`);
+      }
+    } catch (error) {
+      console.error("❌ Failed to refresh MCP agents:", error);
+    }
+  }
+
+  // Load and cache an HTTP agent
   async loadAgent(url: string): Promise<HttpAgent> {
-    if (this.agents.has(url)) {
-      return this.agents.get(url)!;
+    if (this.httpAgents.has(url)) {
+      return this.httpAgents.get(url)!;
     }
 
     const agent = await loadAgent(url);
-    this.agents.set(url, agent);
+    this.httpAgents.set(url, agent);
     return agent;
   }
 
-  // Discover all available agents
-  async discoverAgents(): Promise<HttpAgent[]> {
-    const agents: HttpAgent[] = [];
+  // Discover all available agents (both HTTP and MCP)
+  async discoverAgents(): Promise<Agent[]> {
+    const agents: Agent[] = [];
 
+    // Discover HTTP agents
     for (const endpoint of AGENTS) {
       try {
-        const agent = await this.loadAgent(endpoint);
-        agents.push(agent);
-        console.log(`✅ Discovered agent: ${agent.name} (${endpoint})`);
+        const httpAgent = await this.loadAgent(endpoint);
+        agents.push({
+          type: "http",
+          url: httpAgent.url,
+          name: httpAgent.name,
+          description: httpAgent.description,
+          wallet: httpAgent.wallet,
+          vendor: httpAgent.vendor,
+          category: httpAgent.category,
+          tags: httpAgent.tags,
+          pricing: httpAgent.pricing,
+          rating: httpAgent.rating,
+          performance: httpAgent.performance,
+          inputSchema: {}, // Will be filled by validation function
+          outputSchema: {},
+          previewURI: httpAgent.previewURI,
+        } as Agent);
+        console.log(
+          `✅ Discovered HTTP agent: ${httpAgent.name} (${endpoint})`
+        );
       } catch (error: any) {
-        console.log(`❌ Failed to load agent from ${endpoint}:`, error.message);
+        console.log(
+          `❌ Failed to load HTTP agent from ${endpoint}:`,
+          error.message
+        );
       }
+    }
+
+    // Discover MCP agents
+    try {
+      await this.refreshMCPAgents();
+      for (const [url, adapter] of this.mcpAgentAdapters) {
+        agents.push({
+          type: "mcp",
+          name: adapter.name,
+          description: adapter.description,
+          serverName: adapter.serverName,
+          tools: adapter.tools,
+          resources: adapter.resources,
+          prompts: adapter.prompts,
+          inputSchema: {},
+          outputSchema: {},
+          previewURI: adapter.previewURI,
+        } as Agent);
+        console.log(`✅ Discovered MCP agent: ${adapter.name} (${url})`);
+      }
+    } catch (error: any) {
+      console.log(`❌ Failed to discover MCP agents:`, error.message);
     }
 
     return agents;
   }
 
-  // Execute a single agent task
+  // Execute a single agent task (supports both HTTP and MCP)
   async executeAgentTask<TIn, TOut>(
     agentUrl: string,
     input: TIn
   ): Promise<TOut> {
     try {
-      const agent = await this.loadAgent(agentUrl);
-      const result = await runAgent<TIn, TOut>(agent, input);
+      // Check if it's an MCP agent
+      if (MCPAgentService.isMCPUrl(agentUrl)) {
+        const adapter = this.mcpAgentAdapters.get(agentUrl);
+        if (!adapter) {
+          throw new Error(`MCP agent not found: ${agentUrl}`);
+        }
 
-      console.log(`✅ Task completed by ${agent.name}`);
-      return result;
+        const result = await this.mcpAgentService.runMCPAgent<TIn, TOut>(
+          adapter,
+          input
+        );
+        console.log(`✅ MCP task completed by ${adapter.name}`);
+        return result;
+      } else {
+        // HTTP agent
+        const agent = await this.loadAgent(agentUrl);
+        const result = await runAgent<TIn, TOut>(agent, input);
+        console.log(`✅ HTTP task completed by ${agent.name}`);
+        return result;
+      }
     } catch (error) {
       console.error(`❌ Task execution failed for ${agentUrl}:`, error);
       throw error;
@@ -82,11 +196,23 @@ export class JobRunner {
       );
 
       try {
-        const agent = await this.loadAgent(task.agentUrl);
-        const result = await runAgent(agent, task.input);
+        let agentName: string;
+
+        if (MCPAgentService.isMCPUrl(task.agentUrl)) {
+          const adapter = this.mcpAgentAdapters.get(task.agentUrl);
+          if (!adapter) {
+            throw new Error(`MCP agent not found: ${task.agentUrl}`);
+          }
+          agentName = adapter.name;
+        } else {
+          const agent = await this.loadAgent(task.agentUrl);
+          agentName = agent.name;
+        }
+
+        const result = await this.executeAgentTask(task.agentUrl, task.input);
 
         results.push({
-          agentName: agent.name,
+          agentName,
           agentUrl: task.agentUrl,
           result: JSON.stringify(result),
           timestamp: new Date().toISOString(),
@@ -110,11 +236,23 @@ export class JobRunner {
   ): Promise<TaskResult[]> {
     const promises = tasks.map(async (task) => {
       try {
-        const agent = await this.loadAgent(task.agentUrl);
-        const result = await runAgent(agent, task.input);
+        let agentName: string;
+
+        if (MCPAgentService.isMCPUrl(task.agentUrl)) {
+          const adapter = this.mcpAgentAdapters.get(task.agentUrl);
+          if (!adapter) {
+            throw new Error(`MCP agent not found: ${task.agentUrl}`);
+          }
+          agentName = adapter.name;
+        } else {
+          const agent = await this.loadAgent(task.agentUrl);
+          agentName = agent.name;
+        }
+
+        const result = await this.executeAgentTask(task.agentUrl, task.input);
 
         return {
-          agentName: agent.name,
+          agentName,
           agentUrl: task.agentUrl,
           result: JSON.stringify(result),
           timestamp: new Date().toISOString(),
@@ -128,7 +266,7 @@ export class JobRunner {
     return await Promise.all(promises);
   }
 
-  // Full job execution pipeline (HTTP-only)
+  // Full job execution pipeline (supports both HTTP and MCP)
   async runJob(config: JobConfig): Promise<{
     jobId: string;
     results: TaskResult[];
@@ -143,17 +281,21 @@ export class JobRunner {
 
     for (let i = 0; i < agents.length; i++) {
       const agent = agents[i];
+      const agentUrl =
+        agent.type === "http"
+          ? (agent as any).url
+          : `mcp://${(agent as any).serverName}`;
 
       console.log(
         `📋 Executing task ${i + 1}/${agents.length} with ${agent.name}`
       );
 
       try {
-        const result = await runAgent(agent, currentInput);
+        const result = await this.executeAgentTask(agentUrl, currentInput);
 
         results.push({
           agentName: agent.name,
-          agentUrl: agent.url,
+          agentUrl,
           result: JSON.stringify(result),
           timestamp: new Date().toISOString(),
         });
@@ -168,6 +310,13 @@ export class JobRunner {
     console.log(`✅ Job ${jobId} completed successfully`);
 
     return { jobId, results };
+  }
+
+  /**
+   * Get MCP server statuses
+   */
+  getMCPServerStatuses(): Record<string, any> {
+    return this.mcpAgentService.getServerStatuses();
   }
 
   // Generate a simple job ID

@@ -1,16 +1,17 @@
 import OpenAI from "openai";
 import fetch from "node-fetch";
-import { WorkflowStep, UserIntent } from "./types";
-import { HttpAgent } from "./agents.http";
+import { WorkflowStep, UserIntent, Agent, HttpAgent, MCPAgent } from "./types";
 
 interface AgentWithSchema {
   name: string;
   description: string;
   url: string;
+  type: "http" | "mcp";
   inputSchema: any;
   outputSchema: any;
   category?: string;
   tags?: string[];
+  tools?: any[]; // For MCP agents
 }
 
 export class WorkflowPlanner {
@@ -27,23 +28,30 @@ export class WorkflowPlanner {
    */
   async planWorkflow(
     userIntent: UserIntent,
-    availableAgents: HttpAgent[]
+    availableAgents: Agent[]
   ): Promise<WorkflowStep[]> {
     console.log(`🧠 Planning workflow for: "${userIntent.description}"`);
     console.log(`📊 Available agents: ${availableAgents.length}`);
     console.log(
       `📋 Agent list:`,
-      availableAgents.map((a) => `${a.name} (${a.url})`)
+      availableAgents.map(
+        (a) =>
+          `${a.name} (${
+            a.type === "http"
+              ? (a as HttpAgent).url
+              : `mcp://${(a as MCPAgent).serverName}`
+          })`
+      )
     );
 
-    // 1) Fetch schemas for every agent via their /meta route
+    // 1) Fetch schemas for every agent
     const agentsWithSchemas = await this.getAgentSchemas(availableAgents);
     console.log(`📦 Fetched schemas for ${agentsWithSchemas.length} agents`);
     console.log(
       `📝 Agents with valid schemas:`,
       agentsWithSchemas.map(
         (a) =>
-          `${a.name} (${
+          `${a.name} (${a.type}, ${
             Object.keys(a.inputSchema?.properties || {}).length
           } inputs, ${
             Object.keys(a.outputSchema?.properties || {}).length
@@ -63,37 +71,78 @@ export class WorkflowPlanner {
       return steps;
     } catch (err) {
       console.error("❌ LLM planning failed:", err);
-      return [];
+      console.log("🔄 Falling back to rule-based planning");
+      return this.fallbackPlanWorkflow(userIntent, agentsWithSchemas);
     }
   }
 
   /**
-   * Fetch /meta from each agent and collect its name, description, inputSchema, outputSchema, etc.
+   * Fetch schemas from both HTTP and MCP agents
    */
-  private async getAgentSchemas(
-    agents: HttpAgent[]
-  ): Promise<AgentWithSchema[]> {
+  private async getAgentSchemas(agents: Agent[]): Promise<AgentWithSchema[]> {
     const agentSchemas = await Promise.all(
       agents.map(async (agent) => {
         try {
-          const resp = await fetch(`${agent.url}/meta`);
-          const meta = await resp.json();
+          if (agent.type === "http") {
+            const httpAgent = agent as HttpAgent;
+            const resp = await fetch(`${httpAgent.url}/meta`);
+            const meta = await resp.json();
 
-          return {
-            name: meta.name,
-            description: meta.description,
-            url: agent.url,
-            inputSchema: meta.inputSchema || {},
-            outputSchema: meta.outputSchema || {},
-            category: meta.category,
-            tags: meta.tags || [],
-          } as AgentWithSchema;
+            return {
+              name: meta.name,
+              description: meta.description,
+              url: httpAgent.url,
+              type: "http" as const,
+              inputSchema: meta.inputSchema || {},
+              outputSchema: meta.outputSchema || {},
+              category: meta.category,
+              tags: meta.tags || [],
+            } as AgentWithSchema;
+          } else {
+            // MCP agent
+            const mcpAgent = agent as MCPAgent;
+            const mcpUrl = `mcp://${mcpAgent.serverName}`;
+
+            return {
+              name: mcpAgent.name,
+              description: mcpAgent.description,
+              url: mcpUrl,
+              type: "mcp" as const,
+              inputSchema: mcpAgent.inputSchema || {
+                type: "object",
+                properties: {
+                  prompt: { type: "string", description: "Input prompt" },
+                  tool: { type: "string", description: "Tool name to execute" },
+                  args: { type: "object", description: "Tool arguments" },
+                },
+                required: ["prompt"],
+              },
+              outputSchema: mcpAgent.outputSchema || {
+                type: "object",
+                properties: {
+                  result: {
+                    type: "object",
+                    description: "Tool execution result",
+                  },
+                },
+                required: ["result"],
+              },
+              category: "mcp",
+              tags: mcpAgent.tools?.map((tool) => tool.name) || [],
+              tools: mcpAgent.tools || [],
+            } as AgentWithSchema;
+          }
         } catch (error) {
           console.warn(`⚠️ Failed to fetch schema for ${agent.name}:`, error);
+          const url =
+            agent.type === "http"
+              ? (agent as HttpAgent).url
+              : `mcp://${(agent as MCPAgent).serverName}`;
           return {
             name: agent.name,
             description: agent.description,
-            url: agent.url,
+            url: url,
+            type: agent.type,
             inputSchema: {},
             outputSchema: {},
           } as AgentWithSchema;
@@ -272,6 +321,161 @@ Begin now.
     });
 
     console.log(`✅ Converted to ${steps.length} WorkflowStep objects`);
+    return steps;
+  }
+
+  /**
+   * Fallback planning when OpenAI API fails
+   */
+  private fallbackPlanWorkflow(
+    userIntent: UserIntent,
+    agents: AgentWithSchema[]
+  ): WorkflowStep[] {
+    const intent = userIntent.description.toLowerCase();
+    console.log(`🔄 Using fallback planning for: ${intent}`);
+
+    // Find available agent types
+    const availableAgents = {
+      greeting: agents.find(
+        (a) =>
+          a.name.toLowerCase().includes("hello") ||
+          a.name.toLowerCase().includes("greet")
+      ),
+      image: agents.find(
+        (a) =>
+          a.name.toLowerCase().includes("dall") ||
+          a.name.toLowerCase().includes("image")
+      ),
+      nft: agents.find(
+        (a) =>
+          a.name.toLowerCase().includes("nft") ||
+          a.name.toLowerCase().includes("deploy")
+      ),
+      akave: agents.find(
+        (a) => a.name.toLowerCase() === "akave" || a.type === "mcp"
+      ),
+    };
+
+    console.log(
+      "🔍 Found agents:",
+      Object.fromEntries(
+        Object.entries(availableAgents).map(([key, agent]) => [
+          key,
+          agent?.name || "none",
+        ])
+      )
+    );
+
+    const steps: WorkflowStep[] = [];
+
+    // Akave storage patterns
+    if (
+      (intent.includes("bucket") ||
+        intent.includes("akave") ||
+        intent.includes("store") ||
+        intent.includes("put")) &&
+      availableAgents.akave
+    ) {
+      console.log("📦 Creating Akave storage workflow");
+      steps.push({
+        stepId: "step_1",
+        agentName: availableAgents.akave.name,
+        agentUrl: availableAgents.akave.url,
+        description: "Store content in Akave bucket",
+        inputMapping: {
+          prompt: "userInput",
+        },
+        outputMapping: {
+          result: "akave_result",
+        },
+      });
+    }
+    // Image generation workflows
+    else if (
+      intent.includes("image") &&
+      availableAgents.image &&
+      !intent.includes("put")
+    ) {
+      console.log("🎨 Creating image generation workflow");
+      steps.push({
+        stepId: "step_1",
+        agentName: availableAgents.image.name,
+        agentUrl: availableAgents.image.url,
+        description: "Generate image using DALL-E",
+        inputMapping: {
+          prompt: "userInput",
+        },
+        outputMapping: {
+          imageUrl: "generated_image",
+        },
+      });
+    }
+    // NFT creation workflows
+    else if (intent.includes("nft") && availableAgents.nft) {
+      console.log("🎨 Creating NFT workflow: Image + NFT");
+
+      if (availableAgents.image) {
+        steps.push({
+          stepId: "step_1",
+          agentName: availableAgents.image.name,
+          agentUrl: availableAgents.image.url,
+          description:
+            "Generate a thank you NFT image themed around ETH Global Prague attendance.",
+          inputMapping: {
+            prompt:
+              "Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme",
+            size: "1024x1024",
+            quality: "standard",
+            style: "vivid",
+          },
+          outputMapping: {
+            imageUrl: "generatedImageUrl",
+          },
+        });
+      }
+
+      steps.push({
+        stepId: "step_2",
+        agentName: availableAgents.nft.name,
+        agentUrl: availableAgents.nft.url,
+        description:
+          "Mint and send the thank you NFT to the recipient address with event-specific metadata.",
+        inputMapping: {
+          imageUrl: "generatedImageUrl",
+          collectionName: "ETH Global Prague 2025 Thank You NFTs",
+          recipientAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+          tokenName: "Thank You for Attending ETH Global Prague",
+          description:
+            "A special NFT to thank you for attending ETH Global Prague 2025.",
+          attributes:
+            '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]',
+        },
+        outputMapping: {
+          transactionHash: "nftTransactionHash",
+          tokenId: "nftTokenId",
+        },
+      });
+    }
+    // Greeting workflows
+    else if (intent.includes("hello") || intent.includes("greet")) {
+      console.log("👋 Creating greeting workflow");
+      if (availableAgents.greeting) {
+        steps.push({
+          stepId: "step_1",
+          agentName: availableAgents.greeting.name,
+          agentUrl: availableAgents.greeting.url,
+          description: "Generate personalized greeting",
+          inputMapping: {
+            prompt: "userInput",
+          },
+          outputMapping: {
+            message: "greeting_message",
+          },
+        });
+      }
+    }
+
+    console.log(`✅ Created ${steps.length} steps in fallback planning`);
     return steps;
   }
 }
