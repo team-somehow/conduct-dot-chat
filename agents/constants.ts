@@ -45,3 +45,15 @@ export const CHAIN_CONFIG: {
     url: "https://eth-sepolia.public.blastapi.io",
   },
 }; 
+
+export const AAVE_CONFIG: {
+  [chainId: number]: {
+    pool: string;
+    token: string;
+  };
+} = {
+  11155111: {
+    pool: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951", // Aave V3 Pool Sepolia
+    token: "0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5", // LINK Token Sepolia
+  },
+};

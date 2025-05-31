@@ -1,31 +1,47 @@
-// ethers will be passed in
+import { ethers, network } from "hardhat";
+import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { AAVE_CONFIG } from "../../constants";
+import path from "path";
 
-// async function main() {
-//   const [deployer] = await ethers.getSigners();
-//   console.log("Deploying contracts with the account:", deployer.address);
+// This I will have to deploy on Sepolia on my own,
+// it won't be deployed dynamically by orchestrator
+export async function deployAaveInvestor() {
+  // const [deployer] = await ethers.getSigners();
 
-//   const NFT = await ethers.getContractFactory("NFT");
-//   const nft = await NFT.deploy("Test NFT", "TEST-NFT", deployer.address);
+  const chainId = network.config.chainId || 11155111;
 
-//   await nft.waitForDeployment();
+  if (!AAVE_CONFIG[Number(chainId)]) {
+    throw new Error(`AAVE_CONFIG not found for chainId: ${chainId}`);
+  }
 
-//   console.log("NFT contract deployed to:", await nft.getAddress());
-// }
+  const AaveInvestor = await ethers.getContractFactory("AaveInvestor");
+  const aaveInvestor = await AaveInvestor.deploy(
+    AAVE_CONFIG[Number(chainId)].pool,
+    AAVE_CONFIG[Number(chainId)].token
+  );
+  await aaveInvestor.waitForDeployment();
 
-export async function deployNFT(name: string, symbol: string, ethers: any) {
-  const [deployer] = await ethers.getSigners();
-  const NFT = await ethers.getContractFactory("NFT");
-  const nft = await NFT.deploy(name, symbol, deployer.address);
-  await nft.waitForDeployment();
+  console.log("AaveInvestor contract deployed to:", aaveInvestor.target);
 
-  console.log("NFT contract deployed to:", await nft.getAddress());
+  const deployResult = {
+    chainId: Number(chainId),
+    networkName: network.name.toLowerCase(),
+    address: await aaveInvestor.getAddress(),
+  };
 
-  return nft;
+  // Ensure the deployments directory exists
+  const deploymentsDir = path.resolve(__dirname, "../deployments");
+  if (!existsSync(deploymentsDir)) {
+    mkdirSync(deploymentsDir);
+  }
+
+  writeFileSync(
+    `${deploymentsDir}/aave-investor_${deployResult.chainId}.json`,
+    JSON.stringify(deployResult, null, 2)
+  );
+
+  return deployResult;
 }
 
-// main()
-//   .then(() => process.exit(0))
-//   .catch((error) => {
-//     console.error(error);
-//     process.exit(1);
-//   });
+// Deploy on Aave LINK market
+deployAaveInvestor();
