@@ -37,100 +37,111 @@ const AGENT_META = {
   inputSchema: {
     type: "object",
     properties: {
-      imageUrl: {
-        type: "string",
-        format: "uri",
-        description: "URL of the image to be used for the NFT",
-      },
-      collectionName: {
+      name: {
         type: "string",
         maxLength: 100,
         description: "Name of the NFT collection",
       },
-      recipientAddress: {
+      symbol: {
         type: "string",
-        pattern: "^0x[a-fA-F0-9]{40}$",
-        description: "Ethereum address of the NFT recipient",
+        maxLength: 20,
+        description: "Symbol of the NFT collection",
       },
-      tokenName: {
-        type: "string",
-        maxLength: 100,
-        description: "Name of the individual NFT token",
-        default: "Thank You NFT",
+      chainId: {
+        type: "number",
+        description: "Chain ID where the NFT will be deployed",
+        enum: [1, 5, 137, 80001, 42161, 421613, 10, 420, 56, 97, 43114, 43113],
       },
-      description: {
-        type: "string",
-        maxLength: 500,
-        description: "Description of the NFT",
-        default: "A special NFT to commemorate your participation",
-      },
-      attributes: {
+      mints: {
         type: "array",
         items: {
           type: "object",
           properties: {
-            trait_type: { type: "string" },
-            value: { type: "string" },
+            to: {
+              type: "string",
+              pattern: "^0x[a-fA-F0-9]{40}$",
+              description: "Ethereum address of the NFT recipient",
+            },
+            tokenURI: {
+              type: "string",
+              description: "URI of the token metadata",
+            },
           },
+          required: ["to", "tokenURI"],
         },
-        description: "Optional attributes for the NFT",
-        default: [],
+        description: "Array of NFTs to mint with their recipients and metadata URIs",
+        minItems: 1,
       },
     },
-    required: ["imageUrl", "collectionName", "recipientAddress"],
+    required: ["name", "symbol", "chainId", "mints"],
   },
   outputSchema: {
     type: "object",
     properties: {
-      transactionHash: {
-        type: "string",
-        description: "Transaction hash of the NFT mint",
-      },
-      tokenId: {
-        type: "string",
-        description: "ID of the minted token",
-      },
       contractAddress: {
         type: "string",
-        description: "Address of the NFT contract",
+        description: "Address of the deployed NFT contract",
       },
-      recipientAddress: {
+      name: {
         type: "string",
-        description: "Address that received the NFT",
+        description: "Name of the NFT collection",
       },
-      collectionName: {
+      symbol: {
         type: "string",
-        description: "Name of the collection",
+        description: "Symbol of the NFT collection",
       },
-      tokenName: {
-        type: "string",
-        description: "Name of the token",
+      chainId: {
+        type: "number",
+        description: "Chain ID where the NFT was deployed",
       },
-      metadataUri: {
-        type: "string",
-        description: "URI of the token metadata",
-      },
-      explorerUrl: {
-        type: "string",
-        description: "Block explorer URL for the transaction",
-      },
-      timestamp: {
-        type: "string",
-        format: "date-time",
-        description: "When the NFT was minted",
+      mints: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            transactionHash: {
+              type: "string",
+              description: "Transaction hash of the NFT mint",
+            },
+            tokenId: {
+              type: "string",
+              description: "ID of the minted token",
+            },
+            contractAddress: {
+              type: "string",
+              description: "Address of the NFT contract",
+            },
+            recipientAddress: {
+              type: "string",
+              description: "Address that received the NFT",
+            },
+            tokenURI: {
+              type: "string",
+              description: "URI of the token metadata",
+            },
+            explorerUrl: {
+              type: "string",
+              description: "Block explorer URL for the transaction",
+            },
+            timestamp: {
+              type: "string",
+              format: "date-time",
+              description: "When the NFT was minted",
+            },
+          },
+          required: [
+            "transactionHash",
+            "tokenId",
+            "contractAddress",
+            "recipientAddress",
+            "tokenURI",
+            "explorerUrl",
+            "timestamp",
+          ],
+        },
       },
     },
-    required: [
-      "transactionHash",
-      "tokenId",
-      "contractAddress",
-      "recipientAddress",
-      "collectionName",
-      "tokenName",
-      "metadataUri",
-      "explorerUrl",
-      "timestamp",
-    ],
+    required: ["contractAddress", "name", "symbol", "chainId", "mints"],
   },
   previewURI: "ipfs://QmNFTDeployerAgentPreview123",
 };
