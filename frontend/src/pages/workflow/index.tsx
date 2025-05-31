@@ -532,14 +532,6 @@ export default function WorkflowPage() {
                 onRunAgain={handleReset}
               />
             )}
-            <div className="flex justify-center">
-              <button
-                onClick={handleReset}
-                className="px-8 py-3 bg-blue-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
-              >
-                CREATE NEW WORKFLOW
-              </button>
-            </div>
           </div>
         );
 

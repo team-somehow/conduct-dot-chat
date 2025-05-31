@@ -480,51 +480,47 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         </motion.section>
       )}
 
-      {/* Execution Results - Raw Data */}
-      <motion.section
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{
-          delay: hasAaveIntegration
-            ? summary
-              ? 1.2
-              : 1.1
-            : summary
-            ? 1.1
-            : 1.0,
-        }}
-        aria-labelledby="execution-results"
-      >
-        <SectionCard>
-          <div className="flex items-center justify-between mb-4">
-            <h2
-              id="execution-results"
-              className="text-2xl font-black uppercase tracking-wide"
-            >
-              📋 {summary ? "Raw Data" : "Execution Results"}
-            </h2>
-            <button
-              onClick={() => copyToClipboard(formatResultsForDisplay())}
-              className="copy-btn p-2 bg-white border-4 border-black shadow-neo transition-all duration-150"
-              aria-label="Copy results to clipboard"
-            >
-              <Copy className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="bg-gray-50 border-4 border-black p-4 font-mono text-sm overflow-auto max-h-96">
-            <pre className="whitespace-pre-wrap">
-              {formatResultsForDisplay()}
-            </pre>
-          </div>
-
-          {copied && (
-            <div className="text-center text-[#13C27B] font-bold animate-blink-success">
-              ✓ Copied to clipboard!
+      {/* Execution Results - Raw Data - Only show if NOT Aave integration */}
+      {!hasAaveIntegration && (
+        <motion.section
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{
+            delay: summary ? 1.1 : 1.0,
+          }}
+          aria-labelledby="execution-results"
+        >
+          <SectionCard>
+            <div className="flex items-center justify-between mb-4">
+              <h2
+                id="execution-results"
+                className="text-2xl font-black uppercase tracking-wide"
+              >
+                📋 {summary ? "Raw Data" : "Execution Results"}
+              </h2>
+              <button
+                onClick={() => copyToClipboard(formatResultsForDisplay())}
+                className="copy-btn p-2 bg-white border-4 border-black shadow-neo transition-all duration-150"
+                aria-label="Copy results to clipboard"
+              >
+                <Copy className="h-5 w-5" />
+              </button>
             </div>
-          )}
-        </SectionCard>
-      </motion.section>
+
+            <div className="bg-gray-50 border-4 border-black p-4 font-mono text-sm overflow-auto max-h-96">
+              <pre className="whitespace-pre-wrap">
+                {formatResultsForDisplay()}
+              </pre>
+            </div>
+
+            {copied && (
+              <div className="text-center text-[#13C27B] font-bold animate-blink-success">
+                ✓ Copied to clipboard!
+              </div>
+            )}
+          </SectionCard>
+        </motion.section>
+      )}
 
       {/* Blockscout Transaction Widget - Only show if there's a transaction hash */}
       {aaveTransactionHash && (
@@ -534,11 +530,11 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
           transition={{
             delay: hasAaveIntegration
               ? summary
-                ? 1.4
-                : 1.3
+                ? 1.2  // Aave with summary: DeFi Integration (0.5) + AI Summary (1.0) + 0.2
+                : 1.1  // Aave without summary: DeFi Integration (0.5) + Models Timeline (0.6) + 0.5
               : summary
-              ? 1.3
-              : 1.2,
+              ? 1.3  // Non-Aave with summary: AI Summary (1.1) + Raw Data (1.1) + 0.2
+              : 1.2, // Non-Aave without summary: Raw Data (1.0) + 0.2
           }}
           aria-labelledby="transaction-details"
         >
@@ -595,12 +591,16 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         animate={{ y: 0, opacity: 1 }}
         transition={{
           delay: hasAaveIntegration
-            ? summary
-              ? 1.6
-              : 1.5
+            ? aaveTransactionHash
+              ? summary
+                ? 1.4  // Aave with transaction and summary: Transaction Details (1.2) + 0.2
+                : 1.3  // Aave with transaction, no summary: Transaction Details (1.1) + 0.2
+              : summary
+              ? 1.2  // Aave without transaction, with summary: AI Summary (1.0) + 0.2
+              : 1.1  // Aave without transaction or summary: Models Timeline (0.6) + 0.5
             : summary
-            ? 1.5
-            : 1.4,
+            ? 1.5  // Non-Aave with summary: Raw Data (1.1) + 0.4
+            : 1.4, // Non-Aave without summary: Raw Data (1.0) + 0.4
         }}
         className="flex justify-center"
       >
