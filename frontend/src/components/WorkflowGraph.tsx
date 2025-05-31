@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -14,7 +14,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import NodeIcon from './NodeIcon';
 import StatusPill from './StatusPill';
-import { useSyncHighlight } from './useSyncHighlight';
+import { DollarSign } from 'lucide-react';
 
 interface Step {
   id: string;
@@ -24,37 +24,49 @@ interface Step {
   description: string;
   status: 'IDLE' | 'READY' | 'RUNNING' | 'COMPLETE' | 'ERROR';
   icon?: string;
+  cost?: number;
 }
 
 interface WorkflowGraphProps {
   steps: Step[];
   className?: string;
+  instanceId?: string; // Add instanceId to make each graph independent
 }
 
 // Custom Brutal Node Component
 const BrutalNode: React.FC<{ data: any; selected: boolean }> = ({ data, selected }) => {
-  const { activeId } = useSyncHighlight();
-  const isActive = activeId === data.id;
+  const isActive = data.isActive;
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (data.onClick) {
+      data.onClick();
+    }
+  }, [data]);
 
   return (
-    <div className={`
-      bg-white border-4 border-black p-2 
-      w-[200px] h-[120px] 
-      flex flex-col justify-between
-      transition-all duration-200
-      ${isActive ? 'shadow-neo-lg pulse-brutal' : 'shadow-neo'}
-      ${selected ? 'ring-4 ring-[#7C82FF]' : ''}
-      ${!isActive ? 'grayscale opacity-60' : ''}
-    `}>
+    <div 
+      className={`
+        bg-white border-4 border-black p-2 
+        w-[200px] h-[140px] 
+        flex flex-col justify-between
+        transition-all duration-200
+        cursor-pointer
+        ${isActive ? 'shadow-neo-lg pulse-brutal' : 'shadow-neo'}
+        ${selected ? 'ring-4 ring-[#7C82FF]' : ''}
+        ${!isActive ? 'grayscale opacity-60' : ''}
+      `}
+      onClick={handleClick}
+    >
       {/* Connection Handles */}
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         style={{ background: 'transparent', border: 'none', width: 1, height: 1 }}
       />
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
         style={{ background: 'transparent', border: 'none', width: 1, height: 1 }}
       />
       
@@ -72,9 +84,15 @@ const BrutalNode: React.FC<{ data: any; selected: boolean }> = ({ data, selected
         </h3>
       </div>
       
-      {/* Status pill */}
-      <div className="flex justify-start my-1">
+      {/* Status pill and cost */}
+      <div className="flex justify-between items-center my-1">
         <StatusPill status={data.status || 'IDLE'} className="text-xs px-2 py-1" />
+        {data.cost && (
+          <div className="flex items-center gap-1 bg-[#FFE37B] border-2 border-black px-2 py-1">
+            <DollarSign size={10} />
+            <span className="text-xs font-black">{data.cost.toFixed(2)}</span>
+          </div>
+        )}
       </div>
       
       {/* Description */}
@@ -147,24 +165,25 @@ const edgeTypes = {
   brutal: BrutalEdge,
 };
 
-const WorkflowGraphInner: React.FC<WorkflowGraphProps> = ({ steps, className = '' }) => {
+const WorkflowGraphInner: React.FC<WorkflowGraphProps> = ({ steps, className = '', instanceId }) => {
   const { fitView, setCenter } = useReactFlow();
-  const { activeId, setActive } = useSyncHighlight();
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
   // Create nodes for React Flow
   const nodes: Node[] = steps.map((step, index) => ({
     id: step.id,
     type: 'brutal',
-    position: { x: index * 250, y: 50 },
+    position: { x: index * 250, y: 50 }, // Back to horizontal layout for the graph
     data: { 
       ...step,  // Spread all step properties directly
-      isActive: activeId === step.id 
+      isActive: activeNodeId === step.id,
+      onClick: () => setActiveNodeId(step.id === activeNodeId ? null : step.id)
     },
     draggable: false,
     selectable: false,
     style: {
       width: 200,
-      height: 120,
+      height: 140, // Increased height to accommodate cost display
     }
   }));
 
@@ -189,41 +208,26 @@ const WorkflowGraphInner: React.FC<WorkflowGraphProps> = ({ steps, className = '
 
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Update nodes when steps change
-  useEffect(() => {
-    setEdges(initialEdges);
-  }, [initialEdges, setEdges]);
-
   // Handle node clicks
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setActive(node.id);
-  }, [setActive]);
+    setActiveNodeId(node.id === activeNodeId ? null : node.id);
+  }, [activeNodeId]);
 
-  // Fit view when active node changes
+  // Auto-fit view when nodes change
   useEffect(() => {
-    if (activeId) {
-      const activeNode = nodes.find((n: any) => n.id === activeId);
-      if (activeNode) {
-        const x = activeNode.position.x + 100; // Center of 200px wide node
-        const y = activeNode.position.y + 60;  // Center of 120px tall node
-        
-        setCenter(x, y, { zoom: 1.0, duration: 800 });
-      }
+    if (nodes.length > 0) {
+      setTimeout(() => {
+        fitView({ padding: 0.1, duration: 800 });
+      }, 100);
     }
-  }, [activeId, nodes, setCenter]);
-
-  // Auto-fit view on mount
-  useEffect(() => {
-    setTimeout(() => {
-      fitView({ duration: 500 });
-    }, 100);
-  }, [fitView]);
+  }, [nodes.length, fitView]);
 
   return (
-    <div className={`h-[340px] md:h-[340px] sm:h-[240px] bg-white border-4 border-black shadow-neo ${className}`}>
+    <div className={`w-full h-full ${className}`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodesChange={() => {}} // Disable node changes
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
@@ -233,27 +237,18 @@ const WorkflowGraphInner: React.FC<WorkflowGraphProps> = ({ steps, className = '
         proOptions={{ hideAttribution: true }}
         nodesDraggable={false}
         nodesConnectable={false}
-        elementsSelectable={true}
-        panOnDrag={true}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        panOnScroll={false}
+        elementsSelectable={false}
+        panOnDrag={false}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
         zoomOnDoubleClick={false}
-        selectNodesOnDrag={false}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-        minZoom={0.5}
-        maxZoom={2}
-        connectionLineStyle={{ stroke: '#000', strokeWidth: 2 }}
-        defaultEdgeOptions={{
-          type: 'brutal',
-          style: { stroke: '#000', strokeWidth: 2 }
-        }}
+        preventScrolling={true}
       >
         <Background 
-          color="#000" 
+          variant={BackgroundVariant.Dots} 
           gap={20} 
-          size={1}
-          variant={BackgroundVariant.Dots}
+          size={1} 
+          color="#E5E7EB"
         />
       </ReactFlow>
     </div>
