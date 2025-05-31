@@ -3,13 +3,14 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, Copy, Send, RotateCcw } from 'lucide-react';
+import { CheckCircle, Copy, Send, RotateCcw, ExternalLink, Hash, Clock, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import StarRatingInput from './StarRatingInput';
 import MetricTile from './MetricTile';
 import ModelsTimeline from './ModelsTimeline';
 import SectionCard from './SectionCard';
+import BlockscoutTransactionWidget from './BlockscoutTransactionWidget';
 import '../styles/result.css';
 
 interface Model {
@@ -256,11 +257,59 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
         </SectionCard>
       </motion.section>
 
+      {/* Blockscout Transaction Widget */}
+      <motion.section
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: summary ? 1.2 : 1.0 }}
+        aria-labelledby="transaction-details"
+      >
+        <SectionCard>
+          <div className="flex items-center justify-between mb-6">
+            <h2 id="transaction-details" className="text-2xl font-black uppercase tracking-wide">
+              🔗 Transaction Details
+            </h2>
+            <div className="bg-[#7C82FF] border-2 border-black px-4 py-3 flex items-center justify-center">
+              <img 
+                src="https://raw.githubusercontent.com/blockscout/blockscout/master/apps/block_scout_web/assets/static/images/blockscout_logo.svg" 
+                alt="Blockscout" 
+                className="h-6 w-auto filter brightness-0 invert"
+              />
+            </div>
+          </div>
+          
+          {/* Enhanced container for the widget */}
+          <div className="bg-gradient-to-br from-[#FEEF5D] to-[#FFE37B] border-4 border-black shadow-neo p-2">
+            <div className="bg-white border-2 border-black p-6 shadow-inner">
+              <BlockscoutTransactionWidget txHash="0xc93c92ba22ea93861a5897f7068465b3cdd687a9b367b7b4fc66252690f0aea4" />
+            </div>
+          </div>
+          
+          {/* Additional transaction info footer */}
+          <div className="mt-4 bg-black text-white p-4 border-4 border-black">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-[#13C27B] border border-white"></div>
+                <span className="font-black text-sm uppercase">Verified on Mainnet</span>
+              </div>
+              <a 
+                href="https://eth.blockscout.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#7C82FF] hover:text-[#FEEF5D] font-black text-sm uppercase underline transition-colors"
+              >
+                View on Blockscout →
+              </a>
+            </div>
+          </div>
+        </SectionCard>
+      </motion.section>
+
       {/* Action Buttons - Only Submit Feedback */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: summary ? 1.4 : 1.2 }}
+        transition={{ delay: summary ? 1.6 : 1.4 }}
         className="flex justify-center"
       >
         <button 
@@ -276,7 +325,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: summary ? 1.6 : 1.4 }}
+        transition={{ delay: summary ? 1.8 : 1.6 }}
         className="flex justify-center"
       >
         <div className="bg-white border-4 border-black shadow-neo px-6 py-3 rounded-full">
