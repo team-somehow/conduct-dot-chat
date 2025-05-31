@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
-import { MCPServersConfig } from "./types";
 import fs from "fs";
 import path from "path";
+import { MCPServersConfig } from "./types";
 
 // Load environment variables
 dotenv.config();
@@ -131,6 +131,19 @@ export function loadMCPConfig(): MCPServersConfig {
               process.env.AKAVE_ENDPOINT_URL || "https://o3-rc1.akave.xyz",
           },
         },
+        // "local-sse-server": {
+        //   command: "node",
+        //   args: [
+        //     "/Users/vinay/Desktop/Ongoing/ethprauge/hedera-mcp-server/build/index.js",
+        //   ],
+        //   env: {
+        //     HEDERA_OPERATOR_ID: "0.0.4838555",
+        //     HEDERA_OPERATOR_KEY:
+        //       "3030020100300706052b8104000a04220420a5b399386598cd5ae067ec7ffedd7cb4617527c8b8824d52d180eab8d3091274",
+        //     HEDERA_NETWORK: "testnet",
+        //     PORT: "3000",
+        //   },
+        // },
       },
     };
   }
@@ -221,6 +234,19 @@ export function createSampleMCPConfig(): string {
         command: "npx",
         args: ["-y", "@modelcontextprotocol/server-fetch"],
       },
+      // "local-sse-server": {
+      //   command: "node",
+      //   args: [
+      //     "/Users/vinay/Desktop/Ongoing/ethprauge/hedera-mcp-server/build/index.js",
+      //   ],
+      //   env: {
+      //     HEDERA_OPERATOR_ID: "0.0.4838555",
+      //     HEDERA_OPERATOR_KEY:
+      //       "3030020100300706052b8104000a04220420a5b399386598cd5ae067ec7ffedd7cb4617527c8b8824d52d180eab8d3091274",
+      //     HEDERA_NETWORK: "testnet",
+      //     PORT: "3000",
+      //   },
+      // },
     },
   };
 
