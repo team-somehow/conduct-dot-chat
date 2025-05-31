@@ -66,3 +66,56 @@ export interface PaymentDistribution {
   totalPaid: bigint;
   remaining: bigint;
 }
+
+// Workflow-related types
+export interface WorkflowStep {
+  stepId: string;
+  agentUrl: string;
+  agentName: string;
+  description: string;
+  inputMapping?: Record<string, string>; // Maps workflow variables to agent inputs
+  outputMapping?: Record<string, string>; // Maps agent outputs to workflow variables
+  condition?: string; // Optional condition for conditional execution
+}
+
+export interface WorkflowDefinition {
+  workflowId: string;
+  name: string;
+  description: string;
+  userIntent: string;
+  steps: WorkflowStep[];
+  executionMode: "sequential" | "parallel" | "conditional";
+  estimatedDuration?: number;
+  createdAt: number;
+  variables?: Record<string, any>; // Workflow-level variables
+}
+
+export interface WorkflowExecution {
+  executionId: string;
+  workflowId: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  startedAt: number;
+  completedAt?: number;
+  input: any;
+  output?: any;
+  stepResults: Array<{
+    stepId: string;
+    status: "pending" | "running" | "completed" | "failed" | "skipped";
+    input?: any;
+    output?: any;
+    error?: string;
+    startedAt?: number;
+    completedAt?: number;
+  }>;
+  error?: string;
+}
+
+export interface UserIntent {
+  description: string;
+  context?: Record<string, any>;
+  preferences?: {
+    speed?: "fast" | "balanced" | "thorough";
+    quality?: "standard" | "high";
+    cost?: "low" | "medium" | "high";
+  };
+}

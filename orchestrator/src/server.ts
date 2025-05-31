@@ -1,13 +1,16 @@
 // src/server.ts  (CLI demo)
 import express, { Request, Response } from "express";
 import { JobRunner } from "./JobRunner";
+import { WorkflowManager } from "./WorkflowManager";
 import { loadAgent } from "./agents.http";
 import { AGENTS, config } from "./config";
+import { UserIntent } from "./types";
 
 const app = express();
 app.use(express.json());
 
 const jobRunner = new JobRunner();
+const workflowManager = new WorkflowManager(jobRunner);
 
 // Health check endpoint
 app.get("/health", async (req: Request, res: Response) => {
@@ -37,6 +40,172 @@ app.get("/agents", (req: Request, res: Response) => {
     agents: AGENTS,
     count: AGENTS.length,
   });
+});
+
+// Create workflow based on user intent
+app.post("/workflows/create", async (req: Request, res: Response) => {
+  try {
+    const { description, context, preferences } = req.body;
+
+    if (!description || typeof description !== "string") {
+      return res.status(400).json({
+        error: "Missing required field: description (string)",
+      });
+    }
+
+    const userIntent: UserIntent = {
+      description,
+      context: context || {},
+      preferences: preferences || {},
+    };
+
+    console.log(`🔍 Creating workflow for intent: "${description}"`);
+
+    const workflow = await workflowManager.createWorkflow(userIntent);
+
+    res.json({
+      success: true,
+      workflow: {
+        workflowId: workflow.workflowId,
+        name: workflow.name,
+        description: workflow.description,
+        userIntent: workflow.userIntent,
+        steps: workflow.steps,
+        executionMode: workflow.executionMode,
+        estimatedDuration: workflow.estimatedDuration,
+        createdAt: workflow.createdAt,
+      },
+      message: `Workflow created with ${workflow.steps.length} steps`,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Workflow creation failed:", error);
+    res.status(500).json({
+      error: "Workflow creation failed",
+      details: error.message,
+    });
+  }
+});
+
+// Execute a workflow
+app.post("/workflows/execute", async (req: Request, res: Response) => {
+  try {
+    const { workflowId, input } = req.body;
+
+    if (!workflowId || !input) {
+      return res.status(400).json({
+        error: "Missing required fields: workflowId, input",
+      });
+    }
+
+    console.log(`🚀 Executing workflow: ${workflowId}`);
+
+    const execution = await workflowManager.executeWorkflow(workflowId, input);
+
+    res.json({
+      success: true,
+      execution: {
+        executionId: execution.executionId,
+        workflowId: execution.workflowId,
+        status: execution.status,
+        startedAt: execution.startedAt,
+        completedAt: execution.completedAt,
+        input: execution.input,
+        output: execution.output,
+        stepResults: execution.stepResults,
+        error: execution.error,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error("Workflow execution failed:", error);
+    res.status(500).json({
+      error: "Workflow execution failed",
+      details: error.message,
+    });
+  }
+});
+
+// Get workflow by ID
+app.get("/workflows/:workflowId", (req: Request, res: Response) => {
+  try {
+    const { workflowId } = req.params;
+    const workflow = workflowManager.getWorkflow(workflowId);
+
+    if (!workflow) {
+      return res.status(404).json({
+        error: "Workflow not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      workflow,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to retrieve workflow",
+      details: error.message,
+    });
+  }
+});
+
+// Get execution by ID
+app.get("/executions/:executionId", (req: Request, res: Response) => {
+  try {
+    const { executionId } = req.params;
+    const execution = workflowManager.getExecution(executionId);
+
+    if (!execution) {
+      return res.status(404).json({
+        error: "Execution not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      execution,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to retrieve execution",
+      details: error.message,
+    });
+  }
+});
+
+// List all workflows
+app.get("/workflows", (req: Request, res: Response) => {
+  try {
+    const workflows = workflowManager.listWorkflows();
+    res.json({
+      success: true,
+      workflows,
+      count: workflows.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to list workflows",
+      details: error.message,
+    });
+  }
+});
+
+// List all executions
+app.get("/executions", (req: Request, res: Response) => {
+  try {
+    const executions = workflowManager.listExecutions();
+    res.json({
+      success: true,
+      executions,
+      count: executions.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to list executions",
+      details: error.message,
+    });
+  }
 });
 
 // Execute a single agent task
@@ -165,5 +334,13 @@ if (process.argv[2] === "health") {
     console.log(`🤖 Agents: http://localhost:${port}/agents`);
     console.log(`⚡ Execute: POST http://localhost:${port}/execute`);
     console.log(`🔄 Jobs: POST http://localhost:${port}/jobs`);
+    console.log(
+      `🔧 Create Workflow: POST http://localhost:${port}/workflows/create`
+    );
+    console.log(
+      `🚀 Execute Workflow: POST http://localhost:${port}/workflows/execute`
+    );
+    console.log(`📋 List Workflows: GET http://localhost:${port}/workflows`);
+    console.log(`📊 List Executions: GET http://localhost:${port}/executions`);
   });
 }

@@ -8,12 +8,15 @@
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "test": "jest",
-    "test:local": "npm run build && node test-local.js"
+    "test:local": "npm run build && node test-local.js",
+    "test-workflow": "node test-workflow.js"
   },
   "dependencies": {
     "ajv": "^8.12.0",
+    "axios": "^1.9.0",
     "dotenv": "^16.5.0",
     "node-fetch": "^2.7.0",
+    "openai": "^4.20.0",
     "viem": "^1.19.0",
     "zod": "^3.22.0"
   },
