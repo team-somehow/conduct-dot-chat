@@ -120,6 +120,84 @@ const generateMockAgents = (): Agent[] => [
     performance: { avgResponseTime: 2200, uptime: 99.3, successRate: 98.4 },
     wallet: "0x8901234567890123456789012345678901234567",
     previewURI: "https://via.placeholder.com/400x300/FF6B6B/FFFFFF?text=Claude+AI"
+  },
+  {
+    name: "LINK Token Bridge",
+    url: "http://localhost:3009",
+    description: "Bridge LINK tokens between Ethereum and Hedera networks",
+    vendor: "Chainlink Labs",
+    category: "Cross-Chain",
+    tags: ["link", "bridge", "hedera", "chainlink", "cross-chain"],
+    pricing: { model: "Bridge Transaction", amount: 0.25, currency: "USD", unit: "bridge" },
+    rating: { score: 4.7, reviews: 523, lastUpdated: new Date().toISOString() },
+    performance: { avgResponseTime: 5200, uptime: 98.9, successRate: 97.1 },
+    wallet: "0x9012345678901234567890123456789012345678",
+    previewURI: "https://via.placeholder.com/400x300/375BD2/FFFFFF?text=LINK+Bridge"
+  },
+  {
+    name: "Hedera Investment Manager",
+    url: "http://localhost:3010",
+    description: "Automated investment strategies on Hedera Hashgraph network",
+    vendor: "Hedera Labs",
+    category: "DeFi",
+    tags: ["hedera", "hbar", "investment", "hashgraph", "defi"],
+    pricing: { model: "Investment", amount: 0.08, currency: "USD", unit: "transaction" },
+    rating: { score: 4.6, reviews: 312, lastUpdated: new Date().toISOString() },
+    performance: { avgResponseTime: 1800, uptime: 99.4, successRate: 98.2 },
+    wallet: "0x0123456789012345678901234567890123456789",
+    previewURI: "https://via.placeholder.com/400x300/00D4AA/FFFFFF?text=Hedera+DeFi"
+  },
+  {
+    name: "Hedera Token Service",
+    url: "http://localhost:3011",
+    description: "Native token operations on Hedera including staking and rewards",
+    vendor: "Hedera Foundation",
+    category: "Blockchain",
+    tags: ["hedera", "hts", "staking", "rewards", "native"],
+    pricing: { model: "HTS Operation", amount: 0.05, currency: "USD", unit: "operation" },
+    rating: { score: 4.8, reviews: 445, lastUpdated: new Date().toISOString() },
+    performance: { avgResponseTime: 1200, uptime: 99.6, successRate: 99.1 },
+    wallet: "0x1234567890123456789012345678901234567891",
+    previewURI: "https://via.placeholder.com/400x300/00D4AA/FFFFFF?text=Hedera+HTS"
+  },
+  {
+    name: "Aave Protocol Manager",
+    url: "http://localhost:3012",
+    description: "Advanced DeFi lending and borrowing operations on Aave protocol",
+    vendor: "Aave Labs",
+    category: "DeFi",
+    tags: ["aave", "defi", "lending", "borrowing", "yield"],
+    pricing: { model: "DeFi Transaction", amount: 0.15, currency: "USD", unit: "transaction" },
+    rating: { score: 4.9, reviews: 1234, lastUpdated: new Date().toISOString() },
+    performance: { avgResponseTime: 2800, uptime: 99.2, successRate: 97.8 },
+    wallet: "0x2345678901234567890123456789012345678902",
+    previewURI: "https://via.placeholder.com/400x300/B6509E/FFFFFF?text=Aave+Protocol"
+  },
+  {
+    name: "LINK Token Manager",
+    url: "http://localhost:3013",
+    description: "Specialized LINK token operations including staking and rewards",
+    vendor: "Chainlink Labs",
+    category: "DeFi",
+    tags: ["link", "chainlink", "staking", "rewards", "token"],
+    pricing: { model: "Token Operation", amount: 0.08, currency: "USD", unit: "operation" },
+    rating: { score: 4.8, reviews: 892, lastUpdated: new Date().toISOString() },
+    performance: { avgResponseTime: 1500, uptime: 99.5, successRate: 98.6 },
+    wallet: "0x3456789012345678901234567890123456789013",
+    previewURI: "https://via.placeholder.com/400x300/375BD2/FFFFFF?text=LINK+Manager"
+  },
+  {
+    name: "DeFi Yield Optimizer",
+    url: "http://localhost:3014",
+    description: "Optimize yield farming strategies across multiple DeFi protocols",
+    vendor: "DeFi Labs",
+    category: "DeFi",
+    tags: ["yield", "farming", "optimization", "defi", "strategy"],
+    pricing: { model: "Optimization", amount: 0.12, currency: "USD", unit: "strategy" },
+    rating: { score: 4.7, reviews: 567, lastUpdated: new Date().toISOString() },
+    performance: { avgResponseTime: 3200, uptime: 98.8, successRate: 96.9 },
+    wallet: "0x4567890123456789012345678901234567890124",
+    previewURI: "https://via.placeholder.com/400x300/FFD93D/FFFFFF?text=Yield+Optimizer"
   }
 ];
 
@@ -133,7 +211,166 @@ const generateMockWorkflow = (prompt: string): WorkflowDefinition => {
   let name = "AI Workflow";
   let description = prompt;
   
-  if (promptLower.includes('nft') || promptLower.includes('token')) {
+  // LINK to Hedera investment flow
+  if (promptLower.includes('link') && promptLower.includes('hedera') && promptLower.includes('invest')) {
+    name = "LINK to Hedera Investment Workflow";
+    steps = [
+      {
+        stepId: `step_${Date.now()}_1`,
+        agentName: "1inch Balance Checker",
+        agentUrl: "http://localhost:3004",
+        description: "Check current LINK token balance on Ethereum",
+        inputMapping: {
+          address: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+          token: "LINK"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_2`,
+        agentName: "LINK Token Bridge",
+        agentUrl: "http://localhost:3009",
+        description: "Bridge LINK tokens from Ethereum to Hedera network",
+        inputMapping: {
+          sourceChain: "ethereum",
+          targetChain: "hedera",
+          token: "LINK",
+          amount: "{{step_1.linkBalance}}",
+          recipient: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_3`,
+        agentName: "Hedera Investment Manager",
+        agentUrl: "http://localhost:3010",
+        description: "Invest bridged LINK tokens in Hedera DeFi protocols",
+        inputMapping: {
+          token: "LINK",
+          amount: "{{step_2.bridgedAmount}}",
+          strategy: "yield_farming",
+          protocol: "hedera_defi"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_4`,
+        agentName: "Hedera Token Service",
+        agentUrl: "http://localhost:3011",
+        description: "Set up staking rewards and monitoring",
+        inputMapping: {
+          token: "LINK",
+          stakingAmount: "{{step_3.investedAmount}}",
+          rewardType: "HBAR",
+          duration: "30_days"
+        }
+      }
+    ];
+  }
+  // LINK tokens in Aave investment flow
+  else if (promptLower.includes('link') && promptLower.includes('aave') && promptLower.includes('invest')) {
+    name = "LINK Tokens Aave Investment Workflow";
+    steps = [
+      {
+        stepId: `step_${Date.now()}_1`,
+        agentName: "LINK Token Manager",
+        agentUrl: "http://localhost:3013",
+        description: "Check LINK token balance and prepare for Aave investment",
+        inputMapping: {
+          address: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+          token: "LINK",
+          action: "balance_check"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_2`,
+        agentName: "Aave Protocol Manager",
+        agentUrl: "http://localhost:3012",
+        description: "Supply LINK tokens to Aave lending pool",
+        inputMapping: {
+          token: "LINK",
+          amount: "{{step_1.availableBalance}}",
+          action: "supply",
+          pool: "aave_v3"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_3`,
+        agentName: "DeFi Yield Optimizer",
+        agentUrl: "http://localhost:3014",
+        description: "Optimize yield strategy and monitor performance",
+        inputMapping: {
+          protocol: "aave",
+          token: "LINK",
+          strategy: "supply_optimization",
+          aTokens: "{{step_2.aTokensReceived}}"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_4`,
+        agentName: "Aave Protocol Manager",
+        agentUrl: "http://localhost:3012",
+        description: "Set up automated yield compounding",
+        inputMapping: {
+          aToken: "aLINK",
+          strategy: "auto_compound",
+          frequency: "weekly",
+          threshold: "0.1"
+        }
+      }
+    ];
+  }
+  // Naruto NFT collection flow
+  else if (promptLower.includes('naruto') && (promptLower.includes('nft') || promptLower.includes('collection'))) {
+    name = "Naruto NFT Collection Workflow";
+    steps = [
+      {
+        stepId: `step_${Date.now()}_1`,
+        agentName: "DALL-E 3 Image Generator",
+        agentUrl: "http://localhost:3001",
+        description: "Generate Naruto-themed NFT artwork",
+        inputMapping: { 
+          prompt: "Naruto Uzumaki, Seventh Hokage, anime art style, Hidden Leaf Village background",
+          style: "anime art",
+          size: "1024x1024",
+          theme: "naruto"
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_2`,
+        agentName: "NFT Metadata Creator",
+        agentUrl: "http://localhost:3006",
+        description: "Create Naruto NFT metadata with anime attributes",
+        inputMapping: {
+          name: "Naruto Uzumaki - Hokage Collection",
+          description: "Legendary Naruto NFT featuring the Seventh Hokage with authentic anime styling",
+          imageUrl: "{{step_1.imageUrl}}",
+          attributes: JSON.stringify([
+            { trait_type: "Series", value: "Naruto" },
+            { trait_type: "Character", value: "Naruto Uzumaki" },
+            { trait_type: "Village", value: "Hidden Leaf Village" },
+            { trait_type: "Rank", value: "Hokage" },
+            { trait_type: "Element", value: "Wind" },
+            { trait_type: "Technique", value: "Rasengan" },
+            { trait_type: "Rarity", value: "Legendary" }
+          ])
+        }
+      },
+      {
+        stepId: `step_${Date.now()}_3`,
+        agentName: "NFT Deployer Agent",
+        agentUrl: "http://localhost:3003",
+        description: "Deploy Naruto NFT collection contract",
+        inputMapping: {
+          name: "Naruto Hokage Collection",
+          symbol: "NARUTO",
+          metadataUrl: "{{step_2.metadataUrl}}",
+          chainId: "11155111",
+          collectionSize: "1000",
+          theme: "naruto"
+        }
+      }
+    ];
+  }
+  // Generic NFT flow
+  else if (promptLower.includes('nft') || promptLower.includes('token')) {
     name = "NFT Creation Workflow";
     steps = [
       {
@@ -171,7 +408,9 @@ const generateMockWorkflow = (prompt: string): WorkflowDefinition => {
         }
       }
     ];
-  } else if (promptLower.includes('defi') || promptLower.includes('invest')) {
+  } 
+  // Generic DeFi/investment flow
+  else if (promptLower.includes('defi') || promptLower.includes('invest')) {
     name = "DeFi Investment Workflow";
     steps = [
       {
@@ -195,7 +434,9 @@ const generateMockWorkflow = (prompt: string): WorkflowDefinition => {
         }
       }
     ];
-  } else if (promptLower.includes('image') || promptLower.includes('generate')) {
+  } 
+  // Image generation flow
+  else if (promptLower.includes('image') || promptLower.includes('generate')) {
     name = "Image Generation Workflow";
     steps = [
       {
@@ -209,7 +450,9 @@ const generateMockWorkflow = (prompt: string): WorkflowDefinition => {
         }
       }
     ];
-  } else {
+  } 
+  // Default text processing flow
+  else {
     name = "Text Processing Workflow";
     steps = [
       {
@@ -621,6 +864,36 @@ export const orchestratorAPI = {
       return orchestratorAPI.getClaudeResponse(input);
     }
     
+    // LINK Token Bridge Agent
+    if (url.includes('3009') || url.includes('link') || url.includes('bridge')) {
+      return orchestratorAPI.getLinkBridgeResponse(input);
+    }
+    
+    // Hedera Investment Manager Agent
+    if (url.includes('3010') || url.includes('hedera') && url.includes('investment')) {
+      return orchestratorAPI.getHederaInvestmentResponse(input);
+    }
+    
+    // Hedera Token Service Agent
+    if (url.includes('3011') || url.includes('hts') || url.includes('hedera') && url.includes('token')) {
+      return orchestratorAPI.getHederaTokenServiceResponse(input);
+    }
+    
+    // Aave Protocol Manager Agent
+    if (url.includes('3012') || url.includes('aave') && url.includes('protocol')) {
+      return orchestratorAPI.getAaveProtocolManagerResponse(input);
+    }
+    
+    // LINK Token Manager Agent
+    if (url.includes('3013') || url.includes('link') && url.includes('manager')) {
+      return orchestratorAPI.getLinkTokenManagerResponse(input);
+    }
+    
+    // DeFi Yield Optimizer Agent
+    if (url.includes('3014') || url.includes('yield') && url.includes('optimizer')) {
+      return orchestratorAPI.getDeFiYieldOptimizerResponse(input);
+    }
+    
     // Generic AI agent fallback
     if (url.includes('ai') || url.includes('llm') || url.includes('model')) {
       return orchestratorAPI.getGenericAIResponse(input);
@@ -914,6 +1187,174 @@ export const orchestratorAPI = {
       },
       timestamp: new Date().toISOString(),
       processingTime: Math.floor(Math.random() * 2000) + 500
+    };
+  },
+
+  // LINK Token Bridge Agent Response
+  getLinkBridgeResponse(input: any): any {
+    const amount = input.amount || "100";
+    const sourceChain = input.sourceChain || "ethereum";
+    const targetChain = input.targetChain || "hedera";
+    
+    return {
+      bridgeTransactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+      sourceChain: sourceChain,
+      targetChain: targetChain,
+      token: "LINK",
+      amount: amount,
+      sourceAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+      targetAddress: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      bridgeFee: "0.1",
+      estimatedTime: "5-10 minutes",
+      status: "initiated",
+      explorerUrl: `https://hashscan.io/mainnet/transaction/0x${Math.random().toString(16).substr(2, 64)}`,
+      bridgeContract: "0x514910771AF9Ca656af840dff83E8264EcF986CA",
+      confirmations: 12,
+      timestamp: new Date().toISOString(),
+      estimatedGas: "150000",
+      gasPrice: "20",
+      networkFee: "0.003"
+    };
+  },
+
+  // Hedera Investment Manager Agent Response
+  getHederaInvestmentResponse(input: any): any {
+    const token = input.token || "LINK";
+    const amount = input.amount || "100";
+    const strategy = input.strategy || "liquidity_pool";
+    
+    return {
+      transactionHash: `0.0.${Math.floor(Math.random() * 999999) + 100000}@${Date.now()}.${Math.floor(Math.random() * 999999999)}`,
+      action: "invest",
+      token: token,
+      amount: amount,
+      strategy: strategy,
+      poolAddress: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      expectedApy: "8.5%",
+      liquidityTokens: `${(parseFloat(amount) * 0.98).toFixed(2)}`,
+      explorerUrl: `https://hashscan.io/mainnet/transaction/0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      poolInfo: {
+        totalLiquidity: "$2,450,000",
+        volume24h: "$125,000",
+        fees24h: "$312.50",
+        participants: 156
+      },
+      timestamp: new Date().toISOString(),
+      estimatedGas: "0.05",
+      gasCurrency: "HBAR",
+      networkFee: "0.001",
+      slippage: "0.5%",
+      priceImpact: "0.02%"
+    };
+  },
+
+  // Hedera Token Service Agent Response
+  getHederaTokenServiceResponse(input: any): any {
+    const action = input.action || "create";
+    const tokenName = input.tokenName || "Naruto Collection";
+    const symbol = input.symbol || "NARUTO";
+    
+    if (action === "create") {
+      return {
+        tokenId: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        name: tokenName,
+        symbol: symbol,
+        type: "NON_FUNGIBLE_UNIQUE",
+        totalSupply: "0",
+        maxSupply: input.maxSupply || "10000",
+        treasury: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        adminKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        supplyKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        freezeKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        wipeKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        kycKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        pauseKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        feeScheduleKey: `302a300506032b6570032100${Math.random().toString(16).substr(2, 64)}`,
+        customFees: [],
+        autoRenewAccount: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        autoRenewPeriod: "7776000",
+        memo: `${tokenName} NFT Collection on Hedera`,
+        explorerUrl: `https://hashscan.io/mainnet/token/0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        transactionHash: `0.0.${Math.floor(Math.random() * 999999) + 100000}@${Date.now()}.${Math.floor(Math.random() * 999999999)}`,
+        timestamp: new Date().toISOString(),
+        networkFee: "20",
+        feeCurrency: "HBAR"
+      };
+    } else if (action === "mint") {
+      return {
+        tokenId: input.tokenId || `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        serialNumbers: [Math.floor(Math.random() * 9999) + 1],
+        metadata: input.metadata || `ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/${Math.floor(Math.random() * 9999) + 1}`,
+        recipient: input.recipient || `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        transactionHash: `0.0.${Math.floor(Math.random() * 999999) + 100000}@${Date.now()}.${Math.floor(Math.random() * 999999999)}`,
+        explorerUrl: `https://hashscan.io/mainnet/transaction/0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+        timestamp: new Date().toISOString(),
+        networkFee: "1",
+        feeCurrency: "HBAR"
+      };
+    }
+    
+    return {
+      error: "Unsupported action",
+      supportedActions: ["create", "mint", "transfer", "burn"]
+    };
+  },
+
+  // Aave Protocol Manager Agent Response
+  getAaveProtocolManagerResponse(input: any): any {
+    const action = input.action || "supply";
+    const token = input.token || "LINK";
+    const amount = input.amount || "1000";
+    const pool = input.pool || "aave_v3";
+    
+    return {
+      transactionHash: `0.0.${Math.floor(Math.random() * 999999) + 100000}@${Date.now()}.${Math.floor(Math.random() * 999999999)}`,
+      action: action,
+      token: token,
+      amount: amount,
+      pool: pool,
+      poolAddress: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      explorerUrl: `https://hashscan.io/mainnet/transaction/0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      timestamp: new Date().toISOString(),
+      networkFee: "20",
+      feeCurrency: "HBAR"
+    };
+  },
+
+  // LINK Token Manager Agent Response
+  getLinkTokenManagerResponse(input: any): any {
+    const action = input.action || "balance_check";
+    const token = input.token || "LINK";
+    
+    return {
+      transactionHash: `0.0.${Math.floor(Math.random() * 999999) + 100000}@${Date.now()}.${Math.floor(Math.random() * 999999999)}`,
+      action: action,
+      token: token,
+      poolAddress: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      explorerUrl: `https://hashscan.io/mainnet/transaction/0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      timestamp: new Date().toISOString(),
+      networkFee: "20",
+      feeCurrency: "HBAR"
+    };
+  },
+
+  // DeFi Yield Optimizer Agent Response
+  getDeFiYieldOptimizerResponse(input: any): any {
+    const protocol = input.protocol || "aave";
+    const token = input.token || "LINK";
+    const strategy = input.strategy || "supply_optimization";
+    
+    return {
+      transactionHash: `0.0.${Math.floor(Math.random() * 999999) + 100000}@${Date.now()}.${Math.floor(Math.random() * 999999999)}`,
+      action: "optimize",
+      protocol: protocol,
+      token: token,
+      strategy: strategy,
+      poolAddress: `0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      explorerUrl: `https://hashscan.io/mainnet/transaction/0.0.${Math.floor(Math.random() * 999999) + 100000}`,
+      timestamp: new Date().toISOString(),
+      networkFee: "20",
+      feeCurrency: "HBAR"
     };
   },
 
