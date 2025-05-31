@@ -3,3 +3,8 @@ node_modules
 dist
 logs/
 .env
+
+# Foundry build artifacts (in protocol directory)
+protocol/broadcast/
+protocol/cache/
+protocol/out/
