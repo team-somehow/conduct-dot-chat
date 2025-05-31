@@ -25,14 +25,20 @@ async function testDeposit() {
     wallet
   );
 
-  // 1. Approve the contract to spend tokens
-  const approveTx = await ERC20TokenContract.approve(
-    aaveInvestorAddress,
-    ethers.parseEther("1")
+  // Check if need to approve, then approve max uint256
+  const allowance = await ERC20TokenContract.allowance(
+    wallet.address,
+    aaveInvestorAddress
   );
-  await approveTx.wait();
+  if (allowance < ethers.parseEther("1")) {
+    const approveTx = await ERC20TokenContract.approve(
+      aaveInvestorAddress,
+      ethers.MaxUint256
+    );
+    await approveTx.wait();
+  }
 
-  // 2. Call deposit on the contract
+  // Call deposit on the contract
   const depositTx = await aaveInvestor.deposit(ethers.parseEther("1"));
   await depositTx.wait();
 
