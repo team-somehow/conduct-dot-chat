@@ -1,29 +1,27 @@
 #!/usr/bin/env node
 
 /**
- * Test script for the simplified workflow API
+ * Test script for the thank you NFT workflow
  *
- * This demonstrates the new simplified endpoints:
- * - POST /workflows/create (only requires prompt)
- * - POST /workflows/execute (only requires workflowId)
+ * Tests the main use case: "Can you send a thank you nft to [address] for attending eth global prague"
  */
 
 const fetch = require("node-fetch");
 
 const ORCHESTRATOR_URL = "http://localhost:8080";
 
-async function testSimplifiedWorkflow() {
-  console.log("🧪 Testing Simplified Workflow API\n");
+async function testThankYouNFT() {
+  console.log("🎉 Testing Thank You NFT Workflow\n");
 
   try {
-    // Test 1: Create workflow with just a prompt
-    console.log("📝 Step 1: Creating workflow with simple prompt...");
+    // Test: Create and execute thank you NFT workflow
+    console.log("📝 Creating thank you NFT workflow...");
     const createResponse = await fetch(`${ORCHESTRATOR_URL}/workflows/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt:
-          "Create a personalized greeting for Alice and generate a beautiful sunset image",
+          "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague",
       }),
     });
 
@@ -39,13 +37,13 @@ async function testSimplifiedWorkflow() {
     console.log(`   Name: ${createResult.workflow.name}`);
     console.log(`   Steps: ${createResult.workflow.steps.length}`);
     console.log(
-      `   Steps: ${createResult.workflow.steps
+      `   Pipeline: ${createResult.workflow.steps
         .map((s) => s.agentName)
         .join(" → ")}\n`
     );
 
-    // Test 2: Execute workflow with just workflowId
-    console.log("🚀 Step 2: Executing workflow...");
+    // Execute the workflow
+    console.log("🚀 Executing workflow...");
     const executeResponse = await fetch(
       `${ORCHESTRATOR_URL}/workflows/execute`,
       {
@@ -64,70 +62,38 @@ async function testSimplifiedWorkflow() {
     }
 
     const executeResult = await executeResponse.json();
-    console.log("✅ Workflow execution started!");
+    console.log("✅ Workflow execution completed!");
     console.log(`   Execution ID: ${executeResult.execution.executionId}`);
     console.log(`   Status: ${executeResult.execution.status}`);
-    console.log(`   Input: ${JSON.stringify(executeResult.execution.input)}\n`);
 
-    // Test 3: Monitor execution status
-    console.log("👀 Step 3: Monitoring execution...");
-    let execution = executeResult.execution;
-    let attempts = 0;
-    const maxAttempts = 30; // 30 seconds max
-
-    while (execution.status === "running" || execution.status === "pending") {
-      if (attempts >= maxAttempts) {
-        console.log("⏰ Timeout waiting for execution to complete");
-        break;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      attempts++;
-
-      const statusResponse = await fetch(
-        `${ORCHESTRATOR_URL}/executions/${execution.executionId}`
-      );
-      if (statusResponse.ok) {
-        const statusResult = await statusResponse.json();
-        execution = statusResult.execution;
-        console.log(`   Status: ${execution.status} (${attempts}s)`);
-      }
-    }
-
-    // Test 4: Show final results
-    console.log("\n📊 Final Results:");
-    console.log(`   Status: ${execution.status}`);
-    if (execution.status === "completed") {
-      console.log("✅ Workflow completed successfully!");
+    if (executeResult.execution.status === "completed") {
       console.log(
-        `   Duration: ${execution.completedAt - execution.startedAt}ms`
+        `   Duration: ${Math.round(
+          (executeResult.execution.completedAt -
+            executeResult.execution.startedAt) /
+            1000
+        )}s\n`
       );
 
-      if (execution.stepResults) {
-        console.log("\n📋 Step Results:");
-        execution.stepResults.forEach((step, index) => {
-          console.log(`   Step ${index + 1}: ${step.status}`);
-          if (step.output) {
-            const output =
-              typeof step.output === "string"
-                ? step.output
-                : JSON.stringify(step.output, null, 2);
-            console.log(
-              `   Output: ${output.substring(0, 100)}${
-                output.length > 100 ? "..." : ""
-              }`
-            );
-          }
-        });
-      }
+      // Show the natural language summary
+      console.log("📋 Natural Language Summary:");
+      console.log("=".repeat(50));
+      console.log(executeResult.summary);
+      console.log("=".repeat(50));
 
-      if (execution.output) {
-        console.log("\n🎯 Final Output:");
-        console.log(JSON.stringify(execution.output, null, 2));
-      }
-    } else if (execution.status === "failed") {
+      // Note: Summary is now included directly in the execution response
+      console.log("\n✅ Summary included in execution response!");
+    } else if (executeResult.execution.status === "failed") {
       console.log("❌ Workflow failed!");
-      console.log(`   Error: ${execution.error}`);
+      console.log(`   Error: ${executeResult.execution.error}`);
+
+      // Still show summary for failed executions
+      if (executeResult.summary) {
+        console.log("\n📋 Failure Summary:");
+        console.log("=".repeat(50));
+        console.log(executeResult.summary);
+        console.log("=".repeat(50));
+      }
     }
   } catch (error) {
     console.error("❌ Test failed:", error.message);
@@ -135,47 +101,9 @@ async function testSimplifiedWorkflow() {
   }
 }
 
-async function testMultiplePrompts() {
-  console.log("\n🔄 Testing Multiple Different Prompts\n");
-
-  const prompts = [
-    "Generate a greeting for Bob in Spanish",
-    "Create an image of a cyberpunk cityscape",
-    "Make a personalized hello message and generate a landscape photo",
-    "Create an NFT collection called 'Digital Dreams' with AI-generated artwork",
-  ];
-
-  for (let i = 0; i < prompts.length; i++) {
-    const prompt = prompts[i];
-    console.log(`\n📝 Test ${i + 1}: "${prompt}"`);
-
-    try {
-      const response = await fetch(`${ORCHESTRATOR_URL}/workflows/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`   ✅ Created: ${result.workflow.workflowId}`);
-        console.log(
-          `   Steps: ${result.workflow.steps
-            .map((s) => s.agentName)
-            .join(" → ")}`
-        );
-      } else {
-        console.log(`   ❌ Failed: ${response.status}`);
-      }
-    } catch (error) {
-      console.log(`   ❌ Error: ${error.message}`);
-    }
-  }
-}
-
 // Main execution
 async function main() {
-  console.log("🚀 MAHA Orchestrator - Simplified API Test\n");
+  console.log("🚀 MAHA Orchestrator - Thank You NFT Test\n");
 
   // Check if orchestrator is running
   try {
@@ -191,14 +119,13 @@ async function main() {
     process.exit(1);
   }
 
-  await testSimplifiedWorkflow();
-  await testMultiplePrompts();
+  await testThankYouNFT();
 
-  console.log("\n🎉 All tests completed!");
+  console.log("\n🎉 Thank you NFT test completed!");
 }
 
 if (require.main === module) {
   main().catch(console.error);
 }
 
-module.exports = { testSimplifiedWorkflow, testMultiplePrompts };
+module.exports = { testThankYouNFT };
