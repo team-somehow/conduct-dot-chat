@@ -39,6 +39,10 @@ export class WorkflowManager {
       availableAgents
     );
 
+    if (!steps) {
+      throw new Error("No steps found in workflow plan");
+    }
+
     const workflow: WorkflowDefinition = {
       workflowId,
       name: this.generateWorkflowName(userIntent.description),
@@ -319,11 +323,7 @@ export class WorkflowManager {
         stepResult.startedAt = Date.now();
 
         // Map input based on step configuration
-        mappedInput = this.mapStepInput(
-          step,
-          workflowVariables,
-          currentInput
-        );
+        mappedInput = this.mapStepInput(step, workflowVariables, currentInput);
         stepResult.input = mappedInput;
 
         // Execute the step
@@ -353,32 +353,44 @@ export class WorkflowManager {
         console.log(`✅ Step ${step.stepId} completed successfully`);
       } catch (error: any) {
         console.log(`❌ Step ${step.stepId} failed: ${error.message}`);
-        
+
         // Provide fallback responses for demo purposes
         let fallbackResult: any = null;
-        
-        if (step.agentName.includes("DALL-E") || step.agentName.includes("Image")) {
+
+        if (
+          step.agentName.includes("DALL-E") ||
+          step.agentName.includes("Image")
+        ) {
           // Fallback for image generation
           fallbackResult = {
-            imageUrl: "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
-            generatedImageUrl: "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
+            imageUrl:
+              "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
+            generatedImageUrl:
+              "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
             prompt: mappedInput?.prompt || "Demo image",
-            message: "Demo image generated (DALL-E agent unavailable)"
+            message: "Demo image generated (DALL-E agent unavailable)",
           };
           console.log(`🔄 Using fallback image for ${step.stepId}`);
-        } else if (step.agentName.includes("NFT") || step.agentName.includes("Deployer")) {
+        } else if (
+          step.agentName.includes("NFT") ||
+          step.agentName.includes("Deployer")
+        ) {
           // Fallback for NFT deployment
           fallbackResult = {
-            transactionHash: "0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            transactionHash:
+              "0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             tokenId: "1",
             contractAddress: "0xDemo1234567890123456789012345678901234567890",
-            recipientAddress: mappedInput?.recipientAddress || "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+            recipientAddress:
+              mappedInput?.recipientAddress ||
+              "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
             collectionName: mappedInput?.collectionName || "Demo Collection",
             tokenName: mappedInput?.tokenName || "Demo NFT",
             metadataUri: "https://demo.metadata.uri/1",
-            explorerUrl: "https://etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            explorerUrl:
+              "https://etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             timestamp: Date.now(),
-            message: "Demo NFT deployed (NFT agent unavailable)"
+            message: "Demo NFT deployed (NFT agent unavailable)",
           };
           console.log(`🔄 Using fallback NFT deployment for ${step.stepId}`);
         } else {
@@ -386,7 +398,7 @@ export class WorkflowManager {
           fallbackResult = {
             message: `Demo result for ${step.agentName} (agent unavailable)`,
             status: "demo_completed",
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
           console.log(`🔄 Using generic fallback for ${step.stepId}`);
         }
@@ -401,8 +413,14 @@ export class WorkflowManager {
           for (const [outputKey, variableName] of Object.entries(
             step.outputMapping
           )) {
-            if (fallbackResult && typeof fallbackResult === "object" && outputKey in fallbackResult) {
-              workflowVariables[variableName] = (fallbackResult as any)[outputKey];
+            if (
+              fallbackResult &&
+              typeof fallbackResult === "object" &&
+              outputKey in fallbackResult
+            ) {
+              workflowVariables[variableName] = (fallbackResult as any)[
+                outputKey
+              ];
             }
           }
         }

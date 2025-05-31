@@ -12,6 +12,7 @@ export const AGENTS = [
   "http://localhost:3003", // NFT Deployer Agent
   "http://localhost:3004", // 1inch Balance Agent
   "http://localhost:3005", // Aave Investor Agent
+  "http://localhost:3006", // NFT Metadata Creator Agent
 ];
 
 // Basic configuration (no blockchain for now)

@@ -172,6 +172,13 @@ show_status() {
         echo -e "  🏦 Aave Investor    │ ${GREEN}RUNNING${NC} │ Port 3005 │ http://localhost:3005"
     fi
     
+    # Check NFT Metadata Creator Agent (Port 3006)
+    if check_port 3006; then
+        echo -e "  📝 NFT Metadata     │ ${RED}STOPPED${NC} │ Port 3006"
+    else
+        echo -e "  📝 NFT Metadata     │ ${GREEN}RUNNING${NC} │ Port 3006 │ http://localhost:3006"
+    fi
+    
     echo ""
 }
 
@@ -195,6 +202,9 @@ case "$1" in
         
         # Start Aave Investor Agent
         start_agent "aave-investor" "Aave Investor Agent" 3005 "npm run dev"
+        
+        # Start NFT Metadata Creator Agent
+        start_agent "nft-metadata-creator" "NFT Metadata Creator Agent" 3006 "npm run dev"
         
         echo ""
         print_success "All agents startup initiated!"
@@ -231,6 +241,7 @@ case "$1" in
             echo ""
             print_status "Usage: $0 logs <agent>"
             print_status "Example: $0 logs hello"
+            print_status "Available agents: hello, imagegen, nft-deployer, 1inch, aave-investor, nft-metadata-creator"
         else
             if [ -f "logs/$2.log" ]; then
                 print_status "Showing logs for $2 agent (Press Ctrl+C to exit):"
@@ -254,10 +265,18 @@ case "$1" in
         echo "  status   - Show status of all agents"
         echo "  logs     - Show available logs or tail specific agent log"
         echo ""
+        echo "Available agents:"
+        echo "  • Hello Agent (Port 3001)"
+        echo "  • ImageGen Agent (Port 3002)"
+        echo "  • NFT Deployer Agent (Port 3003)"
+        echo "  • 1inch Wallet Balance Agent (Port 3004)"
+        echo "  • Aave Investor Agent (Port 3005)"
+        echo "  • NFT Metadata Creator Agent (Port 3006)"
+        echo ""
         echo "Examples:"
         echo "  $0 start"
         echo "  $0 status"
-        echo "  $0 logs hello"
+        echo "  $0 logs nft-metadata-creator"
         echo ""
         ;;
 esac 

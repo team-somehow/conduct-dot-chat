@@ -126,11 +126,7 @@ export class MCPAgentService {
 
     console.log(`🤖 Processing prompt for ${adapter.serverName}: "${prompt}"`);
 
-    if (adapter.serverName === "akave") {
-      return await this.handleAkavePrompt(adapter, prompt, input);
-    }
-
-    // For other MCP servers, use existing logic
+    // Generic MCP tool handling - let the LLM decide which tool to use
     if (adapter.tools.length === 0) {
       throw new Error(`No tools available for MCP agent ${adapter.name}`);
     }
@@ -148,118 +144,6 @@ export class MCPAgentService {
     return await this.mcpManager.callTool(adapter.serverName, bestTool.name, {
       prompt,
     });
-  }
-
-  /**
-   * Handle Akave-specific prompts with intelligent tool routing
-   */
-  private async handleAkavePrompt(
-    adapter: MCPAgentAdapter,
-    prompt: string,
-    input: any
-  ): Promise<any> {
-    const lowerPrompt = prompt.toLowerCase();
-
-    // Extract bucket name from prompt
-    const bucketMatch = prompt.match(
-      /bucket\s+(?:called\s+)?['"]?([^'"?\s]+)['"]?/i
-    );
-    const bucketName = bucketMatch ? bucketMatch[1] : "default";
-
-    // Extract image URL if provided
-    const urlMatch = prompt.match(/(https?:\/\/[^\s]+)/i);
-    const imageUrl = urlMatch ? urlMatch[1] : null;
-
-    // Determine if this is a store or get operation
-    if (
-      lowerPrompt.includes("put") ||
-      lowerPrompt.includes("store") ||
-      lowerPrompt.includes("save") ||
-      imageUrl
-    ) {
-      // This is a store operation
-      console.log(`📦 Storing content in Akave bucket: ${bucketName}`);
-
-      let contentToStore;
-      let fileName = "file";
-
-      if (imageUrl) {
-        // Storing an image from URL
-        contentToStore = imageUrl;
-        fileName = "image_" + Date.now() + ".url";
-        console.log(`🖼️ Storing image from URL: ${imageUrl}`);
-      } else {
-        // Extract content to store from prompt
-        const contentMatch = prompt.match(
-          /put\s+['"]([^'"]+)['"]|store\s+['"]([^'"]+)['"]|save\s+['"]([^'"]+)['"]|content:\s*['"]([^'"]+)['"]/i
-        );
-        contentToStore = contentMatch
-          ? contentMatch[1] ||
-            contentMatch[2] ||
-            contentMatch[3] ||
-            contentMatch[4]
-          : prompt;
-        fileName = "content_" + Date.now() + ".txt";
-      }
-
-      // Use put_object tool (correct Akave tool name) with proper arguments
-      const args = {
-        bucket: bucketName,
-        key: fileName,
-        body: contentToStore,
-        metadata: {
-          "x-source": "maha-orchestrator",
-          "x-timestamp": new Date().toISOString(),
-          "x-type": imageUrl ? "image_url" : "text",
-        },
-      };
-
-      console.log(`🔧 Calling put_object with args:`, args);
-      return await this.mcpManager.callTool(
-        adapter.serverName,
-        "put_object",
-        args
-      );
-    } else if (
-      lowerPrompt.includes("get") ||
-      lowerPrompt.includes("retrieve") ||
-      lowerPrompt.includes("fetch")
-    ) {
-      // This is a get operation
-      const keyMatch = prompt.match(/get\s+['"]?([^'"?\s]+)['"]?/i);
-      const key = keyMatch ? keyMatch[1] : "unknown";
-
-      const args = {
-        bucket: bucketName,
-        key: key,
-      };
-
-      console.log(`🔧 Calling get_object with args:`, args);
-      return await this.mcpManager.callTool(
-        adapter.serverName,
-        "get_object",
-        args
-      );
-    } else {
-      // Default to store operation if unclear
-      console.log(`📝 Defaulting to store operation for prompt: ${prompt}`);
-      const args = {
-        bucket: bucketName,
-        key: "prompt_" + Date.now() + ".txt",
-        body: prompt,
-        metadata: {
-          "x-source": "maha-orchestrator",
-          "x-timestamp": new Date().toISOString(),
-          "x-type": "prompt",
-        },
-      };
-
-      return await this.mcpManager.callTool(
-        adapter.serverName,
-        "put_object",
-        args
-      );
-    }
   }
 
   /**

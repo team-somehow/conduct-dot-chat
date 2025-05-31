@@ -21,7 +21,7 @@ async function testThankYouNFT() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt:
-          "in the bucket called 'maha' put image https://picsum.photos/200/300",
+          "Create an nft collection with the theme Somehow and send it to the address 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
       }),
     });
 

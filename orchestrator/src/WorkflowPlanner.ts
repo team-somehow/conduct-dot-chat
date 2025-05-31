@@ -29,7 +29,7 @@ export class WorkflowPlanner {
   async planWorkflow(
     userIntent: UserIntent,
     availableAgents: Agent[]
-  ): Promise<WorkflowStep[]> {
+  ): Promise<WorkflowStep[] | undefined> {
     console.log(`🧠 Planning workflow for: "${userIntent.description}"`);
     console.log(`📊 Available agents: ${availableAgents.length}`);
     console.log(
@@ -71,8 +71,8 @@ export class WorkflowPlanner {
       return steps;
     } catch (err) {
       console.error("❌ LLM planning failed:", err);
-      console.log("🔄 Falling back to rule-based planning");
-      return this.fallbackPlanWorkflow(userIntent, agentsWithSchemas);
+      // console.log("🔄 Falling back to rule-based planning");
+      // return this.fallbackPlanWorkflow(userIntent, agentsWithSchemas);
     }
   }
 
@@ -190,16 +190,56 @@ ${JSON.stringify(agent.outputSchema, null, 2)}
       })
       .join("");
 
-    // 3) INSTRUCTIONS
+    // 3) WORKFLOW GUIDANCE
+    const workflowGuidance = `
+=== COMMON WORKFLOW PATTERNS ===
+
+When planning workflows, consider these common patterns:
+
+**NFT CREATION WORKFLOWS:**
+For requests involving NFT creation, minting, or collections, use this sequence:
+1. Image Generation Agent (if image needed) → generates image URL
+2. NFT Metadata Creator Agent → creates OpenSea-compliant metadata JSON from image + details
+3. NFT Deployer Agent → mints/deploys NFT using the metadata URL
+
+**IMAGE WORKFLOWS:**
+- Use Image Generation agents for creating new images
+- Pass generated imageUrl to subsequent agents that need images
+
+**BLOCKCHAIN WORKFLOWS:**
+- Check wallet balances before transactions
+- Use appropriate deployer agents for smart contracts
+- Consider gas fees and network selection
+
+**DATA FLOW:**
+- Always map outputs from one step as inputs to the next step
+- Use descriptive variable names like "generated_image_url", "metadata_url", "nft_contract_address"
+- Ensure required fields are properly mapped between agents
+
+**AGENT SELECTION:**
+- Choose agents based on their descriptions and capabilities
+- Look at agent tags to understand their specializations
+- Prefer specialized agents over generic ones when available
+`;
+
+    // 4) INSTRUCTIONS
     const instructions = `
-You are a powerful AI workflow planner. Based on the USER REQUEST and the EXACT AGENT SCHEMAS provided, produce a valid JSON workflow. 
+You are a powerful AI workflow planner. Based on the USER REQUEST and the EXACT AGENT SCHEMAS provided, produce a valid JSON workflow that intelligently chains agents together.
+
+--- WORKFLOW PLANNING RULES ---
+• Analyze the user's intent carefully - what is the end goal?
+• Choose the RIGHT SEQUENCE of agents to accomplish the goal
+• For NFT-related requests, follow the pattern: Image Gen → Metadata Creator → NFT Deployer
+• Map outputs from previous steps as inputs to subsequent steps
+• Use the exact field names from each agent's input/output schemas
+• Provide descriptive variable names for data passing between steps
 
 --- RESPONSE FORMAT REQUIREMENTS ---
 • Return ONLY valid JSON (no extra commentary outside of JSON).
 • Use this exact structure:
 
 {
-  "reasoning": "detailed explanation of why you chose these agents and how you're mapping inputs→outputs",
+  "reasoning": "detailed explanation of why you chose these agents in this sequence and how data flows between them",
   "executionMode": "sequential" | "parallel",
   "steps": [
     {
@@ -207,7 +247,7 @@ You are a powerful AI workflow planner. Based on the USER REQUEST and the EXACT 
       "agentName": "Exact name of agent (match the 'Name' above)",
       "description": "clear description of what this step accomplishes",
       "inputMapping": {
-        "fieldNameInSchema": "sourceValue_or_variable"
+        "fieldNameInSchema": "sourceValue_or_variable_from_previous_step"
       },
       "outputMapping": {
         "fieldNameInSchema": "descriptive_variable_name"
@@ -223,14 +263,15 @@ You are a powerful AI workflow planner. Based on the USER REQUEST and the EXACT 
    • Direct values from user intent (e.g. if user said "name: Alice", map to that).
    • Or outputs from previous steps (variable names).
    • Or reasonable defaults (if schema has default or enum). 
-3. For each step's outputMapping, assign a variable name like "<agentname>_<outputField>".
+3. For each step's outputMapping, assign a variable name like "<purpose>_<field>" (e.g. "generated_image_url", "nft_metadata_url").
 4. Default workflow to "sequential" UNLESS you identify independent agents that can run in parallel.
-5. Explain your reasoning in the "reasoning" field, but do NOT include any additional keys beyond the JSON structure above.
+5. Think step-by-step about what the user wants to achieve and plan the most logical sequence.
+6. Explain your reasoning thoroughly, including why you chose each agent and how data flows between them.
 
 Begin now.
 `;
 
-    return `${userBlock}${agentBlocks}${instructions}`;
+    return `${userBlock}${agentBlocks}${workflowGuidance}${instructions}`;
   }
 
   /**
@@ -246,12 +287,12 @@ Begin now.
     console.log(`📝 Prompt length: ${prompt.length} characters`);
 
     const completion = await this.openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       messages: [
         {
           role: "system",
           content:
-            "You are an expert AI workflow planner that strictly outputs valid JSON according to instructions.",
+            "You are an expert AI workflow planner that strictly outputs valid JSON according to instructions. Please make sure the output is valid JSON and does not contain any comments or other non-JSON content, it is very important that the output is valid JSON. Do not include any other text or commentary in your response. Valid JSON means that the output is a valid JSON object with the correct structure and all required fields are present.",
         },
         {
           role: "user",
@@ -324,158 +365,144 @@ Begin now.
     return steps;
   }
 
-  /**
-   * Fallback planning when OpenAI API fails
-   */
-  private fallbackPlanWorkflow(
-    userIntent: UserIntent,
-    agents: AgentWithSchema[]
-  ): WorkflowStep[] {
-    const intent = userIntent.description.toLowerCase();
-    console.log(`🔄 Using fallback planning for: ${intent}`);
+  // /**
+  //  * Fallback planning when OpenAI API fails
+  //  */
+  // private fallbackPlanWorkflow(
+  //   userIntent: UserIntent,
+  //   agents: AgentWithSchema[]
+  // ): WorkflowStep[] {
+  //   const intent = userIntent.description.toLowerCase();
+  //   console.log(`🔄 Using fallback planning for: ${intent}`);
 
-    // Find available agent types
-    const availableAgents = {
-      greeting: agents.find(
-        (a) =>
-          a.name.toLowerCase().includes("hello") ||
-          a.name.toLowerCase().includes("greet")
-      ),
-      image: agents.find(
-        (a) =>
-          a.name.toLowerCase().includes("dall") ||
-          a.name.toLowerCase().includes("image")
-      ),
-      nft: agents.find(
-        (a) =>
-          a.name.toLowerCase().includes("nft") ||
-          a.name.toLowerCase().includes("deploy")
-      ),
-      akave: agents.find(
-        (a) => a.name.toLowerCase() === "akave" || a.type === "mcp"
-      ),
-    };
+  //   // Find available agent types
+  //   const httpAgents = agents.filter((a) => a.type === "http");
+  //   const mcpAgents = agents.filter((a) => a.type === "mcp");
 
-    console.log(
-      "🔍 Found agents:",
-      Object.fromEntries(
-        Object.entries(availableAgents).map(([key, agent]) => [
-          key,
-          agent?.name || "none",
-        ])
-      )
-    );
+  //   console.log("🔍 Found agents:", {
+  //     http: httpAgents.map((a) => a.name),
+  //     mcp: mcpAgents.map((a) => a.name),
+  //   });
 
-    const steps: WorkflowStep[] = [];
+  //   const steps: WorkflowStep[] = [];
 
-    // Akave storage patterns
-    if (
-      (intent.includes("bucket") ||
-        intent.includes("akave") ||
-        intent.includes("store") ||
-        intent.includes("put")) &&
-      availableAgents.akave
-    ) {
-      console.log("📦 Creating Akave storage workflow");
-      steps.push({
-        stepId: "step_1",
-        agentName: availableAgents.akave.name,
-        agentUrl: availableAgents.akave.url,
-        description: "Store content in Akave bucket",
-        inputMapping: {
-          prompt: "userInput",
-        },
-        outputMapping: {
-          result: "akave_result",
-        },
-      });
-    }
-    // Image generation workflows
-    else if (
-      intent.includes("image") &&
-      availableAgents.image &&
-      !intent.includes("put")
-    ) {
-      console.log("🎨 Creating image generation workflow");
-      steps.push({
-        stepId: "step_1",
-        agentName: availableAgents.image.name,
-        agentUrl: availableAgents.image.url,
-        description: "Generate image using DALL-E",
-        inputMapping: {
-          prompt: "userInput",
-        },
-        outputMapping: {
-          imageUrl: "generated_image",
-        },
-      });
-    }
-    // NFT creation workflows
-    else if (intent.includes("nft") && availableAgents.nft) {
-      console.log("🎨 Creating NFT workflow: Image + NFT");
+  //   // Simple single-step fallback - just use the first relevant agent
+  //   if (
+  //     mcpAgents.length > 0 &&
+  //     (intent.includes("bucket") ||
+  //       intent.includes("store") ||
+  //       intent.includes("put") ||
+  //       intent.includes("list"))
+  //   ) {
+  //     console.log("📦 Creating MCP workflow");
+  //     const mcpAgent = mcpAgents[0]; // Use first MCP agent
+  //     steps.push({
+  //       stepId: "step_1",
+  //       agentName: mcpAgent.name,
+  //       agentUrl: mcpAgent.url,
+  //       description: `Use ${mcpAgent.name} to handle: ${userIntent.description}`,
+  //       inputMapping: {
+  //         prompt: userIntent.description,
+  //       },
+  //       outputMapping: {
+  //         result: "mcp_result",
+  //       },
+  //     });
+  //   }
+  //   // Image generation workflows
+  //   else if (intent.includes("image") && !intent.includes("put")) {
+  //     const imageAgent = httpAgents.find(
+  //       (a) =>
+  //         a.name.toLowerCase().includes("dall") ||
+  //         a.name.toLowerCase().includes("image")
+  //     );
+  //     if (imageAgent) {
+  //       console.log("🎨 Creating image generation workflow");
+  //       steps.push({
+  //         stepId: "step_1",
+  //         agentName: imageAgent.name,
+  //         agentUrl: imageAgent.url,
+  //         description: "Generate image using DALL-E",
+  //         inputMapping: {
+  //           prompt: userIntent.description,
+  //         },
+  //         outputMapping: {
+  //           imageUrl: "generated_image",
+  //         },
+  //       });
+  //     }
+  //   }
+  //   // NFT creation workflows
+  //   else if (intent.includes("nft")) {
+  //     const nftAgent = httpAgents.find(
+  //       (a) =>
+  //         a.name.toLowerCase().includes("nft") ||
+  //         a.name.toLowerCase().includes("deploy")
+  //     );
+  //     const imageAgent = httpAgents.find(
+  //       (a) =>
+  //         a.name.toLowerCase().includes("dall") ||
+  //         a.name.toLowerCase().includes("image")
+  //     );
 
-      if (availableAgents.image) {
-        steps.push({
-          stepId: "step_1",
-          agentName: availableAgents.image.name,
-          agentUrl: availableAgents.image.url,
-          description:
-            "Generate a thank you NFT image themed around ETH Global Prague attendance.",
-          inputMapping: {
-            prompt:
-              "Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme",
-            size: "1024x1024",
-            quality: "standard",
-            style: "vivid",
-          },
-          outputMapping: {
-            imageUrl: "generatedImageUrl",
-          },
-        });
-      }
+  //     if (nftAgent) {
+  //       console.log("🎨 Creating NFT workflow");
 
-      steps.push({
-        stepId: "step_2",
-        agentName: availableAgents.nft.name,
-        agentUrl: availableAgents.nft.url,
-        description:
-          "Mint and send the thank you NFT to the recipient address with event-specific metadata.",
-        inputMapping: {
-          imageUrl: "generatedImageUrl",
-          collectionName: "ETH Global Prague 2025 Thank You NFTs",
-          recipientAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
-          tokenName: "Thank You for Attending ETH Global Prague",
-          description:
-            "A special NFT to thank you for attending ETH Global Prague 2025.",
-          attributes:
-            '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]',
-        },
-        outputMapping: {
-          transactionHash: "nftTransactionHash",
-          tokenId: "nftTokenId",
-        },
-      });
-    }
-    // Greeting workflows
-    else if (intent.includes("hello") || intent.includes("greet")) {
-      console.log("👋 Creating greeting workflow");
-      if (availableAgents.greeting) {
-        steps.push({
-          stepId: "step_1",
-          agentName: availableAgents.greeting.name,
-          agentUrl: availableAgents.greeting.url,
-          description: "Generate personalized greeting",
-          inputMapping: {
-            prompt: "userInput",
-          },
-          outputMapping: {
-            message: "greeting_message",
-          },
-        });
-      }
-    }
+  //       if (imageAgent && !intent.includes("dont generate")) {
+  //         steps.push({
+  //           stepId: "step_1",
+  //           agentName: imageAgent.name,
+  //           agentUrl: imageAgent.url,
+  //           description: "Generate NFT image",
+  //           inputMapping: {
+  //             prompt: userIntent.description,
+  //           },
+  //           outputMapping: {
+  //             imageUrl: "generatedImageUrl",
+  //           },
+  //         });
+  //       }
 
-    console.log(`✅ Created ${steps.length} steps in fallback planning`);
-    return steps;
-  }
+  //       steps.push({
+  //         stepId: steps.length === 0 ? "step_1" : "step_2",
+  //         agentName: nftAgent.name,
+  //         agentUrl: nftAgent.url,
+  //         description: "Mint NFT",
+  //         inputMapping: {
+  //           prompt: userIntent.description,
+  //         },
+  //         outputMapping: {
+  //           transactionHash: "nftTransactionHash",
+  //           tokenId: "nftTokenId",
+  //         },
+  //       });
+  //     }
+  //   }
+  //   // Greeting workflows
+  //   else if (intent.includes("hello") || intent.includes("greet")) {
+  //     const greetingAgent = httpAgents.find(
+  //       (a) =>
+  //         a.name.toLowerCase().includes("hello") ||
+  //         a.name.toLowerCase().includes("greet")
+  //     );
+  //     if (greetingAgent) {
+  //       console.log("👋 Creating greeting workflow");
+  //       steps.push({
+  //         stepId: "step_1",
+  //         agentName: greetingAgent.name,
+  //         agentUrl: greetingAgent.url,
+  //         description: "Generate personalized greeting",
+  //         inputMapping: {
+  //           prompt: userIntent.description,
+  //         },
+  //         outputMapping: {
+  //           message: "greeting_message",
+  //         },
+  //       });
+  //     }
+  //   }
+
+  //   console.log(`✅ Created ${steps.length} steps in fallback planning`);
+  //   return steps;
+  // }
 }
