@@ -3,6 +3,16 @@ import fetch from "node-fetch";
 import { WorkflowStep, UserIntent } from "./types";
 import { HttpAgent } from "./agents.http";
 
+interface AgentWithSchema {
+  name: string;
+  description: string;
+  url: string;
+  inputSchema: any;
+  outputSchema: any;
+  category?: string;
+  tags?: string[];
+}
+
 export class WorkflowPlanner {
   private openai: OpenAI;
 
@@ -12,247 +22,256 @@ export class WorkflowPlanner {
     });
   }
 
+  /**
+   * Main entrypoint: fetches all agent schemas, then asks the LLM to plan a workflow.
+   */
   async planWorkflow(
     userIntent: UserIntent,
     availableAgents: HttpAgent[]
   ): Promise<WorkflowStep[]> {
+    console.log(`🧠 Planning workflow for: "${userIntent.description}"`);
+    console.log(`📊 Available agents: ${availableAgents.length}`);
+    console.log(
+      `📋 Agent list:`,
+      availableAgents.map((a) => `${a.name} (${a.url})`)
+    );
+
+    // 1) Fetch schemas for every agent via their /meta route
+    const agentsWithSchemas = await this.getAgentSchemas(availableAgents);
+    console.log(`📦 Fetched schemas for ${agentsWithSchemas.length} agents`);
+    console.log(
+      `📝 Agents with valid schemas:`,
+      agentsWithSchemas.map(
+        (a) =>
+          `${a.name} (${
+            Object.keys(a.inputSchema?.properties || {}).length
+          } inputs, ${
+            Object.keys(a.outputSchema?.properties || {}).length
+          } outputs)`
+      )
+    );
+
+    // 2) Ask the LLM to generate a JSON workflow plan using all schemas + user intent
     if (!process.env.OPENAI_API_KEY) {
-      console.warn(
-        "⚠️  OpenAI API key not configured, falling back to rule-based planning"
-      );
-      return this.fallbackPlanning(userIntent, availableAgents);
+      console.error("❌ OPENAI_API_KEY not found in environment");
+      throw new Error("OpenAI API key not found in environment.");
     }
 
     try {
-      // We need to get the raw schemas from the agents
-      const agentDescriptions = await Promise.all(
-        availableAgents.map(async (agent) => {
-          // Fetch the raw metadata to get schemas
-          const metaResponse = await fetch(`${agent.url}/meta`);
-          const meta = await metaResponse.json();
+      const steps = await this.llmPlanWorkflow(userIntent, agentsWithSchemas);
+      console.log(`✅ LLM planned ${steps.length} workflow steps`);
+      return steps;
+    } catch (err) {
+      console.error("❌ LLM planning failed:", err);
+      return [];
+    }
+  }
 
+  /**
+   * Fetch /meta from each agent and collect its name, description, inputSchema, outputSchema, etc.
+   */
+  private async getAgentSchemas(
+    agents: HttpAgent[]
+  ): Promise<AgentWithSchema[]> {
+    const agentSchemas = await Promise.all(
+      agents.map(async (agent) => {
+        try {
+          const resp = await fetch(`${agent.url}/meta`);
+          const meta = await resp.json();
+
+          return {
+            name: meta.name,
+            description: meta.description,
+            url: agent.url,
+            inputSchema: meta.inputSchema || {},
+            outputSchema: meta.outputSchema || {},
+            category: meta.category,
+            tags: meta.tags || [],
+          } as AgentWithSchema;
+        } catch (error) {
+          console.warn(`⚠️ Failed to fetch schema for ${agent.name}:`, error);
           return {
             name: agent.name,
             description: agent.description,
             url: agent.url,
-            inputSchema: meta.inputSchema,
-            outputSchema: meta.outputSchema,
-          };
-        })
-      );
+            inputSchema: {},
+            outputSchema: {},
+          } as AgentWithSchema;
+        }
+      })
+    );
 
-      const prompt = this.buildPlanningPrompt(userIntent, agentDescriptions);
-
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4.1", // DO NOT CHANGE THIS MODEL
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert AI workflow planner. Your job is to analyze user requests and create optimal multi-agent workflows using available agents. Always respond with valid JSON.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 2000,
-      });
-
-      const planText = response.choices[0]?.message?.content;
-      if (!planText) {
-        throw new Error("No response from LLM");
-      }
-
-      const workflowPlan = JSON.parse(planText);
-      return this.convertPlanToSteps(workflowPlan, availableAgents);
-    } catch (error) {
-      console.error("❌ LLM workflow planning failed:", error);
-      console.log("🔄 Falling back to rule-based planning");
-      return this.fallbackPlanning(userIntent, availableAgents);
-    }
+    return agentSchemas;
   }
 
-  private buildPlanningPrompt(userIntent: UserIntent, agents: any[]): string {
-    return `
-TASK: Create an optimal workflow plan for the following user request.
+  /**
+   * Build a single prompt that contains:
+   *  - The user's intent/description.
+   *  - A JSON dump of every available agent's name, description, inputSchema, outputSchema, tags, etc.
+   *  - Clear instructions to return EXACTLY valid JSON listing the steps (with stepId, agentName, inputMapping, outputMapping).
+   */
+  private buildLLMPlanningPrompt(
+    userIntent: UserIntent,
+    agents: AgentWithSchema[]
+  ): string {
+    // 1) USER REQUEST
+    const userBlock = `=== USER REQUEST ===
+"${userIntent.description}"
 
-USER REQUEST: "${userIntent.description}"
+Preferences (if any): ${JSON.stringify(userIntent.preferences || {}, null, 2)}
+`;
 
-CONTEXT: ${JSON.stringify(userIntent.context || {})}
-PREFERENCES: ${JSON.stringify(userIntent.preferences || {})}
+    // 2) AGENT SCHEMAS
+    const agentBlocks = agents
+      .map((agent, idx) => {
+        return `
+--- AGENT ${idx + 1} ---
+Name: ${agent.name}
+Description: ${agent.description}
+URL: ${agent.url}
+Category: ${agent.category || "N/A"}
+Tags: ${agent.tags?.join(", ") || "N/A"}
 
-AVAILABLE AGENTS:
-${agents
-  .map(
-    (agent, i) => `
-${i + 1}. ${agent.name}
-   Description: ${agent.description}
-   Input Schema: ${JSON.stringify(agent.inputSchema, null, 2)}
-   Output Schema: ${JSON.stringify(agent.outputSchema, null, 2)}
-   URL: ${agent.url}
-`
-  )
-  .join("\n")}
+INPUT SCHEMA:
+${JSON.stringify(agent.inputSchema, null, 2)}
 
-INSTRUCTIONS:
-1. Analyze the user request to understand what they want to accomplish
-2. Determine which agents are needed and in what order
-3. For multi-agent workflows, use "sequential" execution mode to enable data flow between agents
-4. Design simple input/output mappings that reference actual user input fields or previous step outputs
-5. Create meaningful step descriptions
+OUTPUT SCHEMA:
+${JSON.stringify(agent.outputSchema, null, 2)}
+`;
+      })
+      .join("");
 
-EXECUTION MODE RULES:
-- Use "sequential" for workflows where one agent's output feeds into the next agent's input
-- Use "parallel" only when agents can run independently without dependencies
-- Use "conditional" for if/then logic workflows
+    // 3) INSTRUCTIONS
+    const instructions = `
+You are a powerful AI workflow planner. Based on the USER REQUEST and the EXACT AGENT SCHEMAS provided, produce a valid JSON workflow. 
 
-INPUT MAPPING RULES:
-- For first step: map directly from user input fields (e.g., "name": "name")
-- For subsequent steps: map from previous step outputs (e.g., "prompt": "generatedGreeting")
-- Keep mappings simple - avoid complex expressions or concatenations
-- Use empty object {} to pass through all user input
+--- RESPONSE FORMAT REQUIREMENTS ---
+• Return ONLY valid JSON (no extra commentary outside of JSON).
+• Use this exact structure:
 
-OUTPUT MAPPING RULES:
-- Map agent outputs to workflow variables for use in subsequent steps
-- Use descriptive variable names (e.g., "greeting": "personalizedGreeting")
-
-RESPONSE FORMAT (JSON only):
 {
-  "reasoning": "Brief explanation of your workflow design decisions",
-  "executionMode": "sequential",
+  "reasoning": "detailed explanation of why you chose these agents and how you're mapping inputs→outputs",
+  "executionMode": "sequential" | "parallel",
   "steps": [
     {
       "stepId": "step_1",
-      "agentName": "exact agent name from available agents",
-      "description": "what this step accomplishes",
+      "agentName": "Exact name of agent (match the 'Name' above)",
+      "description": "clear description of what this step accomplishes",
       "inputMapping": {
-        "agentInputField": "userInputField"
+        "fieldNameInSchema": "sourceValue_or_variable"
       },
       "outputMapping": {
-        "agentOutputField": "workflowVariableName"
+        "fieldNameInSchema": "descriptive_variable_name"
       }
     }
+    // ... more steps
   ]
 }
 
-EXAMPLES FOR MULTI-AGENT NFT WORKFLOW:
-Step 1 (Greeting): inputMapping: {"name": "name", "language": "language"}, outputMapping: {"greeting": "personalizedGreeting"}
-Step 2 (Image): inputMapping: {"prompt": "imageTheme"}, outputMapping: {"imageUrl": "generatedImageUrl"}  
-Step 3 (NFT): inputMapping: {"imageUrl": "generatedImageUrl", "collectionName": "collectionName", "recipientAddress": "recipientAddress"}, outputMapping: {"nftDetails": "finalNFT"}
+--- KEY POINTS ---
+1. ONLY use field names that exist in each agent's inputSchema.properties.
+2. Ensure ALL required fields (inputSchema.required) are provided via:
+   • Direct values from user intent (e.g. if user said "name: Alice", map to that).
+   • Or outputs from previous steps (variable names).
+   • Or reasonable defaults (if schema has default or enum). 
+3. For each step's outputMapping, assign a variable name like "<agentname>_<outputField>".
+4. Default workflow to "sequential" UNLESS you identify independent agents that can run in parallel.
+5. Explain your reasoning in the "reasoning" field, but do NOT include any additional keys beyond the JSON structure above.
 
-IMPORTANT:
-- Always use "sequential" for multi-agent workflows
-- Only use agents that are actually available in the list above
-- Keep input mappings simple - reference user input fields or previous outputs directly
-- Respond with ONLY the JSON object, no additional text
+Begin now.
 `;
+
+    return `${userBlock}${agentBlocks}${instructions}`;
   }
 
-  private convertPlanToSteps(
-    plan: any,
-    availableAgents: HttpAgent[]
-  ): WorkflowStep[] {
-    if (!plan.steps || !Array.isArray(plan.steps)) {
-      throw new Error("Invalid workflow plan: missing or invalid steps");
+  /**
+   * Calls OpenAI's chat completion endpoint with the constructed prompt,
+   * then parses the returned JSON into WorkflowStep[].
+   */
+  private async llmPlanWorkflow(
+    userIntent: UserIntent,
+    agents: AgentWithSchema[]
+  ): Promise<WorkflowStep[]> {
+    console.log(`🤖 Calling LLM with ${agents.length} agent schemas...`);
+    const prompt = this.buildLLMPlanningPrompt(userIntent, agents);
+    console.log(`📝 Prompt length: ${prompt.length} characters`);
+
+    const completion = await this.openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an expert AI workflow planner that strictly outputs valid JSON according to instructions.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.0,
+      max_tokens: 3000,
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    console.log(`🤖 LLM response length: ${raw?.length || 0} characters`);
+    console.log(`🤖 LLM response preview: ${raw?.substring(0, 200)}...`);
+
+    if (!raw) {
+      throw new Error("No response from LLM");
     }
 
-    return plan.steps.map((step: any, index: number) => {
-      const agent = availableAgents.find((a) => a.name === step.agentName);
-      if (!agent) {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+      console.log(`✅ Successfully parsed LLM JSON response`);
+      console.log(`📋 Response structure:`, Object.keys(parsed));
+    } catch (err) {
+      console.error("❌ Failed to parse LLM response as JSON:", raw);
+      throw err;
+    }
+
+    if (!parsed.steps || !Array.isArray(parsed.steps)) {
+      console.error("❌ Invalid workflow JSON: missing 'steps' array");
+      console.error("❌ Parsed object:", parsed);
+      throw new Error("Invalid workflow JSON: missing 'steps' array");
+    }
+
+    console.log(`📋 LLM planned ${parsed.steps.length} steps`);
+    parsed.steps.forEach((step: any, idx: number) => {
+      console.log(
+        `   Step ${idx + 1}: ${step.agentName} - ${step.description}`
+      );
+    });
+
+    // Convert each step into our internal WorkflowStep type (with agentUrl looked up by name)
+    const steps: WorkflowStep[] = parsed.steps.map((step: any, idx: number) => {
+      // Find the agent to retrieve its URL
+      const agentInfo = agents.find((a) => a.name === step.agentName);
+      if (!agentInfo) {
+        console.error(
+          `❌ Agent "${step.agentName}" not found among fetched schemas.`
+        );
+        console.error(
+          `❌ Available agents:`,
+          agents.map((a) => a.name)
+        );
         throw new Error(
-          `Agent "${step.agentName}" not found in available agents`
+          `Agent "${step.agentName}" not found among fetched schemas.`
         );
       }
 
       return {
-        stepId: step.stepId || `step_${index + 1}`,
-        agentUrl: agent.url,
-        agentName: agent.name,
-        description: step.description || `Execute ${agent.name}`,
+        stepId: step.stepId || `step_${idx + 1}`,
+        agentName: agentInfo.name,
+        agentUrl: agentInfo.url,
+        description: step.description || `Execute ${agentInfo.name}`,
         inputMapping: step.inputMapping || {},
         outputMapping: step.outputMapping || {},
-      };
+      } as WorkflowStep;
     });
-  }
 
-  private fallbackPlanning(
-    userIntent: UserIntent,
-    availableAgents: HttpAgent[]
-  ): WorkflowStep[] {
-    const intent = userIntent.description.toLowerCase();
-    const steps: WorkflowStep[] = [];
-
-    // Simple rule-based fallback
-    const needsGreeting = intent.includes("hello") || intent.includes("greet");
-    const needsImage =
-      intent.includes("image") ||
-      intent.includes("picture") ||
-      intent.includes("generate");
-
-    const greetingAgent = availableAgents.find(
-      (a) =>
-        a.name.toLowerCase().includes("hello") ||
-        a.name.toLowerCase().includes("greet")
-    );
-
-    const imageAgent = availableAgents.find(
-      (a) =>
-        a.name.toLowerCase().includes("image") ||
-        a.name.toLowerCase().includes("dall")
-    );
-
-    if (needsGreeting && needsImage && greetingAgent && imageAgent) {
-      // Multi-agent: greeting first, then image
-      steps.push({
-        stepId: "step_1",
-        agentUrl: greetingAgent.url,
-        agentName: greetingAgent.name,
-        description: "Generate personalized greeting",
-        inputMapping: { name: "userName" },
-        outputMapping: { greeting: "generatedGreeting" },
-      });
-
-      steps.push({
-        stepId: "step_2",
-        agentUrl: imageAgent.url,
-        agentName: imageAgent.name,
-        description: "Generate image based on greeting",
-        inputMapping: { prompt: "generatedGreeting" },
-        outputMapping: { imageUrl: "finalImage" },
-      });
-    } else if (needsImage && imageAgent) {
-      steps.push({
-        stepId: "step_1",
-        agentUrl: imageAgent.url,
-        agentName: imageAgent.name,
-        description: "Generate image",
-        inputMapping: {},
-        outputMapping: { imageUrl: "generatedImage" },
-      });
-    } else if (needsGreeting && greetingAgent) {
-      steps.push({
-        stepId: "step_1",
-        agentUrl: greetingAgent.url,
-        agentName: greetingAgent.name,
-        description: "Generate greeting",
-        inputMapping: { name: "userName" },
-        outputMapping: { greeting: "personalizedGreeting" },
-      });
-    } else if (availableAgents.length > 0) {
-      // Use first available agent
-      const agent = availableAgents[0];
-      steps.push({
-        stepId: "step_1",
-        agentUrl: agent.url,
-        agentName: agent.name,
-        description: "Process request",
-        inputMapping: {},
-        outputMapping: {},
-      });
-    }
-
+    console.log(`✅ Converted to ${steps.length} WorkflowStep objects`);
     return steps;
   }
 }

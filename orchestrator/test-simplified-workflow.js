@@ -21,7 +21,7 @@ async function testThankYouNFT() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt:
-          "get me balance of this address address: 0x0Dd7D7Ad21d15A999dcc7218E7Df3F25700e696f, chain: ethereum",
+          "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague",
       }),
     });
 
