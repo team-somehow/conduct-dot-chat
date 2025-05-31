@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
-import { CHAIN_EXPLORERS, getNetworkName } from "../../constants";
+import { CHAIN_EXPLORERS, getNetworkName, AAVE_CONFIG } from "../../constants";
 
 dotenv.config();
 
@@ -11,122 +11,56 @@ app.use(express.json());
 
 // Agent metadata - static information for MAHA protocol
 const AGENT_META = {
-  name: "NFT Deployer Agent",
+  name: "Aave Investor Agent",
   description:
-    "Deploy and mint NFTs with custom metadata, collection names, and recipient addresses",
-  wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual wallet
+    "Deposit or withdraw tokens into Aave V3 via a simple API. Supports deposit and withdraw actions for a user.",
+  wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual agent wallet if needed
   inputSchema: {
     type: "object",
     properties: {
-      name: {
+      action: {
         type: "string",
-        maxLength: 100,
-        description: "Name of the NFT collection",
-      },
-      symbol: {
-        type: "string",
-        maxLength: 20,
-        description: "Symbol of the NFT collection",
+        enum: ["deposit", "withdraw"],
+        description: "Action to perform: deposit or withdraw",
       },
       chainId: {
         type: "number",
-        description: "Chain ID where the NFT will be deployed",
-        enum: [545, 747, 11155111],
+        description: "Chain ID where the contract is deployed",
+        enum: [11155111], // Only Sepolia supported in config
       },
-      mints: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            to: {
-              type: "string",
-              pattern: "^0x[a-fA-F0-9]{40}$",
-              description: "Ethereum address of the NFT recipient",
-            },
-            metadataUrl: {
-              type: "string",
-              description:
-                "Metadata URL (e.g., IPFS or HTTPS) for the NFT to mint",
-            },
-          },
-          required: ["to", "metadataUrl"],
-        },
-        description:
-          "Array of NFTs to mint with their recipients and metadata URLs",
-        minItems: 1,
+      userAddress: {
+        type: "string",
+        pattern: "^0x[a-fA-F0-9]{40}$",
+        description: "Ethereum address of the user performing the action",
+      },
+      amount: {
+        type: "number",
+        description: "Amount of tokens to deposit (required for deposit)",
+        minimum: 0.00000001,
       },
     },
-    required: ["name", "symbol", "chainId", "mints"],
+    required: ["action", "chainId", "userAddress"],
+    allOf: [
+      {
+        if: { properties: { action: { const: "deposit" } } },
+        then: { required: ["amount"] },
+      },
+    ],
   },
   outputSchema: {
     type: "object",
     properties: {
-      contractAddress: {
-        type: "string",
-        description: "Address of the deployed NFT contract",
-      },
-      name: {
-        type: "string",
-        description: "Name of the NFT collection",
-      },
-      symbol: {
-        type: "string",
-        description: "Symbol of the NFT collection",
-      },
-      chainId: {
-        type: "number",
-        description: "Chain ID where the NFT was deployed",
-      },
-      mints: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            transactionHash: {
-              type: "string",
-              description: "Transaction hash of the NFT mint",
-            },
-            tokenId: {
-              type: "string",
-              description: "ID of the minted token",
-            },
-            contractAddress: {
-              type: "string",
-              description: "Address of the NFT contract",
-            },
-            recipientAddress: {
-              type: "string",
-              description: "Address that received the NFT",
-            },
-            tokenURI: {
-              type: "string",
-              description: "URI of the token metadata",
-            },
-            explorerUrl: {
-              type: "string",
-              description: "Block explorer URL for the transaction",
-            },
-            timestamp: {
-              type: "string",
-              format: "date-time",
-              description: "When the NFT was minted",
-            },
-          },
-          required: [
-            "transactionHash",
-            "tokenId",
-            "contractAddress",
-            "recipientAddress",
-            "tokenURI",
-            "explorerUrl",
-            "timestamp",
-          ],
-        },
-      },
+      action: { type: "string", enum: ["deposit", "withdraw"] },
+      transactionHash: { type: "string", description: "Transaction hash" },
+      userAddress: { type: "string", description: "User address" },
+      amount: { type: "string", description: "Amount deposited/withdrawn" },
+      contractAddress: { type: "string", description: "AaveInvestor contract address" },
+      explorerUrl: { type: "string", description: "Block explorer URL for the transaction" },
+      timestamp: { type: "string", format: "date-time", description: "When the action was performed" },
     },
-    required: ["contractAddress", "name", "symbol", "chainId", "mints"],
+    required: ["action", "transactionHash", "userAddress", "amount", "contractAddress", "explorerUrl", "timestamp"],
   },
-  previewURI: "ipfs://QmNFTDeployerAgentPreview123",
+  previewURI: "ipfs://QmAaveInvestorAgentPreview123",
 };
 
 // GET /meta - Return agent metadata (MAHA contract requirement)
@@ -135,175 +69,71 @@ app.get("/meta", (req: Request, res: Response) => {
 });
 
 // POST /run - Execute the agent logic (MAHA contract requirement)
-// Set to /run1 for testing, so that master agent doesn't call it accidentally
-app.post("/run1", async (req: Request, res: Response) => {
+app.post("/run", async (req: Request, res: Response) => {
   try {
-    const { name, symbol, mints, chainId } = req.body;
-
-    // Validate required inputs
-    if (!name || typeof name !== "string") {
-      return res.status(400).json({
-        error: "Invalid input: name is required and must be a string",
-      });
+    const { action, chainId, userAddress, amount } = req.body;
+    // Validate input
+    if (!action || !["deposit", "withdraw"].includes(action)) {
+      return res.status(400).json({ error: "Invalid input: action must be 'deposit' or 'withdraw'" });
+    }
+    if (!chainId || typeof chainId !== "number" || !CHAIN_EXPLORERS[chainId]) {
+      return res.status(400).json({ error: `Invalid input: chainId ${chainId} is not supported` });
+    }
+    if (!userAddress || typeof userAddress !== "string" || !/^0x[a-fA-F0-9]{40}$/.test(userAddress)) {
+      return res.status(400).json({ error: `Invalid input: userAddress is not a valid Ethereum address` });
+    }
+    if (action === "deposit" && (typeof amount !== "number" || amount <= 0)) {
+      return res.status(400).json({ error: "Invalid input: amount must be a positive number for deposit" });
     }
 
-    if (!symbol || typeof symbol !== "string") {
-      return res.status(400).json({
-        error: "Invalid input: symbol is required and must be a string",
-      });
-    }
-
-    if (!chainId || typeof chainId !== "number") {
-      return res.status(400).json({
-        error: "Invalid input: chainId is required and must be a number",
-      });
-    }
-
-    if (!CHAIN_EXPLORERS[chainId]) {
-      return res.status(400).json({
-        error: `Invalid input: chainId ${chainId} is not supported`,
-      });
-    }
-
-    if (!mints || !Array.isArray(mints) || mints.length === 0) {
-      return res.status(400).json({
-        error: "Invalid input: mints must be a non-empty array",
-      });
-    }
-
-    // Validate each mint entry
-    for (const mint of mints) {
-      if (!mint.to || typeof mint.to !== "string") {
-        return res.status(400).json({
-          error: "Invalid input: each mint must have a 'to' address",
-        });
-      }
-      if (!mint.metadataUrl || typeof mint.metadataUrl !== "string") {
-        return res.status(400).json({
-          error:
-            "Invalid input: each mint must have a 'metadataUrl' (the NFT metadata URL)",
-        });
-      }
-      // Validate Ethereum address format
-      const addressRegex = /^0x[a-fA-F0-9]{40}$/;
-      if (!addressRegex.test(mint.to)) {
-        return res.status(400).json({
-          error: `Invalid input: ${mint.to} is not a valid Ethereum address`,
-        });
-      }
-    }
-
-    // Set the Hardhat network programmatically before importing ethers
+    // Set Hardhat network
     const networkName = getNetworkName(chainId);
     process.env.HARDHAT_NETWORK = networkName;
-    // Dynamically import ethers from hardhat after setting the network
     const { ethers } = require("hardhat");
-    // Pass ethers to deploy/mint scripts
-    const { deployNFT } = require("../scripts/deploy");
-    const { mintNFT } = require("../scripts/mint");
 
-    console.log(
-      `🎨 Deploying NFT contract: ${name} (${symbol}) on chain ${chainId}`
-    );
+    // Load deployed contract address
+    const deployment = require(`../deployments/aave-investor_${chainId}.json`);
+    const contractAddress = deployment.address;
+    const contract = await ethers.getContractAt("AaveInvestor", contractAddress);
 
-    // Deploy NFT contract
-    const nftContract = await deployNFT(name, symbol, ethers);
-    const contractAddress = await nftContract.getAddress();
+    // Prepare signer (simulate as userAddress, for demo use first signer)
+    // In real use, you'd use a relayer or have user sign tx client-side
+    const [signer] = await ethers.getSigners();
+    // Optionally: const signer = await ethers.getSigner(userAddress);
 
-    console.log(`📋 Contract deployed to: ${contractAddress}`);
-    console.log(`🎯 Minting ${mints.length} NFTs...`);
-
-    // Mint NFTs
-    const results = [];
-    for (const mint of mints) {
-      try {
-        console.log(
-          `Minting to ${mint.to} with metadataUrl (NFT metadata): ${mint.metadataUrl}`
-        );
-        const txHash = await mintNFT(
-          nftContract,
-          mint.to,
-          mint.metadataUrl,
-          ethers
-        );
-
-        if (!txHash) {
-          throw new Error(`Failed to mint NFT to ${mint.to}`);
-        }
-
-        // Get transaction details
-        const tx = await ethers.provider.getTransaction(txHash);
-        if (!tx) {
-          throw new Error("Failed to get transaction details");
-        }
-
-        const receipt = await tx.wait();
-        if (!receipt) {
-          throw new Error("Failed to get transaction receipt");
-        }
-
-        // Get token ID from event logs
-        const event = receipt.logs.find((log: any) => {
-          try {
-            const parsedLog = log as unknown as { fragment?: { name: string } };
-            return parsedLog.fragment?.name === "Transfer";
-          } catch {
-            return false;
-          }
-        });
-
-        const tokenId = event
-          ? (
-              event as unknown as { args: [string, string, string] }
-            ).args[2].toString()
-          : "0";
-
-        results.push({
-          transactionHash: txHash,
-          tokenId: tokenId,
-          contractAddress: contractAddress,
-          recipientAddress: mint.to,
-          tokenURI: mint.metadataUrl,
-          explorerUrl: `${CHAIN_EXPLORERS[chainId]}/tx/${txHash}`,
-          timestamp: new Date().toISOString(),
-        });
-      } catch (mintError: any) {
-        console.error(`Error minting NFT to ${mint.to}:`, mintError);
-        results.push({
-          transactionHash: null,
-          tokenId: null,
-          contractAddress: contractAddress,
-          recipientAddress: mint.to,
-          tokenURI: mint.metadataUrl,
-          explorerUrl: null,
-          timestamp: new Date().toISOString(),
-          error: mintError?.message || "Unknown error during minting",
-        });
-      }
-    }
-
-    if (
-      results.filter((result: any) => result.transactionHash !== null).length >
-      0
-    ) {
-      console.log(`✅ Successfully minted ${results.length} NFTs!`);
-    } else {
-      console.log(`❌ Failed to mint any NFTs`);
+    let tx, txReceipt, txHash, resultAmount;
+    if (action === "deposit") {
+      // Approve token transfer first
+      const tokenAddress = AAVE_CONFIG[chainId].token;
+      const token = await ethers.getContractAt("IERC20", tokenAddress);
+      const decimals = 18; // For LINK on Sepolia, adjust if needed
+      const parsedAmount = ethers.parseUnits(amount.toString(), decimals);
+      await token.approve(contractAddress, parsedAmount);
+      tx = await contract.deposit(parsedAmount);
+      txReceipt = await tx.wait();
+      txHash = tx.hash;
+      resultAmount = amount.toString();
+    } else if (action === "withdraw") {
+      tx = await contract.withdrawAll();
+      txReceipt = await tx.wait();
+      txHash = tx.hash;
+      // Get withdrawn amount from event logs if possible
+      const event = txReceipt.logs.find((log: any) => log.fragment && log.fragment.name === "Withdraw");
+      resultAmount = event ? event.args[1].toString() : "0";
     }
 
     res.json({
+      action,
+      transactionHash: txHash,
+      userAddress,
+      amount: resultAmount,
       contractAddress,
-      name,
-      symbol,
-      chainId,
-      mints: results,
+      explorerUrl: `${CHAIN_EXPLORERS[chainId]}/tx/${txHash}`,
+      timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
-    console.error("NFT deployment error:", error);
-    res.status(500).json({
-      error: "NFT deployment failed",
-      details: error.message,
-    });
+    console.error("AaveInvestor agent error:", error);
+    res.status(500).json({ error: "AaveInvestor action failed", details: error.message });
   }
 });
 
@@ -338,12 +168,12 @@ app.get("/", (req: Request, res: Response) => {
 
 // Start server
 app.listen(port, () => {
-  console.log(`🚀 NFT Deployer Agent running on port ${port}`);
+  console.log(`🚀 Aave Investor Agent running on port ${port}`);
   console.log(`📋 Metadata: http://localhost:${port}/meta`);
-  console.log(`🎨 Deploy NFT: POST http://localhost:${port}/run`);
+  console.log(`🎨 Deposit or withdraw: POST http://localhost:${port}/run`);
   console.log(`❤️  Health: http://localhost:${port}/health`);
   console.log(`🌍 Info: http://localhost:${port}/`);
-  console.log(`\n🎯 Ready to deploy NFTs!`);
+  console.log(`\n🎯 Ready to deposit or withdraw!`);
 });
 
 // Graceful shutdown
