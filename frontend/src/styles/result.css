@@ -1,0 +1,52 @@
+/* Neo-Brutalist Result Panel Styles */
+
+@keyframes blink-success {
+  0%, 50% { opacity: 1; }
+  25%, 75% { opacity: 0.7; }
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: #000; }
+  50% { border-color: #13C27B; }
+}
+
+@keyframes slide-in-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Utility classes */
+.animate-blink-success {
+  animation: blink-success 2s ease-in-out;
+}
+
+.animate-pulse-border {
+  animation: pulse-border 1.5s ease-in-out infinite;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.4s ease-out;
+}
+
+/* Copy button hover effect */
+.copy-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 #000;
+}
+
+/* Brutalist button hover effects */
+.btn-brutalist:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+}
+
+.btn-brutalist:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 #000;
+} 

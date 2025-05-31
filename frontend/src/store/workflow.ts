@@ -69,6 +69,7 @@ interface WorkflowState {
   isExecuting: boolean;
   executionId: string | null;
   executionResults: any | null;
+  executionSummary: string | null; // Add summary storage
   workflowId: string | null; // Store the created workflow ID
 
   // Edge state for CustomEdge component
@@ -272,6 +273,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       isExecuting: false,
       executionId: null,
       executionResults: null,
+      executionSummary: null,
       workflowId: null,
       edgeState: {},
       logs: [],
@@ -376,9 +378,15 @@ export const useWorkflowStore = create<WorkflowState>()(
           set({ isExecuting: true, error: null });
           get().addLog(`Executing workflow: ${workflowId}`, "info");
 
-          const { execution } = await orchestratorAPI.executeWorkflow(
-            workflowId
-          );
+          const response = await orchestratorAPI.executeWorkflow(workflowId);
+          const { execution } = response;
+
+          // Store the summary if it exists in the response
+          const summary = (response as any).summary;
+          if (summary) {
+            set({ executionSummary: summary });
+            get().addLog("AI-generated summary received", "success");
+          }
 
           set({
             executionId: execution.executionId,
@@ -520,6 +528,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           isExecuting: false,
           executionId: null,
           executionResults: null,
+          executionSummary: null,
           workflowId: null,
           edgeState: {},
           logs: [],

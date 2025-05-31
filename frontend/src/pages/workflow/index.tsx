@@ -33,6 +33,7 @@ export default function WorkflowPage() {
     estimatedCost,
     isExecuting,
     executionResults,
+    executionSummary,
     logs,
     availableAgents,
     workflowId,
@@ -259,15 +260,12 @@ export default function WorkflowPage() {
       case "SHOW_RESULT":
         return (
           <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold mb-4">Workflow Complete!</h2>
-              <p className="text-gray-600">
-                Your workflow has been executed successfully
-              </p>
-            </div>
             {executionResults && (
               <ResultPanel 
-                result={executionResults}
+                result={{
+                  ...executionResults,
+                  summary: executionSummary
+                }}
                 workflow={workflow}
                 executionId={executionId || undefined}
                 onFeedback={(feedback) => {
