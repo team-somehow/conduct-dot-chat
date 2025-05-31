@@ -46,7 +46,7 @@ const AGENT_META = {
             metadataUrl: {
               type: "string",
               description:
-                "Metadata URL (e.g., IPFS or HTTPS) for the NFT to mint",
+                "Metadata URL (e.g., HTTPS, HTTP) for the NFT to mint. The metadata URL should be a valid URL that points to the NFT metadata JSON file coming from the NFT Metadata Creator Agent.",
             },
           },
           required: ["to", "metadataUrl"],
