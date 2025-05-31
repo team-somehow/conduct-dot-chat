@@ -22,7 +22,7 @@ async function testThankYouNFT() {
       body: JSON.stringify({
         prompt:
           // "Create an nft collection with the theme Somehow and send it to the address 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
-          "Create an NFT collection with the theme 'Chaos in the underworld' and send it to the address 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e. Do 1 mint.",
+          "Create an NFT collection with the theme 'Chaos in the underworld' and send it to the address 0xDe2480fe2ba5Af11fC44DBA0e8c11837C64D19D4. Do 1 mint.",
       }),
     });
 

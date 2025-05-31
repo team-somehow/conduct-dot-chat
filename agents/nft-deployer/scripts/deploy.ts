@@ -14,6 +14,7 @@
 
 export async function deployNFT(name: string, symbol: string, ethers: any) {
   const [deployer] = await ethers.getSigners();
+  
   const NFT = await ethers.getContractFactory("NFT");
   const nft = await NFT.deploy(name, symbol, deployer.address);
   await nft.waitForDeployment();
