@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+// ethers will be passed in
 
 // async function main() {
 //   const [deployer] = await ethers.getSigners();
@@ -12,7 +12,7 @@ import { ethers } from "hardhat";
 //   console.log("NFT contract deployed to:", await nft.getAddress());
 // }
 
-export async function deployNFT(name: string, symbol: string) {
+export async function deployNFT(name: string, symbol: string, ethers: any) {
   const [deployer] = await ethers.getSigners();
   const NFT = await ethers.getContractFactory("NFT");
   const nft = await NFT.deploy(name, symbol, deployer.address);
