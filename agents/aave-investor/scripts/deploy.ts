@@ -2,6 +2,7 @@ import { ethers, network } from "hardhat";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { AAVE_CONFIG } from "../../constants";
 import path from "path";
+import IERC20Artifact from "../artifacts/@openzeppelin/contracts/token/ERC20/IERC20.sol/IERC20.json";
 
 // This I will have to deploy on Sepolia on my own,
 // it won't be deployed dynamically by orchestrator
