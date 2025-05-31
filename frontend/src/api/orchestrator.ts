@@ -159,20 +159,8 @@ export const orchestratorAPI = {
   async executeWorkflow(
     workflowId: string
   ): Promise<{ execution: WorkflowExecution }> {
-    // For now, return a mock execution since we're switching to individual agent execution
-    // This maintains compatibility with existing code that expects this format
-    const mockExecution: WorkflowExecution = {
-      executionId: `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      workflowId,
-      status: "completed",
-      startedAt: Date.now(),
-      completedAt: Date.now() + 1000,
-      input: {},
-      output: { message: "Workflow executed via individual agent calls" },
-      stepResults: []
-    };
-    
-    return { execution: mockExecution };
+    const response = await api.post("/workflows/execute", { workflowId });
+    return response.data;
   },
 
   async getWorkflow(
