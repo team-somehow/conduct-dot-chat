@@ -76,26 +76,68 @@ async function testThankYouNFT() {
             1000
         )}s\n`
       );
+    }
+
+    // Test separate summary generation endpoint
+    console.log("🤖 Testing separate summary generation...");
+    const summaryResponse = await fetch(
+      `${ORCHESTRATOR_URL}/workflows/generate-summary`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: createResult.workflow.workflowId,
+          executionId: executeResult.execution.executionId,
+        }),
+      }
+    );
+
+    if (!summaryResponse.ok) {
+      console.warn(
+        `⚠️ Summary generation failed: ${summaryResponse.status} ${summaryResponse.statusText}`
+      );
+      const errorText = await summaryResponse.text();
+      console.warn(`   Error details: ${errorText}`);
+    } else {
+      const summaryResult = await summaryResponse.json();
+      console.log("✅ Summary generated successfully!\n");
 
       // Show the natural language summary
-      console.log("📋 Natural Language Summary:");
+      console.log("📋 Generated Summary:");
+      console.log("=".repeat(80));
+      console.log(summaryResult.summary);
+      console.log("=".repeat(80));
+    }
+
+    // Also show the execution result summary if it was included
+    if (executeResult.summary) {
+      console.log("\n📋 Execution Response Summary:");
       console.log("=".repeat(50));
       console.log(executeResult.summary);
       console.log("=".repeat(50));
+    }
 
-      // Note: Summary is now included directly in the execution response
-      console.log("\n✅ Summary included in execution response!");
-    } else if (executeResult.execution.status === "failed") {
+    // Show raw execution data for debugging
+    console.log("\n🔍 Raw Execution Data:");
+    console.log("Execution Status:", executeResult.execution.status);
+    console.log(
+      "Step Results Count:",
+      executeResult.execution.stepResults?.length || 0
+    );
+    if (executeResult.execution.stepResults) {
+      executeResult.execution.stepResults.forEach((stepResult, index) => {
+        console.log(`  Step ${index + 1}:`, {
+          status: stepResult.status,
+          hasOutput: !!stepResult.output,
+          hasError: !!stepResult.error,
+          agentName: stepResult.agentName || "Unknown",
+        });
+      });
+    }
+
+    if (executeResult.execution.status === "failed") {
       console.log("❌ Workflow failed!");
       console.log(`   Error: ${executeResult.execution.error}`);
-
-      // Still show summary for failed executions
-      if (executeResult.summary) {
-        console.log("\n📋 Failure Summary:");
-        console.log("=".repeat(50));
-        console.log(executeResult.summary);
-        console.log("=".repeat(50));
-      }
     }
   } catch (error) {
     console.error("❌ Test failed:", error.message);

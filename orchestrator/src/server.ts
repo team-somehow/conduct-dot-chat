@@ -52,23 +52,40 @@ async function generateExecutionSummary(
       ? Math.round((execution.completedAt - execution.startedAt) / 1000)
       : 0;
 
-    // Prepare the data for GPT-4.1-mini
+    // Prepare the data for GPT-4.1-mini - only use actual execution data
     const summaryData = {
       userRequest: workflow.userIntent,
+      workflowName: workflow.name,
       status: execution.status,
       duration: duration,
       executionId: execution.executionId,
-      steps: workflow.steps.map((step: any, index: number) => ({
-        stepNumber: index + 1,
-        agentName: step.agentName,
-        description: step.description,
-        input: step.inputMapping,
-        status: execution.stepResults?.[index]?.status || "unknown",
-        output: execution.stepResults?.[index]?.output || null,
-        error: execution.stepResults?.[index]?.error || null,
-      })),
+      startedAt: new Date(execution.startedAt).toISOString(),
+      completedAt: execution.completedAt
+        ? new Date(execution.completedAt).toISOString()
+        : null,
+      steps: workflow.steps.map((step: any, index: number) => {
+        const stepResult = execution.stepResults?.[index];
+        return {
+          stepNumber: index + 1,
+          agentName: step.agentName,
+          agentUrl: step.agentUrl,
+          description: step.description,
+          input: stepResult?.input || step.inputMapping || null,
+          status: stepResult?.status || "unknown",
+          output: stepResult?.output || null,
+          error: stepResult?.error || null,
+          startedAt: stepResult?.startedAt
+            ? new Date(stepResult.startedAt).toISOString()
+            : null,
+          completedAt: stepResult?.completedAt
+            ? new Date(stepResult.completedAt).toISOString()
+            : null,
+        };
+      }),
       finalOutput: execution.output,
       error: execution.error,
+      // Include all raw step results for transparency
+      rawStepResults: execution.stepResults || [],
     };
 
     // Call GPT-4.1-mini to generate the summary
@@ -79,37 +96,43 @@ async function generateExecutionSummary(
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4.1-mini",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `You are a helpful assistant that creates natural language summaries of workflow executions. 
-            
-            Create a markdown summary that explains what happened in a conversational, easy-to-understand way. 
-            
-            Structure your response as:
-            1. A brief intro explaining what the user requested
-            2. Step-by-step explanation of what was done
-            3. Final result with key details
-            4. Any relevant links or transaction details
-            
-            Be enthusiastic and clear. Use emojis appropriately. Focus on the user's perspective.
-            
-            For NFT workflows, emphasize the blockchain transaction details and what the recipient can do next.
-            For image generation, mention the creative aspects.
-            For greetings, highlight the personalization.`,
+            content: `You are a precise workflow execution reporter. Your job is to create accurate summaries based STRICTLY on the actual data provided.
+
+CRITICAL RULES:
+1. NEVER invent, assume, or hallucinate any information not present in the data
+2. Only report on what actually happened according to the execution results
+3. If an agent failed, report the actual error message
+4. If an agent succeeded, report only the actual output data provided
+5. Do not make assumptions about blockchain transactions, NFTs, or images unless the actual data contains specific details
+6. Do not add encouraging language or assume success if the data shows failures
+
+Structure your response as:
+1. Brief summary of the user's request
+2. Step-by-step breakdown of what each agent actually did (based on real outputs)
+3. Final result showing only actual data returned
+4. Any errors that occurred
+
+Use markdown format. Be factual and precise. Use the actual agent names and outputs provided.
+
+For NFT workflows: Only mention transaction hashes, addresses, or token IDs if they are present in the actual agent outputs.
+For image generation: Only mention image URLs if they are present in the actual agent outputs.
+For any workflow: If an agent failed, clearly state it failed and include the actual error message.`,
           },
           {
             role: "user",
-            content: `Please create a natural language summary for this workflow execution:
+            content: `Create a factual summary for this workflow execution. Use ONLY the data provided below. Do not invent or assume any information:
 
 ${JSON.stringify(summaryData, null, 2)}
 
-Make it engaging and informative, written in markdown format.`,
+Report exactly what happened based on the execution data above.`,
           },
         ],
-        max_tokens: 1000,
-        temperature: 0.7,
+        max_tokens: 1500,
+        temperature: 0.1, // Lower temperature for more factual output
       }),
     });
 
@@ -124,21 +147,26 @@ Make it engaging and informative, written in markdown format.`,
       throw new Error("No summary generated from OpenAI");
     }
 
-    // Add footer
+    // Add footer with execution metadata
     const finalSummary =
       generatedSummary +
-      `\n\n---\n*Generated by MAHA Orchestrator at ${new Date().toISOString()}*\n`;
+      `\n\n---\n**Execution Metadata:**\n` +
+      `- Execution ID: \`${execution.executionId}\`\n` +
+      `- Duration: ${duration} seconds\n` +
+      `- Steps: ${workflow.steps.length}\n` +
+      `- Status: ${execution.status}\n` +
+      `\n*Generated by MAHA Orchestrator at ${new Date().toISOString()}*\n`;
 
     return finalSummary;
   } catch (error: any) {
     console.error("Failed to generate AI summary:", error.message);
 
-    // Fallback to simple template if AI fails
+    // Enhanced fallback to show actual step results
     const duration = execution.completedAt
       ? Math.round((execution.completedAt - execution.startedAt) / 1000)
       : 0;
 
-    let fallbackSummary = `# Workflow Execution Summary\n\n`;
+    let fallbackSummary = `# Workflow Execution Report\n\n`;
     fallbackSummary += `**Request**: ${workflow.userIntent}\n\n`;
     fallbackSummary += `**Status**: ${
       execution.status === "completed"
@@ -150,9 +178,29 @@ Make it engaging and informative, written in markdown format.`,
     fallbackSummary += `**Duration**: ${duration} seconds\n`;
     fallbackSummary += `**Execution ID**: \`${execution.executionId}\`\n\n`;
 
+    // Show actual step results
+    if (execution.stepResults && execution.stepResults.length > 0) {
+      fallbackSummary += `## Step Results\n\n`;
+      execution.stepResults.forEach((stepResult: any, index: number) => {
+        const step = workflow.steps[index];
+        fallbackSummary += `### Step ${index + 1}: ${
+          step?.agentName || "Unknown Agent"
+        }\n`;
+        fallbackSummary += `- **Status**: ${stepResult.status}\n`;
+        if (stepResult.status === "completed" && stepResult.output) {
+          fallbackSummary += `- **Output**: \`${JSON.stringify(
+            stepResult.output
+          ).substring(0, 200)}...\`\n`;
+        }
+        if (stepResult.error) {
+          fallbackSummary += `- **Error**: ${stepResult.error}\n`;
+        }
+        fallbackSummary += `\n`;
+      });
+    }
+
     if (execution.status === "completed" && execution.output) {
-      fallbackSummary += `## Result\n\n`;
-      fallbackSummary += `The workflow completed successfully.\n\n`;
+      fallbackSummary += `## Final Result\n\n`;
       fallbackSummary += `\`\`\`json\n${JSON.stringify(
         execution.output,
         null,
@@ -607,58 +655,55 @@ app.get("/agents/:agentUrl/meta", async (req: Request, res: Response) => {
 // Generate AI summary for workflow execution
 app.post("/workflows/generate-summary", async (req: Request, res: Response) => {
   try {
-    const {
-      workflowId,
-      executionId,
-      workflow,
-      execution,
-      logs,
-      executionType,
-    } = req.body;
+    const { workflowId, executionId } = req.body;
 
-    if (!workflow && !workflowId) {
+    if (!workflowId) {
       return res.status(400).json({
-        error: "Missing required field: workflow or workflowId",
+        error: "Missing required field: workflowId",
       });
     }
 
-    if (!execution && !executionId) {
+    if (!executionId) {
       return res.status(400).json({
-        error: "Missing required field: execution or executionId",
+        error: "Missing required field: executionId",
       });
     }
 
-    let workflowData = workflow;
-    let executionData = execution;
+    console.log(
+      `🤖 Generating AI summary for workflow: ${workflowId}, execution: ${executionId}`
+    );
 
-    // If IDs are provided instead of objects, fetch the data
-    if (!workflowData && workflowId) {
-      workflowData = workflowManager.getWorkflow(workflowId);
-      if (!workflowData) {
-        return res.status(404).json({
-          error: "Workflow not found",
-        });
-      }
+    // Always fetch data from in-memory storage to ensure consistency
+    const workflowData = workflowManager.getWorkflow(workflowId);
+    if (!workflowData) {
+      return res.status(404).json({
+        error: `Workflow not found: ${workflowId}`,
+      });
     }
 
-    if (!executionData && executionId) {
-      executionData = workflowManager.getExecution(executionId);
-      if (!executionData) {
-        return res.status(404).json({
-          error: "Execution not found",
-        });
-      }
+    const executionData = workflowManager.getExecution(executionId);
+    if (!executionData) {
+      return res.status(404).json({
+        error: `Execution not found: ${executionId}`,
+      });
     }
 
-    console.log(`🤖 Generating AI summary for workflow execution...`);
+    // Verify the execution belongs to the workflow
+    if (executionData.workflowId !== workflowId) {
+      return res.status(400).json({
+        error: `Execution ${executionId} does not belong to workflow ${workflowId}`,
+      });
+    }
 
     const summary = await generateExecutionSummary(executionData, workflowData);
 
     res.json({
       success: true,
       summary: summary,
+      workflowId: workflowId,
+      executionId: executionId,
       generatedAt: Date.now(),
-      executionType: executionType || "api",
+      dataSource: "in-memory",
     });
   } catch (error: any) {
     console.error("Summary generation failed:", error);
@@ -821,24 +866,30 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
         let agentUrl = agentIdentifier;
 
         if (typeof rating === "number" && rating >= 1 && rating <= 5) {
-          console.log(`⭐ Submitting rating ${rating}/5 for agent ${agentUrl} to blockchain...`);
+          console.log(
+            `⭐ Submitting rating ${rating}/5 for agent ${agentUrl} to blockchain...`
+          );
 
           // Try to get agent's blockchain address from the agent URL
           let agentAddress: string | null = null;
-          
+
           try {
             // First, try to get the agent from blockchain by URL
-            const blockchainAgent = await jobRunner.getBlockchainService()?.getAgentByUrl(agentUrl);
+            const blockchainAgent = await jobRunner
+              .getBlockchainService()
+              ?.getAgentByUrl(agentUrl);
             if (blockchainAgent) {
               agentAddress = blockchainAgent.wallet;
             } else {
               // If not found by URL, try to extract address from URL or use a mapping
               // For demo purposes, we'll generate a demo address
-              agentAddress = `0x${agentUrl.slice(-40).padStart(40, '0')}`;
+              agentAddress = `0x${agentUrl.slice(-40).padStart(40, "0")}`;
             }
           } catch (error) {
-            console.warn(`⚠️ Could not get blockchain address for ${agentUrl}, using fallback`);
-            agentAddress = `0x${agentUrl.slice(-40).padStart(40, '0')}`;
+            console.warn(
+              `⚠️ Could not get blockchain address for ${agentUrl}, using fallback`
+            );
+            agentAddress = `0x${agentUrl.slice(-40).padStart(40, "0")}`;
           }
 
           // Submit rating to blockchain
@@ -851,26 +902,38 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
             if (blockchainService && blockchainService.isAvailable()) {
               txHash = await blockchainService.rateAgent(agentAddress, rating);
               success = !!txHash;
-              
+
               if (success) {
-                console.log(`✅ Rating submitted to blockchain with tx: ${txHash}`);
+                console.log(
+                  `✅ Rating submitted to blockchain with tx: ${txHash}`
+                );
               } else {
                 errorMessage = "Blockchain transaction failed";
                 console.warn(`⚠️ Blockchain rating failed for ${agentUrl}`);
               }
             } else {
               // Fallback to demo mode if blockchain is not available
-              console.warn(`⚠️ Blockchain service not available, using demo mode`);
+              console.warn(
+                `⚠️ Blockchain service not available, using demo mode`
+              );
               success = true;
-              txHash = "demo-tx-hash-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+              txHash =
+                "demo-tx-hash-" +
+                Date.now() +
+                "-" +
+                Math.random().toString(36).substr(2, 5);
             }
           } catch (error: any) {
             console.error(`❌ Error submitting rating to blockchain:`, error);
             errorMessage = error.message;
-            
+
             // Fallback to demo mode on error
             success = true;
-            txHash = "demo-tx-hash-" + Date.now() + "-" + Math.random().toString(36).substr(2, 5);
+            txHash =
+              "demo-tx-hash-" +
+              Date.now() +
+              "-" +
+              Math.random().toString(36).substr(2, 5);
           }
 
           results.push({
@@ -892,12 +955,15 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
 
     const successCount = results.filter((r) => r.success).length;
     const totalRatings = Object.keys(modelRatings).length;
-    const blockchainCount = results.filter((r) => r.success && r.txHash && !r.txHash.startsWith('demo-')).length;
+    const blockchainCount = results.filter(
+      (r) => r.success && r.txHash && !r.txHash.startsWith("demo-")
+    ).length;
 
     const mode = blockchainCount > 0 ? "blockchain" : "demo";
-    const message = blockchainCount > 0 
-      ? `Submitted ${blockchainCount}/${totalRatings} ratings to blockchain successfully`
-      : `Submitted ${successCount}/${totalRatings} ratings successfully (demo mode)`;
+    const message =
+      blockchainCount > 0
+        ? `Submitted ${blockchainCount}/${totalRatings} ratings to blockchain successfully`
+        : `Submitted ${successCount}/${totalRatings} ratings successfully (demo mode)`;
 
     res.json({
       success: successCount > 0,

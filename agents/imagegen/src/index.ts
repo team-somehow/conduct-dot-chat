@@ -13,6 +13,35 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Validate OpenAI setup on startup
+const validateOpenAISetup = async () => {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("❌ OPENAI_API_KEY environment variable is not set");
+      return false;
+    }
+
+    if (process.env.OPENAI_API_KEY.length < 10) {
+      console.error("❌ OPENAI_API_KEY appears to be invalid (too short)");
+      return false;
+    }
+
+    // Test API connection with a simple request
+    console.log("🔍 Testing OpenAI API connection...");
+    const models = await openai.models.list();
+    console.log("✅ OpenAI API connection successful");
+    return true;
+  } catch (error: any) {
+    console.error("❌ OpenAI API validation failed:", error.message);
+    console.error("   This could be due to:");
+    console.error("   - Invalid API key");
+    console.error("   - Account billing issues");
+    console.error("   - API key permissions");
+    console.error("   - Rate limiting");
+    return false;
+  }
+};
+
 // Agent metadata - static information for MAHA protocol
 const AGENT_META = {
   name: "DALL-E 3 Image Generator",
@@ -386,16 +415,19 @@ app.get("/run", async (req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🎨 DALL-E 3 Image Generator Agent running on port ${PORT}`);
   console.log(`📋 Metadata: http://localhost:${PORT}/meta`);
   console.log(`🚀 Execute: POST http://localhost:${PORT}/run`);
   console.log(`❤️ Health: http://localhost:${PORT}/health`);
 
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn(
-      "⚠️  WARNING: OPENAI_API_KEY not set - image generation will fail"
+  // Validate OpenAI setup
+  const isValid = await validateOpenAISetup();
+  if (!isValid) {
+    console.error(
+      "⚠️  OpenAI API validation failed - image generation may not work"
     );
+    console.error("   Please check your OPENAI_API_KEY and account status");
   }
 });
 
