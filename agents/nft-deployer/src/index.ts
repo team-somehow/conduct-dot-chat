@@ -1,5 +1,9 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
+import { deployNFT } from "../scripts/deploy";
+import { mintNFT } from "../scripts/mint";
+import { ethers } from "hardhat";
+import { Log } from "ethers";
 
 dotenv.config();
 
@@ -7,6 +11,22 @@ const app = express();
 const port = process.env.PORT || 3003;
 
 app.use(express.json());
+
+// Chain explorer URLs mapping
+const CHAIN_EXPLORERS: { [chainId: number]: string } = {
+  1: "https://etherscan.io",      // Ethereum Mainnet
+  5: "https://goerli.etherscan.io", // Goerli Testnet
+  137: "https://polygonscan.com",  // Polygon Mainnet
+  80001: "https://mumbai.polygonscan.com", // Mumbai Testnet
+  42161: "https://arbiscan.io",    // Arbitrum One
+  421613: "https://goerli.arbiscan.io", // Arbitrum Goerli
+  10: "https://optimistic.etherscan.io", // Optimism
+  420: "https://goerli-optimism.etherscan.io", // Optimism Goerli
+  56: "https://bscscan.com",       // BSC
+  97: "https://testnet.bscscan.com", // BSC Testnet
+  43114: "https://snowtrace.io",   // Avalanche
+  43113: "https://testnet.snowtrace.io", // Avalanche Testnet
+};
 
 // Agent metadata - static information for MAHA protocol
 const AGENT_META = {
@@ -120,99 +140,130 @@ app.get("/meta", (req: Request, res: Response) => {
   res.json(AGENT_META);
 });
 
-// Helper function to generate dummy transaction data
-function generateDummyNFTData(input: any) {
-  const tokenId = Math.floor(Math.random() * 10000).toString();
-  const txHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-  const contractAddress = `0x${Math.random().toString(16).substr(2, 40)}`;
-
-  return {
-    transactionHash: txHash,
-    tokenId: tokenId,
-    contractAddress: contractAddress,
-    recipientAddress: input.recipientAddress,
-    collectionName: input.collectionName,
-    tokenName: input.tokenName || "Thank You NFT",
-    metadataUri: `ipfs://Qm${Math.random().toString(36).substr(2, 44)}`,
-    explorerUrl: `https://etherscan.io/tx/${txHash}`,
-    timestamp: new Date().toISOString(),
-  };
-}
-
 // POST /run - Execute the agent logic (MAHA contract requirement)
 app.post("/run", async (req: Request, res: Response) => {
   try {
     const {
-      imageUrl,
-      collectionName,
-      recipientAddress,
-      tokenName = "Thank You NFT",
-      description = "A special NFT to commemorate your participation",
-      attributes = [],
+      name,
+      symbol,
+      mints,
+      chainId,
     } = req.body;
 
     // Validate required inputs
-    if (!imageUrl || typeof imageUrl !== "string") {
+    if (!name || typeof name !== "string") {
       return res.status(400).json({
-        error: "Invalid input: imageUrl is required and must be a string",
+        error: "Invalid input: name is required and must be a string",
       });
     }
 
-    if (!collectionName || typeof collectionName !== "string") {
+    if (!symbol || typeof symbol !== "string") {
       return res.status(400).json({
-        error: "Invalid input: collectionName is required and must be a string",
+        error: "Invalid input: symbol is required and must be a string",
       });
     }
 
-    if (!recipientAddress || typeof recipientAddress !== "string") {
+    if (!chainId || typeof chainId !== "number") {
       return res.status(400).json({
-        error:
-          "Invalid input: recipientAddress is required and must be a string",
+        error: "Invalid input: chainId is required and must be a number",
       });
     }
 
-    // Validate Ethereum address format
-    const addressRegex = /^0x[a-fA-F0-9]{40}$/;
-    if (!addressRegex.test(recipientAddress)) {
+    if (!CHAIN_EXPLORERS[chainId]) {
       return res.status(400).json({
-        error:
-          "Invalid input: recipientAddress must be a valid Ethereum address",
+        error: `Invalid input: chainId ${chainId} is not supported`,
       });
     }
 
-    // Validate URL format
-    try {
-      new URL(imageUrl);
-    } catch {
+    if (!mints || !Array.isArray(mints) || mints.length === 0) {
       return res.status(400).json({
-        error: "Invalid input: imageUrl must be a valid URL",
+        error: "Invalid input: mints must be a non-empty array",
       });
     }
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Validate each mint entry
+    for (const mint of mints) {
+      if (!mint.to || typeof mint.to !== "string") {
+        return res.status(400).json({
+          error: "Invalid input: each mint must have a 'to' address",
+        });
+      }
+      if (!mint.tokenURI || typeof mint.tokenURI !== "string") {
+        return res.status(400).json({
+          error: "Invalid input: each mint must have a 'tokenURI'",
+        });
+      }
+      // Validate Ethereum address format
+      const addressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!addressRegex.test(mint.to)) {
+        return res.status(400).json({
+          error: `Invalid input: ${mint.to} is not a valid Ethereum address`,
+        });
+      }
+    }
 
-    console.log(`🎨 Minting NFT for collection: ${collectionName}`);
-    console.log(`📸 Image URL: ${imageUrl}`);
-    console.log(`👤 Recipient: ${recipientAddress}`);
-    console.log(`🏷️  Token Name: ${tokenName}`);
+    console.log(`🎨 Deploying NFT contract: ${name} (${symbol}) on chain ${chainId}`);
+    
+    // Deploy NFT contract
+    const nftContract = await deployNFT(name, symbol);
+    const contractAddress = await nftContract.getAddress();
+    
+    console.log(`📋 Contract deployed to: ${contractAddress}`);
+    console.log(`🎯 Minting ${mints.length} NFTs...`);
 
-    // Generate dummy NFT deployment data
-    const nftResult = generateDummyNFTData({
-      imageUrl,
-      collectionName,
-      recipientAddress,
-      tokenName,
-      description,
-      attributes,
+    // Mint NFTs
+    const results = [];
+    for (const mint of mints) {
+      console.log(`Minting to ${mint.to} with URI ${mint.tokenURI}`);
+      const txHash = await mintNFT(nftContract, mint.to, mint.tokenURI);
+      
+      if (!txHash) {
+        throw new Error(`Failed to mint NFT to ${mint.to}`);
+      }
+
+      // Get transaction details
+      const tx = await ethers.provider.getTransaction(txHash);
+      if (!tx) {
+        throw new Error("Failed to get transaction details");
+      }
+      
+      const receipt = await tx.wait();
+      if (!receipt) {
+        throw new Error("Failed to get transaction receipt");
+      }
+      
+      // Get token ID from event logs
+      const event = receipt.logs.find(log => {
+        try {
+          const parsedLog = log as unknown as { fragment?: { name: string } };
+          return parsedLog.fragment?.name === 'Transfer';
+        } catch {
+          return false;
+        }
+      });
+      
+      const tokenId = event ? (event as unknown as { args: [string, string, string] }).args[2].toString() : '0';
+
+      results.push({
+        transactionHash: txHash,
+        tokenId: tokenId,
+        contractAddress: contractAddress,
+        recipientAddress: mint.to,
+        tokenURI: mint.tokenURI,
+        explorerUrl: `${CHAIN_EXPLORERS[chainId]}/tx/${txHash}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    console.log(`✅ Successfully minted ${results.length} NFTs!`);
+
+    res.json({
+      contractAddress,
+      name,
+      symbol,
+      chainId,
+      mints: results
     });
-
-    console.log(`✅ NFT minted successfully!`);
-    console.log(`📄 Transaction: ${nftResult.transactionHash}`);
-    console.log(`🆔 Token ID: ${nftResult.tokenId}`);
-    console.log(`📋 Contract: ${nftResult.contractAddress}`);
-
-    res.json(nftResult);
   } catch (error: any) {
     console.error("NFT deployment error:", error);
     res.status(500).json({
