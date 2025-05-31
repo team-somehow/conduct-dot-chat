@@ -165,6 +165,13 @@ show_status() {
         echo -e "  💰 1inch Agent      │ ${GREEN}RUNNING${NC} │ Port 3004 │ http://localhost:3004"
     fi
     
+    # Check Aave Investor Agent (Port 3005)
+    if check_port 3005; then
+        echo -e "  🏦 Aave Investor    │ ${RED}STOPPED${NC} │ Port 3005"
+    else
+        echo -e "  🏦 Aave Investor    │ ${GREEN}RUNNING${NC} │ Port 3005 │ http://localhost:3005"
+    fi
+    
     echo ""
 }
 
@@ -185,6 +192,9 @@ case "$1" in
         
         # Start 1inch Wallet Balance Agent
         start_agent "1inch" "1inch Wallet Balance Agent" 3004 "npm start"
+        
+        # Start Aave Investor Agent
+        start_agent "aave-investor" "Aave Investor Agent" 3005 "npm run dev"
         
         echo ""
         print_success "All agents startup initiated!"

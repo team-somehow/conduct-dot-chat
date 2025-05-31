@@ -1,7 +1,7 @@
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import OpenAI from "openai";
-import lighthouse from "@lighthouse-web3/sdk";
-import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
@@ -13,8 +13,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const LIGHTHOUSE_API_KEY = process.env.LIGHTHOUSE_API_KEY || "";
-const LIGHTHOUSE_GATEWAY_URL = "https://gateway.lighthouse.storage/ipfs";
+const AKAVE_S3_ACCESS_KEY_ID = process.env.AKAVE_S3_ACCESS_KEY_ID || "";
+const AKAVE_S3_SECRET_ACCESS_KEY = process.env.AKAVE_S3_SECRET_ACCESS_KEY || "";
+const AKAVE_S3_ENDPOINT_URL = process.env.AKAVE_S3_ENDPOINT_URL || "";
+const AKAVE_S3_BUCKET_NAME = process.env.AKAVE_S3_BUCKET_NAME || "nft-metadata"; // Default bucket name
+const AKAVE_S3_REGION = process.env.AKAVE_S3_REGION || "us-east-1"; // Default region
+
+const s3Client = new S3Client({
+  region: AKAVE_S3_REGION,
+  endpoint: AKAVE_S3_ENDPOINT_URL,
+  credentials: {
+    accessKeyId: AKAVE_S3_ACCESS_KEY_ID,
+    secretAccessKey: AKAVE_S3_SECRET_ACCESS_KEY,
+  },
+  forcePathStyle: true, // Required for some S3-compatible services like MinIO, potentially Akave O3
+});
 
 // Agent metadata - static information for MAHA protocol
 const AGENT_META = {
@@ -74,7 +87,10 @@ const AGENT_META = {
         type: "object",
         properties: {
           name: { type: "string", description: "Name of the NFT" },
-          description: { type: "string", description: "Description of the NFT" },
+          description: {
+            type: "string",
+            description: "Description of the NFT",
+          },
           image: {
             type: "string",
             format: "uri",
@@ -104,7 +120,8 @@ const AGENT_META = {
       metadataUrl: {
         type: "string",
         format: "uri",
-        description: "Publicly accessible URL to the uploaded NFT metadata JSON on IPFS via Lighthouse gateway."
+        description:
+          "Publicly accessible URL to the uploaded NFT metadata JSON on IPFS via Lighthouse gateway.",
       },
     },
     required: ["metadata", "metadataUrl"],
@@ -216,22 +233,23 @@ app.post("/run", async (req: Request, res: Response) => {
 
     console.log(`Generated OpenSea NFT metadata for '${name}':`, metadata);
 
-    console.log("🌐 Uploading metadata to Lighthouse...");
+    console.log("🌐 Uploading metadata to Akave O3...");
 
-    const lighthouseResponse: {
-      data: {
-        Name: string;
-        Hash: string;
-        Size: string;
-      };
-    } = await lighthouse.uploadText(
-      JSON.stringify(metadata),
-      LIGHTHOUSE_API_KEY,
-      name
-    );
-    console.log("Lighthouse response:", lighthouseResponse);
+    // Upload to Akave O3 (S3-compatible)
+    const uploadCommand = new PutObjectCommand({
+      Bucket: AKAVE_S3_BUCKET_NAME,
+      Key: `metadata/${name.replace(/\s/g, "-")}.json`, // Unique key for the object
+      Body: JSON.stringify(metadata),
+      ContentType: "application/json",
+      ACL: "public-read", // Make the object publicly accessible
+    });
 
-    const metadataUrl = `${LIGHTHOUSE_GATEWAY_URL}/${lighthouseResponse.data.Hash}`;
+    await s3Client.send(uploadCommand);
+
+    const metadataUrl = `${AKAVE_S3_ENDPOINT_URL}/${AKAVE_S3_BUCKET_NAME}/metadata/${name.replace(
+      /\s/g,
+      "-"
+    )}.json`;
 
     console.log("🌐 Metadata URL:", metadataUrl);
 

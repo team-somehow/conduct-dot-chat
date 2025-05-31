@@ -1,11 +1,11 @@
-import express, { Request, Response } from "express";
 import dotenv from "dotenv";
+import express, { Request, Response } from "express";
 import { AAVE_CONFIG } from "../../constants";
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3003;
+const port = process.env.PORT || 3005;
 
 app.use(express.json());
 

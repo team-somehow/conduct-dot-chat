@@ -8,6 +8,7 @@ export const AGENTS = [
   "http://localhost:3002", // DALL-E 3 Image Generator Agent
   "http://localhost:3003", // NFT Deployer Agent
   "http://localhost:3004", // 1inch Balance Agent
+  "http://localhost:3005", // Aave Investor Agent
 ];
 
 // Basic configuration (no blockchain for now)
