@@ -10,6 +10,9 @@ contract AaveInvestor {
 
     mapping(address => uint256) public balances;
 
+    event Deposit(address indexed user, uint256 amount);
+    event Withdraw(address indexed user, uint256 amount);
+
     constructor(address _aavePool, address _aaveToken) {
         AAVE_POOL = _aavePool;
         AAVE_TOKEN = _aaveToken;
@@ -23,12 +26,17 @@ contract AaveInvestor {
         IPool(AAVE_POOL).supply(AAVE_TOKEN, amount, address(this), 0);
 
         balances[msg.sender] += amount;
+
+        emit Deposit(msg.sender, amount);
     }
 
     function withdrawAll() public {
         // Withdraw all the original tokens and send them to the user     
         IPool(AAVE_POOL).withdraw(AAVE_TOKEN, type(uint256).max, msg.sender);
 
+        uint256 balance = balances[msg.sender];
         balances[msg.sender] = 0;
+
+        emit Withdraw(msg.sender, balance);
     }
 }
