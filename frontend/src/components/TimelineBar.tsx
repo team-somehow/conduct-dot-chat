@@ -8,7 +8,7 @@ const TimelineBar: React.FC = () => {
     setInteractionStep, 
     togglePause,
     advanceNode,
-    startInteractionSimulation 
+    startExecutionSimulation 
   } = useWorkflowStore();
 
   const steps = [
@@ -47,7 +47,7 @@ const TimelineBar: React.FC = () => {
   const handlePlayPause = () => {
     if (interactionStep === 0 && isPaused) {
       // If we're at the start and paused, restart the simulation
-      startInteractionSimulation();
+      startExecutionSimulation();
     } else {
       togglePause();
     }

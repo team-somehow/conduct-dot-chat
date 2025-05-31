@@ -1,0 +1,243 @@
+/* Neo-Brutalist Poster Landing Page Styles */
+
+/* Keyframes */
+@keyframes wiggle-slow {
+  0%, 100% { 
+    transform: rotate(-1deg); 
+  }
+  50% { 
+    transform: rotate(2deg); 
+  }
+}
+
+@keyframes tear {
+  0% { 
+    transform: translateY(0) rotate(0); 
+    opacity: 1; 
+  }
+  60% { 
+    transform: translateY(-30px) rotate(-8deg); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: translateY(0) rotate(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes typewriter {
+  from { 
+    opacity: 0; 
+    transform: translateY(4px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes marquee {
+  0% { 
+    transform: translateX(0); 
+  }
+  100% { 
+    transform: translateX(-50%); 
+  }
+}
+
+@keyframes jitter {
+  0%, 100% { 
+    transform: translate(0, 0) rotate(0deg); 
+  }
+  25% { 
+    transform: translate(-2px, 1px) rotate(-1deg); 
+  }
+  50% { 
+    transform: translate(2px, -1px) rotate(1deg); 
+  }
+  75% { 
+    transform: translate(-1px, 2px) rotate(-0.5deg); 
+  }
+}
+
+/* Animation classes */
+.animate-stamp {
+  animation: typewriter 0.3s ease-out forwards;
+}
+
+.wiggle-slow {
+  animation: wiggle-slow 8s ease-in-out infinite;
+}
+
+.marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.marquee:hover {
+  animation-play-state: paused;
+}
+
+.jitter-hover:hover {
+  animation: jitter 0.5s ease-in-out;
+}
+
+/* Noise texture overlay */
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Paper ripple background */
+.paper-ripple::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 10%;
+  width: 200px;
+  height: 150px;
+  background: #FFE37B;
+  border: 4px solid #000;
+  transform: rotate(-2deg) translateY(-20px);
+  z-index: -1;
+  animation: wiggle-slow 8s ease-in-out infinite;
+}
+
+.paper-ripple::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  right: 15%;
+  width: 180px;
+  height: 120px;
+  background: #FF5484;
+  border: 4px solid #000;
+  transform: rotate(3deg) translateY(10px);
+  z-index: -1;
+  animation: wiggle-slow 8s ease-in-out infinite reverse;
+}
+
+/* Sticker styles */
+.sticker {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.sticker:active {
+  cursor: grabbing;
+}
+
+/* Paper clip styles */
+.paper-clip {
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  z-index: 10;
+}
+
+.paper-clip-tl {
+  top: -8px;
+  left: 20px;
+  transform: rotate(-15deg);
+}
+
+.paper-clip-tr {
+  top: -8px;
+  right: 20px;
+  transform: rotate(15deg);
+}
+
+/* Ticket perforation */
+.ticket-perforation {
+  border-left: 4px dotted #000;
+  position: relative;
+}
+
+.ticket-perforation::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 8px,
+    #000 8px,
+    #000 12px
+  );
+}
+
+/* Accordion styles */
+.accordion-item {
+  transition: all 0.3s ease-in-out;
+}
+
+.accordion-item.collapsed {
+  height: 60px;
+  overflow: hidden;
+}
+
+.accordion-item.expanded {
+  height: auto;
+}
+
+/* Crop line */
+.crop-line {
+  border-top: 2px dotted rgba(255, 255, 255, 0.3);
+  position: relative;
+}
+
+.crop-line::before {
+  content: '✂';
+  position: absolute;
+  left: 20px;
+  top: -12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 16px;
+}
+
+/* Dark theme invert */
+html.invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html.invert img,
+html.invert video,
+html.invert svg {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  .marquee {
+    animation: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  .sticker {
+    position: static !important;
+    transform: none !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .wiggle-slow,
+  .marquee,
+  .jitter-hover:hover {
+    animation: none;
+  }
+  
+  .paper-ripple::before,
+  .paper-ripple::after {
+    animation: none;
+  }
+} 

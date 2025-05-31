@@ -1,0 +1,141 @@
+/* Neo-Brutalist Landing Page Animations & Utilities */
+
+@keyframes wiggle {
+  0%, 100% { 
+    transform: rotate(-1deg); 
+  }
+  50% { 
+    transform: rotate(2deg); 
+  }
+}
+
+@keyframes marquee {
+  0% { 
+    transform: translateX(0); 
+  }
+  100% { 
+    transform: translateX(-50%); 
+  }
+}
+
+/* Animation utility classes */
+.wiggle-slow {
+  animation: wiggle 8s ease-in-out infinite;
+}
+
+.marquee {
+  animation: marquee 25s linear infinite;
+}
+
+.marquee:hover {
+  animation-play-state: paused;
+}
+
+.hover-wiggle {
+  transition: transform 150ms ease-in-out;
+}
+
+.hover-wiggle:hover {
+  transform: translate(-4px, -4px);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .wiggle-slow,
+  .marquee {
+    animation: none;
+  }
+  
+  .hover-wiggle:hover {
+    transform: none;
+  }
+}
+
+/* Paper tear background elements */
+.paper-tear {
+  position: absolute;
+  background: #FFE37B;
+  border: 4px solid #000;
+  z-index: -1;
+}
+
+.paper-tear-1 {
+  width: 200px;
+  height: 150px;
+  top: 20%;
+  right: 10%;
+  transform: rotate(15deg);
+}
+
+.paper-tear-2 {
+  width: 180px;
+  height: 120px;
+  top: 60%;
+  left: 5%;
+  transform: rotate(-12deg);
+}
+
+/* Marquee container styles */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 4px solid #000;
+  border-bottom: 4px solid #000;
+}
+
+.marquee-content {
+  display: inline-flex;
+  gap: 1rem;
+  min-width: 100%;
+}
+
+/* Card flip styles */
+.flip-card {
+  perspective: 1000px;
+  height: 280px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border: 4px solid #000;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Icon spin animation */
+@keyframes spin-90 {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(90deg);
+  }
+}
+
+.icon-spin-hover:hover .icon-square {
+  animation: spin-90 0.3s ease-in-out;
+} 

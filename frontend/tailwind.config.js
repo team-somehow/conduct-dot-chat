@@ -31,12 +31,17 @@ module.exports = {
           from: { height: "var(--radix-collapsible-content-height)" },
           to: { height: "0" },
         },
+        "wiggle": {
+          "0%, 100%": { transform: "rotate(-1deg)" },
+          "50%": { transform: "rotate(2deg)" },
+        },
       },
       animation: {
         "slide-up": "slide-up 0.3s ease-out",
         "slide-up-full": "slide-up-full 0.3s ease-out",
         "collapsible-down": "collapsible-down 0.2s ease-out",
         "collapsible-up": "collapsible-up 0.2s ease-out",
+        "wiggle": "wiggle 8s ease-in-out infinite",
       },
     },
   },

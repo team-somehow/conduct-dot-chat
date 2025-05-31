@@ -12,6 +12,7 @@ import ExecutionCanvas from "../../components/ExecutionCanvas";
 import LiveLogPanel from "../../components/LiveLogPanel";
 import ResultPanel from "../../components/ResultPanel";
 import GeneratedStage from "../../components/GeneratedStage";
+import MultiWorkflowComparison from "../../components/MultiWorkflowComparison";
 import "../../styles/execution.css";
 
 const STEP_DURATION = 3000; // 3 seconds per step
@@ -22,6 +23,8 @@ export default function WorkflowPage() {
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
   const [promptInput, setPromptInput] = useState("");
   const [hasCreatedWorkflow, setHasCreatedWorkflow] = useState(false);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+  const [generatedWorkflows, setGeneratedWorkflows] = useState<any[]>([]);
 
   const {
     currentStep,
@@ -49,6 +52,7 @@ export default function WorkflowPage() {
     addLog,
     activeNodeId,
     interactionStep,
+    startExecutionSimulation,
   } = useWorkflowStore();
 
   // Load available agents when component mounts
@@ -56,19 +60,130 @@ export default function WorkflowPage() {
     loadAvailableAgents();
   }, []); // Empty dependency array - only run once
 
+  // Helper functions for workflow transformation
+  const getIconForAgent = (agentName: string): string => {
+    const name = agentName.toLowerCase();
+    if (name.includes('hello') || name.includes('greet')) return '👋';
+    if (name.includes('image') || name.includes('dall')) return '🎨';
+    if (name.includes('nft') || name.includes('deploy')) return '💎';
+    if (name.includes('gpt') || name.includes('claude')) return '🧠';
+    return '⚡';
+  };
+
+  const getCostForAgent = (agentName: string): number => {
+    const costMap: Record<string, number> = {
+      "Hello World Agent": 0.02,
+      "DALL-E 3 Image Generator": 0.15,
+      "NFT Deployer Agent": 0.08,
+      "GPT-4": 0.12,
+      "Stable Diffusion": 0.10,
+      "Claude": 0.09,
+    };
+    return costMap[agentName] || 0.05 + Math.random() * 0.1;
+  };
+
   const handleCreateWorkflow = useCallback(async (prompt: string) => {
     if (!prompt.trim()) return;
     
     try {
       console.log("Creating workflow with prompt:", prompt);
       setCurrentStep("GENERATING_WORKFLOW");
-      await createWorkflow(prompt);
-      // After successful creation, move to show workflow
+      setUserPrompt(prompt);
+      
+      // Generate workflows during the loading step
+      addLog(`Starting workflow creation for: "${prompt}"`, 'info');
+      
+      const workflows = [];
+      
+      // Generate standard workflow
+      try {
+        addLog("Generating standard workflow...", 'info');
+        await createWorkflow(prompt);
+        
+        // Access the workflow data from the store after creation
+        const currentState = useWorkflowStore.getState();
+        if (currentState.workflow && currentState.nodes.length > 0) {
+          // Transform workflow steps to match WorkflowGraph Step interface
+          const transformedSteps = currentState.workflow.steps.map((step: any, index: number) => ({
+            id: `standard-${step.stepId}`,
+            order: index + 1,
+            name: step.agentName,
+            modelType: 'AI MODEL',
+            description: step.description,
+            status: 'IDLE' as const,
+            icon: getIconForAgent(step.agentName),
+            cost: getCostForAgent(step.agentName)
+          }));
+
+          workflows.push({
+            id: `workflow-standard-${Date.now()}`,
+            variant: 'standard',
+            title: 'Standard Workflow',
+            description: 'Optimized for reliability and accuracy',
+            estimatedCost: currentState.estimatedCost || 0.25,
+            estimatedDuration: '2-3 minutes',
+            workflow: currentState.workflow,
+            nodes: currentState.nodes,
+            edges: currentState.edges,
+            steps: transformedSteps
+          });
+          addLog("Standard workflow generated successfully", 'success');
+        }
+      } catch (error) {
+        console.error("Failed to generate standard workflow:", error);
+        addLog("Failed to generate standard workflow, using fallback", 'error');
+      }
+      
+      // Generate optimized workflow
+      try {
+        addLog("Generating optimized workflow...", 'info');
+        await createWorkflow(`${prompt} (optimized for speed)`);
+        
+        // Access the workflow data from the store after creation
+        const currentState = useWorkflowStore.getState();
+        if (currentState.workflow && currentState.nodes.length > 0) {
+          // Transform workflow steps to match WorkflowGraph Step interface
+          const transformedSteps = currentState.workflow.steps.map((step: any, index: number) => ({
+            id: `optimized-${step.stepId}`,
+            order: index + 1,
+            name: step.agentName,
+            modelType: 'AI MODEL',
+            description: step.description,
+            status: 'IDLE' as const,
+            icon: getIconForAgent(step.agentName),
+            cost: getCostForAgent(step.agentName)
+          }));
+
+          workflows.push({
+            id: `workflow-optimized-${Date.now()}`,
+            variant: 'optimized',
+            title: 'Optimized Workflow',
+            description: 'Optimized for speed and efficiency',
+            estimatedCost: (currentState.estimatedCost || 0.25) * 0.8, // 20% cheaper
+            estimatedDuration: '1-2 minutes',
+            workflow: currentState.workflow,
+            nodes: currentState.nodes,
+            edges: currentState.edges,
+            steps: transformedSteps
+          });
+          addLog("Optimized workflow generated successfully", 'success');
+        }
+      } catch (error) {
+        console.error("Failed to generate optimized workflow:", error);
+        addLog("Failed to generate optimized workflow, using fallback", 'error');
+      }
+      
+      // Store generated workflows
+      setGeneratedWorkflows(workflows);
+      addLog(`Generated ${workflows.length} workflow options`, 'success');
+      
+      // Move to next step
       setCurrentStep("SHOW_WORKFLOW");
     } catch (error) {
       console.error("Failed to create workflow:", error);
+      addLog("Failed to create workflows", 'error');
     }
-  }, [createWorkflow, setCurrentStep]);
+  }, [setCurrentStep, addLog, createWorkflow]);
 
   // Handle workflow creation from URL prompt - only once
   useEffect(() => {
@@ -79,27 +194,31 @@ export default function WorkflowPage() {
     }
   }, [initialPrompt, hasCreatedWorkflow, isLoading, workflowId, handleCreateWorkflow]);
 
-  // Auto-proceed through cost estimation for real workflows
+  // Auto-proceed from cost estimation to interaction if conditions are met
   useEffect(() => {
-    if (currentStep === "COST_ESTIMATION" && estimatedCost > 0 && workflowId && !isExecuting) {
-      console.log("Auto-proceeding from cost estimation to execution");
-      // For real workflows, automatically proceed after showing cost for 2 seconds
-      const timer = setTimeout(() => {
-        setCurrentStep("SHOW_INTERACTION");
-        executeWorkflow(workflowId);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+    if (
+      currentStep === "COST_ESTIMATION" &&
+      estimatedCost > 0 &&
+      workflowId &&
+      !isExecuting
+    ) {
+      // Remove auto-proceed - let user manually confirm
+      // const timer = setTimeout(() => {
+      //   setCurrentStep("SHOW_INTERACTION");
+      //   setIsExecuting(true);
+      //   startExecutionSimulation();
+      // }, 3000);
+      // return () => clearTimeout(timer);
     }
-  }, [currentStep, estimatedCost, workflowId, isExecuting]);
+  }, [currentStep, estimatedCost, workflowId, isExecuting, setCurrentStep, startExecutionSimulation]);
 
   const handleExecuteWorkflow = useCallback(async () => {
     try {
-      console.log("Executing workflow with ID:", workflowId);
+      console.log("Executing workflow with ID:", selectedWorkflowId);
       setCurrentStep("SHOW_INTERACTION");
-      if (workflowId) {
-        // Use the real workflow ID for execution
-        await executeWorkflow(workflowId);
+      if (selectedWorkflowId) {
+        // Use the selected workflow ID for execution
+        await executeWorkflow(selectedWorkflowId);
       } else {
         // Fallback to demo simulation if no workflow ID
         console.log("No workflow ID, starting demo simulation");
@@ -108,7 +227,7 @@ export default function WorkflowPage() {
     } catch (error) {
       console.error("Failed to execute workflow:", error);
     }
-  }, [workflowId, executeWorkflow, startDemo, setCurrentStep]);
+  }, [selectedWorkflowId, executeWorkflow, startDemo, setCurrentStep]);
 
   const handlePromptSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +236,11 @@ export default function WorkflowPage() {
       handleCreateWorkflow(promptInput);
       setPromptInput("");
     }
+  };
+
+  const handleWorkflowConfirm = () => {
+    setCurrentStep("SHOW_INTERACTION");
+    startExecutionSimulation();
   };
 
   const handleNextStep = () => {
@@ -137,6 +261,8 @@ export default function WorkflowPage() {
     resetWorkflow();
     setPromptInput("");
     setHasCreatedWorkflow(false);
+    setSelectedWorkflowId(null);
+    setUserPrompt("");
   };
 
   // Transform nodes data to workflow steps format
@@ -214,25 +340,26 @@ export default function WorkflowPage() {
 
       case "SHOW_WORKFLOW":
         return (
-          <GeneratedStage onApprove={handleNextStep} />
+          <MultiWorkflowComparison 
+            prompt={userPrompt}
+            onConfirmWorkflow={handleWorkflowConfirm}
+            preGeneratedWorkflows={generatedWorkflows}
+          />
         );
 
       case "COST_ESTIMATION":
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <StepLoader
-              text="Cost Estimation - Calculating execution costs..."
+              text="Preparing Execution - Setting up your selected workflow..."
             />
             <div className="mt-8 text-center">
               <p className="text-2xl font-bold">
-                Estimated Cost: ${estimatedCost.toFixed(2)}
+                Selected Workflow Ready
               </p>
-              <button
-                onClick={handleNextStep}
-                className="mt-4 px-8 py-3 bg-green-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
-              >
-                PROCEED WITH EXECUTION
-              </button>
+              <p className="text-gray-600 mt-2">
+                Initializing execution environment...
+              </p>
             </div>
           </div>
         );
@@ -335,7 +462,8 @@ export default function WorkflowPage() {
             </div>
 
             {/* Or try the demo */}
-            <div className="text-center">
+            {/* Removed demo button that was causing reset issues */}
+            {/* <div className="text-center">
               <p className="text-gray-600 mb-4">Or try our interactive demo:</p>
               <button
                 onClick={() => {
@@ -346,7 +474,7 @@ export default function WorkflowPage() {
               >
                 START DEMO
               </button>
-            </div>
+            </div> */}
           </div>
         );
     }
@@ -368,6 +496,9 @@ export default function WorkflowPage() {
             {error ? "Error" : isLoading || isExecuting ? "Processing" : "Ready"}
           </span>
           <span>Available Agents: {availableAgents.length}</span>
+          {selectedWorkflowId && (
+            <span className="text-blue-600">Selected: {selectedWorkflowId.slice(0, 8)}...</span>
+          )}
           {error && (
             <span className="text-red-600 ml-4">Error: {error}</span>
           )}
