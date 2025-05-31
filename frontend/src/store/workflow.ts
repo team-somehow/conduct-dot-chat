@@ -728,32 +728,188 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
           
           const agentName = step.agentName.toLowerCase();
+          const stepDescription = (step.description || '').toLowerCase();
+          const userIntent = (workflow.userIntent || '').toLowerCase();
+          const isNarutoThemed = stepDescription.includes('naruto') || userIntent.includes('naruto') || 
+                               stepDescription.includes('anime') || userIntent.includes('anime');
+          
+          // Enhanced DALL-E / Image Generator responses
           if (agentName.includes('dall') || agentName.includes('image')) {
+            if (isNarutoThemed) {
+              const narutoImages = [
+                "/images/naruto1.png",
+                "/images/naruto2.png"
+              ];
+              const selectedImage = narutoImages[Math.floor(Math.random() * narutoImages.length)];
+              
+              return {
+                imageUrl: selectedImage,
+                prompt: step.description || step.inputMapping?.prompt || 'Naruto-themed NFT artwork',
+                style: 'anime art',
+                dimensions: '1024x1024',
+                format: 'PNG',
+                generatedAt: new Date().toISOString(),
+                model: 'DALL-E 3',
+                seed: Math.floor(Math.random() * 1000000),
+                theme: 'naruto',
+                character: 'Naruto Uzumaki'
+              };
+            }
+            
             return {
-              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+Image+${index + 1}`,
-              prompt: step.description || 'Generated image',
-              style: 'digital art'
+              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=AI+Generated+NFT+Image+${index + 1}`,
+              prompt: step.description || step.inputMapping?.prompt || 'AI generated NFT image',
+              style: 'digital art',
+              dimensions: '1024x1024',
+              format: 'PNG',
+              generatedAt: new Date().toISOString(),
+              model: 'DALL-E 3',
+              seed: Math.floor(Math.random() * 1000000)
             };
           }
-          if (agentName.includes('nft')) {
+          
+          // Enhanced NFT Deployer responses with multiple scenarios
+          if (agentName.includes('nft') && agentName.includes('deploy')) {
+            const chainId = step.inputMapping?.chainId || 11155111;
+            const recipientAddress = step.inputMapping?.recipientAddress || "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
+            const collectionName = step.inputMapping?.collectionName || step.inputMapping?.name || 
+                                 (isNarutoThemed ? "Naruto NFT Collection" : "AI Generated Collection");
+            const symbol = step.inputMapping?.symbol || (isNarutoThemed ? "NARUTO" : "AINFT");
+            
+            // Determine explorer URL based on chain
+            let explorerUrl = "https://sepolia.etherscan.io";
+            if (chainId === 1) explorerUrl = "https://etherscan.io";
+            else if (chainId === 545) explorerUrl = "https://evm-testnet.flowscan.io";
+            else if (chainId === 747) explorerUrl = "https://evm.flowscan.io";
+            
+            const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+            
             return {
-              nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-              tokenId: (index + 1).toString(),
-              transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-              explorerUrl: `https://etherscan.io/tx/0x${Math.random().toString(16).substr(2, 64)}`
+              contractAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+              name: collectionName,
+              symbol: symbol,
+              chainId: chainId,
+              mints: [
+                {
+                  transactionHash: transactionHash,
+                  tokenId: (index + 1).toString(),
+                  contractAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+                  recipientAddress: recipientAddress,
+                  tokenURI: step.inputMapping?.metadataUrl || "https://ipfs.io/ipfs/QmNftMetadata123",
+                  explorerUrl: `${explorerUrl}/tx/${transactionHash}`,
+                  timestamp: new Date().toISOString()
+                }
+              ]
             };
           }
+          
+          // Enhanced NFT Metadata Creator responses
+          if (agentName.includes('metadata')) {
+            const tokenName = step.inputMapping?.tokenName || step.inputMapping?.name || 
+                            (isNarutoThemed ? "Naruto NFT #" + (index + 1) : "AI Generated NFT");
+            const description = step.inputMapping?.description || 
+                              (isNarutoThemed ? "A legendary Naruto-themed NFT featuring the Hokage himself" : "A unique NFT created by AI workflow");
+            
+            let attributes = [];
+            if (isNarutoThemed) {
+              attributes = [
+                { trait_type: "Series", value: "Naruto" },
+                { trait_type: "Character", value: "Naruto Uzumaki" },
+                { trait_type: "Village", value: "Hidden Leaf Village" },
+                { trait_type: "Rank", value: "Hokage" },
+                { trait_type: "Element", value: "Wind" },
+                { trait_type: "Technique", value: "Rasengan" },
+                { trait_type: "Rarity", value: "Legendary" },
+                { trait_type: "Generated By", value: "AI Workflow" }
+              ];
+            } else if (step.inputMapping?.attributes) {
+              attributes = typeof step.inputMapping.attributes === 'string' ? 
+                JSON.parse(step.inputMapping.attributes) : 
+                step.inputMapping.attributes;
+            } else {
+              attributes = [
+                { trait_type: "Generated By", value: "AI Workflow" },
+                { trait_type: "Collection", value: step.inputMapping?.collectionName || "AI Collection" },
+                { trait_type: "Rarity", value: "Unique" },
+                { trait_type: "Step", value: (index + 1).toString() }
+              ];
+            }
+            
+            return {
+              metadataUrl: "https://ipfs.io/ipfs/QmNftMetadata123456789abcdef",
+              metadata: {
+                name: tokenName,
+                description: description,
+                image: step.inputMapping?.imageUrl || (isNarutoThemed ? "/images/naruto1.png" : "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=NFT+Image"),
+                attributes: attributes
+              },
+              ipfsHash: "QmNftMetadata123456789abcdef",
+              uploadedAt: new Date().toISOString()
+            };
+          }
+          
+          // Enhanced Hello World / Greeting responses
           if (agentName.includes('hello') || agentName.includes('greet')) {
             return {
-              message: `Hello! Thank you for your participation. This is a personalized greeting generated for step ${index + 1}.`,
+              message: `Hello ${step.inputMapping?.name || 'World'}! Thank you for your participation. This is a personalized greeting generated for step ${index + 1}.`,
+              greeting: 'personalized',
               tone: 'friendly',
-              personalized: true
+              personalized: true,
+              timestamp: new Date().toISOString(),
+              userInput: step.inputMapping || {}
             };
           }
+          
+          // Enhanced 1inch Balance Agent responses (for future DeFi workflow)
+          if (agentName.includes('1inch') || agentName.includes('balance')) {
+            return {
+              address: step.inputMapping?.address || "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+              balances: [
+                {
+                  token: "ETH",
+                  balance: "1.5",
+                  balanceWei: "1500000000000000000",
+                  usdValue: "3750.00"
+                },
+                {
+                  token: "USDC",
+                  balance: "1000.0",
+                  balanceWei: "1000000000",
+                  usdValue: "1000.00"
+                }
+              ],
+              totalUsdValue: "4750.00",
+              chainId: step.inputMapping?.chainId || 1,
+              timestamp: new Date().toISOString()
+            };
+          }
+          
+          // Enhanced Aave Investor responses (for future DeFi workflow)
+          if (agentName.includes('aave') || agentName.includes('invest')) {
+            const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+            return {
+              transactionHash: transactionHash,
+              action: step.inputMapping?.action || "deposit",
+              token: step.inputMapping?.token || "USDC",
+              amount: step.inputMapping?.amount || "1000",
+              aToken: step.inputMapping?.token === "USDC" ? "aUSDC" : `a${step.inputMapping?.token || "USDC"}`,
+              apy: "4.25%",
+              explorerUrl: `https://etherscan.io/tx/${transactionHash}`,
+              poolAddress: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+              timestamp: new Date().toISOString(),
+              estimatedGas: "150000",
+              gasPrice: "20"
+            };
+          }
+          
+          // Generic fallback response
           return {
             result: 'success',
             data: `Output from ${step.agentName}`,
-            timestamp: Date.now()
+            timestamp: new Date().toISOString(),
+            stepIndex: index + 1,
+            agentName: step.agentName,
+            input: step.inputMapping || {}
           };
         };
         
@@ -763,6 +919,9 @@ export const useWorkflowStore = create<WorkflowState>()(
             return realExecutionOutput;
           }
           
+          const userIntent = (workflow.userIntent || workflow.description || '').toLowerCase();
+          const isNarutoThemed = userIntent.includes('naruto') || userIntent.includes('anime');
+          
           const hasImageAgent = workflow.steps.some((step: any) => 
             step.agentName.toLowerCase().includes('dall') || 
             step.agentName.toLowerCase().includes('image')
@@ -771,30 +930,145 @@ export const useWorkflowStore = create<WorkflowState>()(
             step.agentName.toLowerCase().includes('nft') || 
             step.agentName.toLowerCase().includes('deploy')
           );
+          const hasMetadataAgent = workflow.steps.some((step: any) => 
+            step.agentName.toLowerCase().includes('metadata')
+          );
+          const hasBalanceAgent = workflow.steps.some((step: any) => 
+            step.agentName.toLowerCase().includes('1inch') || 
+            step.agentName.toLowerCase().includes('balance')
+          );
+          const hasAaveAgent = workflow.steps.some((step: any) => 
+            step.agentName.toLowerCase().includes('aave') || 
+            step.agentName.toLowerCase().includes('invest')
+          );
           
           const output: any = {
             workflowId: workflow.workflowId,
             executionTime: workflow.steps.length * 5,
             stepsCompleted: workflow.steps.length,
-            status: 'completed'
+            status: 'completed',
+            timestamp: new Date().toISOString()
           };
           
+          // Add image generation results
           if (hasImageAgent) {
-            output.imageUrl = "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+NFT+Image";
-            output.imageDescription = "AI-generated image based on user request";
+            if (isNarutoThemed) {
+              const narutoImages = [
+                "/images/naruto1.png",
+                "/images/naruto2.png"
+              ];
+              const selectedImage = narutoImages[Math.floor(Math.random() * narutoImages.length)];
+              
+              output.imageUrl = selectedImage;
+              output.imageDescription = "Naruto-themed NFT artwork featuring the legendary Hokage";
+              output.imageModel = "DALL-E 3";
+              output.imageStyle = "anime art";
+              output.theme = "naruto";
+              output.character = "Naruto Uzumaki";
+            } else {
+              output.imageUrl = "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=AI+Generated+NFT+Image";
+              output.imageDescription = "AI-generated image based on user request";
+              output.imageModel = "DALL-E 3";
+              output.imageStyle = "digital art";
+            }
           }
           
+          // Add NFT deployment results
           if (hasNFTAgent) {
+            const nftStep = workflow.steps.find((step: any) => 
+              step.agentName.toLowerCase().includes('nft') && 
+              step.agentName.toLowerCase().includes('deploy')
+            );
+            
+            const chainId = nftStep?.inputMapping?.chainId || 11155111;
+            let explorerUrl = "https://sepolia.etherscan.io";
+            if (chainId === 1) explorerUrl = "https://etherscan.io";
+            else if (chainId === 545) explorerUrl = "https://evm-testnet.flowscan.io";
+            else if (chainId === 747) explorerUrl = "https://evm.flowscan.io";
+            
+            const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+            
             output.nftAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
+            output.contractAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
             output.tokenId = "1";
-            output.transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-            output.explorerUrl = `https://etherscan.io/tx/${output.transactionHash}`;
-            output.collectionName = "AI Generated Collection";
-            output.tokenName = `AI NFT #${output.tokenId}`;
+            output.transactionHash = transactionHash;
+            output.explorerUrl = `${explorerUrl}/tx/${transactionHash}`;
+            output.collectionName = nftStep?.inputMapping?.collectionName || nftStep?.inputMapping?.name || 
+                                  (isNarutoThemed ? "Naruto NFT Collection" : "AI Generated Collection");
+            output.tokenName = nftStep?.inputMapping?.tokenName || 
+                             (isNarutoThemed ? "Naruto NFT #1" : "AI NFT #1");
+            output.chainId = chainId;
+            output.recipientAddress = nftStep?.inputMapping?.recipientAddress || "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
+            
+            // Add Naruto-specific NFT attributes
+            if (isNarutoThemed) {
+              output.nftAttributes = [
+                { trait_type: "Series", value: "Naruto" },
+                { trait_type: "Character", value: "Naruto Uzumaki" },
+                { trait_type: "Village", value: "Hidden Leaf Village" },
+                { trait_type: "Rank", value: "Hokage" },
+                { trait_type: "Element", value: "Wind" },
+                { trait_type: "Technique", value: "Rasengan" },
+                { trait_type: "Rarity", value: "Legendary" }
+              ];
+            }
           }
           
-          output.message = `Successfully executed ${workflow.name || 'workflow'} with ${workflow.steps.length} steps`;
-          output.timestamp = Date.now();
+          // Add metadata creation results
+          if (hasMetadataAgent) {
+            output.metadataUrl = "https://ipfs.io/ipfs/QmNftMetadata123456789abcdef";
+            output.ipfsHash = "QmNftMetadata123456789abcdef";
+            
+            if (isNarutoThemed) {
+              output.metadataTheme = "naruto";
+              output.metadataDescription = "Legendary Naruto-themed NFT metadata with authentic anime attributes";
+            }
+          }
+          
+          // Add DeFi balance results
+          if (hasBalanceAgent) {
+            output.balanceCheck = {
+              address: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+              totalUsdValue: "4750.00",
+              tokens: ["ETH", "USDC", "DAI"]
+            };
+          }
+          
+          // Add Aave investment results
+          if (hasAaveAgent) {
+            const aaveStep = workflow.steps.find((step: any) => 
+              step.agentName.toLowerCase().includes('aave') || 
+              step.agentName.toLowerCase().includes('invest')
+            );
+            
+            output.defiInvestment = {
+              action: aaveStep?.inputMapping?.action || "deposit",
+              token: aaveStep?.inputMapping?.token || "USDC",
+              amount: aaveStep?.inputMapping?.amount || "1000",
+              apy: "4.25%",
+              transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`
+            };
+          }
+          
+          // Generate comprehensive success message
+          const workflowType = hasNFTAgent ? 
+                              (isNarutoThemed ? "Naruto NFT Creation" : "NFT Creation") : 
+                              hasAaveAgent ? "DeFi Investment" : 
+                              hasBalanceAgent ? "Portfolio Analysis" : 
+                              "AI Workflow";
+          
+          output.message = `Successfully executed ${workflowType} workflow with ${workflow.steps.length} steps`;
+          
+          // Add workflow summary
+          output.summary = {
+            workflowType,
+            totalSteps: workflow.steps.length,
+            executionMode: workflow.executionMode || "sequential",
+            userIntent: workflow.userIntent || workflow.description,
+            agentsUsed: workflow.steps.map((step: any) => step.agentName),
+            completedAt: new Date().toISOString(),
+            theme: isNarutoThemed ? "naruto" : "general"
+          };
           
           return output;
         };
