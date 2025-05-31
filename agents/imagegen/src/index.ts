@@ -180,13 +180,13 @@ app.post("/run", async (req: Request, res: Response) => {
     );
 
     // // Generate image
-    // const imageUrl = await generateImage(
-    //   prompt,
-    //   size as any,
-    //   quality as any,
-    //   style as any
-    // );
-    const imageUrl = "https://picsum.photos/200/300";
+    const imageUrl = await generateImage(
+      prompt,
+      size as any,
+      quality as any,
+      style as any
+    );
+    // const imageUrl = "https://picsum.photos/200/300";
 
     if (!imageUrl) {
       return res.status(500).json({
