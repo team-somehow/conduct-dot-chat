@@ -5,7 +5,7 @@ import { AAVE_CONFIG } from "../../constants";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3005;
+const port = process.env.PORT || 7033;
 
 app.use(express.json());
 
