@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Configuration
 const ORCHESTRATOR_BASE_URL =
-  import.meta.env.VITE_ORCHESTRATOR_URL || "http://localhost:8080";
+  import.meta.env.VITE_ORCHESTRATOR_URL || "https://common-shoes-yawn.loca.lt/";
 
 const api = axios.create({
   baseURL: ORCHESTRATOR_BASE_URL,

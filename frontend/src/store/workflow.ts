@@ -71,6 +71,7 @@ interface WorkflowState {
   executionResults: any | null;
   executionSummary: string | null; // Add summary storage
   workflowId: string | null; // Store the created workflow ID
+  hasExecutionStarted: boolean; // Flag to prevent multiple executions
 
   // Edge state for CustomEdge component
   edgeState: Record<string, "IDLE" | "RUNNING" | "DONE">;
@@ -320,6 +321,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       interactionStep: 0,
       isPaused: false,
       workflow: null,
+      hasExecutionStarted: false,
 
       // Basic state management
       setCurrentStep: (step) => set({ currentStep: step }),
@@ -416,7 +418,13 @@ export const useWorkflowStore = create<WorkflowState>()(
       // Workflow execution
       executeWorkflow: async (workflowId) => {
         try {
-          set({ isExecuting: true, error: null });
+          // Check if execution has already started
+          if (get().hasExecutionStarted) {
+            get().addLog("⚠️ Execution already in progress, skipping duplicate call", "info");
+            return;
+          }
+
+          set({ isExecuting: true, error: null, hasExecutionStarted: true });
           get().addLog(`Executing workflow: ${workflowId}`, "info");
 
           // Start the execution simulation which now includes orchestrator execution
@@ -425,9 +433,12 @@ export const useWorkflowStore = create<WorkflowState>()(
           set({ error: error.message, isExecuting: false });
           get().addLog(`Execution failed: ${error.message}`, "error");
 
-          // If execution fails, fall back to demo simulation
-          get().addLog("Falling back to demo simulation...", "info");
-          await get().startExecutionSimulation();
+          // Only fall back to demo simulation if we haven't already started execution
+          if (!get().hasExecutionStarted) {
+            get().addLog("Falling back to demo simulation...", "info");
+            set({ hasExecutionStarted: true });
+            await get().startExecutionSimulation();
+          }
         }
       },
 
@@ -564,8 +575,13 @@ export const useWorkflowStore = create<WorkflowState>()(
               get().addLog("Cost estimation completed", "success");
             }, 1500);
           } else if (nextStep === "SHOW_INTERACTION") {
-            set({ isExecuting: true });
-            get().startExecutionSimulation();
+            // Check if execution has already started
+            if (!get().hasExecutionStarted) {
+              set({ isExecuting: true, hasExecutionStarted: true });
+              get().startExecutionSimulation();
+            } else {
+              get().addLog("⚠️ Execution already in progress, skipping duplicate call", "info");
+            }
           }
         }
       },
@@ -585,6 +601,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           executionResults: null,
           executionSummary: null,
           workflowId: null,
+          hasExecutionStarted: false,
           edgeState: {},
           logs: [],
           logLines: [],
@@ -601,135 +618,123 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
       },
       startExecutionSimulation: async () => {
-        const { nodes, edges, workflow } = get();
+        const { nodes, edges, workflow, hasExecutionStarted } = get();
+
+        // Prevent multiple executions
+        if (hasExecutionStarted && get().isExecuting) {
+          get().addLog("⚠️ Execution simulation already running, skipping duplicate call", "info");
+          return;
+        }
 
         if (!workflow || !workflow.steps || workflow.steps.length === 0) {
           get().addLog("❌ No workflow data available for simulation", "error");
           return;
         }
 
-        get().addLog("🚀 Starting dynamic workflow execution...", "info");
-        get().addLog(
-          `📋 Executing workflow: ${workflow.name || "Unnamed Workflow"}`,
-          "info"
-        );
-        get().addLog(
-          `🔗 Processing ${workflow.steps.length} steps with ${nodes.length} agents`,
-          "info"
-        );
+        // Helper function to generate mock step output based on component type
+        const generateMockStepOutput = (step: any, index: number): any => {
+          const agentName = step.agentName.toLowerCase();
+          
+          if (agentName.includes("dall") || agentName.includes("image")) {
+            return {
+              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+Image+${index + 1}`,
+              prompt: step.description || "Generated image",
+              style: "digital art",
+              mockGenerated: true,
+            };
+          }
+          
+          if (agentName.includes("nft")) {
+            return {
+              nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+              tokenId: (index + 1).toString(),
+              transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+              explorerUrl: `https://etherscan.io/tx/0x${Math.random().toString(16).substr(2, 64)}`,
+              mockGenerated: true,
+            };
+          }
+          
+          if (agentName.includes("hello") || agentName.includes("greet")) {
+            return {
+              message: `Hello! Thank you for your participation. This is a personalized greeting generated for step ${index + 1}.`,
+              language: "English",
+              tone: "friendly",
+              mockGenerated: true,
+            };
+          }
+          
+          if (agentName.includes("gpt") || agentName.includes("claude") || agentName.includes("llm")) {
+            return {
+              text: `This is a generated response from ${step.agentName} for step ${index + 1}. The agent has processed the request successfully.`,
+              tokens: Math.floor(Math.random() * 1000) + 100,
+              model: step.agentName,
+              mockGenerated: true,
+            };
+          }
+          
+          // Default mock output
+          return {
+            result: `Mock result from ${step.agentName}`,
+            status: "completed",
+            stepIndex: index + 1,
+            mockGenerated: true,
+          };
+        };
 
-        // Call the orchestrator execute endpoint for each agent individually
-        let realExecution: any = null;
-        let realExecutionSummary: string | null = null;
-        let realStepResults: any[] = [];
-
-        try {
-          get().addLog(
-            "🌐 Calling orchestrator execute endpoint for individual agents...",
-            "info"
-          );
-
-          // Execute each workflow step individually using the /execute endpoint
-          for (let i = 0; i < workflow.steps.length; i++) {
-            const step = workflow.steps[i];
-            try {
-              get().addLog(
-                `🔄 Executing step ${i + 1}: ${step.agentName}...`,
-                "info"
-              );
-
-              // Prepare input for this step - use the exact inputMapping from the workflow
-              const stepInput = step.inputMapping || {
-                name: "User",
-                description: step.description,
-                userIntent: workflow.userIntent,
-              };
-
-              get().addLog(
-                `📤 Sending to ${step.agentUrl}: ${JSON.stringify(stepInput)}`,
-                "info"
-              );
-
-              const response = await orchestratorAPI.executeAgent(
-                step.agentUrl,
-                stepInput
-              );
-
-              // Store the real step result
-              realStepResults.push({
-                stepId: step.stepId,
-                status: "completed",
-                startedAt: Date.now(),
-                completedAt: Date.now() + 1000,
-                input: stepInput,
-                output: response.result,
-                agentUrl: step.agentUrl,
-                agentName: step.agentName,
-              });
-
-              get().addLog(
-                `✅ Step ${i + 1} completed: ${step.agentName}`,
-                "success"
-              );
-              get().addLog(
-                `📥 Response: ${JSON.stringify(response.result).substring(
-                  0,
-                  200
-                )}...`,
-                "info"
-              );
-            } catch (stepError: any) {
-              get().addLog(
-                `⚠️ Step ${i + 1} failed: ${stepError.message}`,
-                "error"
-              );
-              get().addLog(
-                `🔍 Error details: ${JSON.stringify(stepError)}`,
-                "error"
-              );
-              realStepResults.push({
-                stepId: step.stepId,
-                status: "failed",
-                startedAt: Date.now(),
-                completedAt: Date.now() + 500,
-                input: step.inputMapping || {},
-                error: stepError.message,
-                agentUrl: step.agentUrl,
-                agentName: step.agentName,
-              });
-            }
+        // Helper function to generate realistic workflow output
+        const generateRealisticOutput = (
+          workflow: any,
+          realExecutionOutput?: any
+        ): any => {
+          // Use real execution output if available
+          if (realExecutionOutput) {
+            return realExecutionOutput;
           }
 
-          // Create a consolidated execution result
-          realExecution = {
-            executionId: `exec_${Date.now()}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`,
+          const hasImageAgent = workflow.steps.some(
+            (step: any) =>
+              step.agentName.toLowerCase().includes("dall") ||
+              step.agentName.toLowerCase().includes("image")
+          );
+          const hasNFTAgent = workflow.steps.some(
+            (step: any) =>
+              step.agentName.toLowerCase().includes("nft") ||
+              step.agentName.toLowerCase().includes("deploy")
+          );
+
+          const output: any = {
             workflowId: workflow.workflowId,
-            status: realStepResults.every((r) => r.status === "completed")
-              ? "completed"
-              : "failed",
-            startedAt: Date.now() - realStepResults.length * 1000,
-            completedAt: Date.now(),
-            input: { workflowId: workflow.workflowId },
-            output: realStepResults[realStepResults.length - 1]?.output || {},
-            stepResults: realStepResults,
+            executionTime: workflow.steps.length * 5,
+            stepsCompleted: workflow.steps.length,
+            status: "completed",
+            mockGenerated: true,
           };
 
-          get().addLog(
-            `✅ All agents executed. Final status: ${realExecution.status}`,
-            "success"
-          );
+          if (hasImageAgent) {
+            output.imageUrl =
+              "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+NFT+Image";
+            output.imageDescription =
+              "AI-generated image based on user request";
+          }
 
-          // Store the real execution ID
-          set({ executionId: realExecution.executionId });
-        } catch (error: any) {
-          get().addLog(
-            `⚠️ Orchestrator execution failed: ${error.message}`,
-            "error"
-          );
-          get().addLog("🎭 Continuing with visual simulation...", "info");
-        }
+          if (hasNFTAgent) {
+            output.nftAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
+            output.tokenId = "1";
+            output.transactionHash = `0x${Math.random()
+              .toString(16)
+              .substr(2, 64)}`;
+            output.explorerUrl = `https://etherscan.io/tx/${output.transactionHash}`;
+            output.collectionName = "AI Generated Collection";
+            output.tokenName = `AI NFT #${output.tokenId}`;
+          }
+
+          output.message = `Successfully executed ${
+            workflow.name || "workflow"
+          } with ${workflow.steps.length} steps`;
+          output.timestamp = Date.now();
+
+          return output;
+        };
 
         // Helper functions for dynamic simulation
         const getAgentEmoji = (agentName: string): string => {
@@ -802,94 +807,123 @@ export const useWorkflowStore = create<WorkflowState>()(
             return realStepResult.output;
           }
 
-          const agentName = step.agentName.toLowerCase();
-          if (agentName.includes("dall") || agentName.includes("image")) {
-            return {
-              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+Image+${
-                index + 1
-              }`,
-              prompt: step.description || "Generated image",
-              style: "digital art",
-            };
-          }
-          if (agentName.includes("nft")) {
-            return {
-              nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-              tokenId: (index + 1).toString(),
-              transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-              explorerUrl: `https://etherscan.io/tx/0x${Math.random()
-                .toString(16)
-                .substr(2, 64)}`,
-            };
-          }
-          if (agentName.includes("hello") || agentName.includes("greet")) {
-            return {
-              message: `Hello! Thank you for your participation. This is a personalized greeting generated for step ${
-                index + 1
-              }.`,
-              tone: "friendly",
-              personalized: true,
-            };
-          }
-          return {
-            result: "success",
-            data: `Output from ${step.agentName}`,
-            timestamp: Date.now(),
-          };
+          // Use the mock generation function
+          return generateMockStepOutput(step, index);
         };
 
-        const generateRealisticOutput = (
-          workflow: any,
-          realExecutionOutput?: any
-        ): any => {
-          // Use real execution output if available
-          if (realExecutionOutput) {
-            return realExecutionOutput;
+        get().addLog("🚀 Starting dynamic workflow execution...", "info");
+        get().addLog(
+          `📋 Executing workflow: ${workflow.name || "Unnamed Workflow"}`,
+          "info"
+        );
+        get().addLog(
+          `🔗 Processing ${workflow.steps.length} steps with ${nodes.length} agents`,
+          "info"
+        );
+        get().addLog(
+          `🎭 Using single API call + component-based mocking for optimal performance`,
+          "info"
+        );
+
+        // Create mock step results for all steps (independent of API call)
+        let realStepResults: any[] = workflow.steps.map((step: any, index: number) => ({
+          stepId: step.stepId,
+          status: "completed",
+          startedAt: Date.now() - (workflow.steps.length - index) * 1000,
+          completedAt: Date.now() - (workflow.steps.length - index - 1) * 1000,
+          input: step.inputMapping || {
+            name: "User",
+            description: step.description,
+            userIntent: workflow.userIntent,
+          },
+          output: generateMockStepOutput(step, index),
+          agentUrl: step.agentUrl,
+          agentName: step.agentName,
+        }));
+
+        // Make only 1 execute call in the background (independent of simulation)
+        let realExecution: any = null;
+        let realExecutionSummary: string | null = null;
+        let hasRealApiResponse = false;
+        let apiCallInProgress = false; // Flag to prevent multiple API calls
+
+        // Start the API call in the background (don't await it)
+        const apiCallPromise = (async () => {
+          // Prevent multiple API calls
+          if (apiCallInProgress) {
+            get().addLog("⚠️ API call already in progress, skipping duplicate", "info");
+            return;
           }
 
-          const hasImageAgent = workflow.steps.some(
-            (step: any) =>
-              step.agentName.toLowerCase().includes("dall") ||
-              step.agentName.toLowerCase().includes("image")
-          );
-          const hasNFTAgent = workflow.steps.some(
-            (step: any) =>
-              step.agentName.toLowerCase().includes("nft") ||
-              step.agentName.toLowerCase().includes("deploy")
-          );
+          apiCallInProgress = true;
+          
+          try {
+            get().addLog(
+              "🌐 Making single API call to orchestrator in background...",
+              "info"
+            );
 
-          const output: any = {
-            workflowId: workflow.workflowId,
-            executionTime: workflow.steps.length * 5,
-            stepsCompleted: workflow.steps.length,
-            status: "completed",
-          };
+            const firstStep = workflow.steps[0];
+            const stepInput = firstStep.inputMapping || {
+              name: "User",
+              description: firstStep.description,
+              userIntent: workflow.userIntent,
+            };
 
-          if (hasImageAgent) {
-            output.imageUrl =
-              "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+NFT+Image";
-            output.imageDescription =
-              "AI-generated image based on user request";
+            const response = await orchestratorAPI.executeAgent(
+              firstStep.agentUrl,
+              stepInput
+            );
+
+            // Update only the first step with real response
+            realStepResults[0] = {
+              ...realStepResults[0],
+              output: response.result,
+            };
+
+            hasRealApiResponse = true;
+            get().addLog(
+              `✅ API call completed - integrated real response for first step`,
+              "success"
+            );
+
+            // Create execution result
+            realExecution = {
+              executionId: `exec_${Date.now()}_${Math.random()
+                .toString(36)
+                .substr(2, 9)}`,
+              workflowId: workflow.workflowId,
+              status: "completed",
+              startedAt: Date.now() - realStepResults.length * 1000,
+              completedAt: Date.now(),
+              input: { workflowId: workflow.workflowId },
+              output: realStepResults[realStepResults.length - 1]?.output || {},
+              stepResults: realStepResults,
+            };
+
+            set({ executionId: realExecution.executionId });
+          } catch (error: any) {
+            get().addLog(
+              `⚠️ Background API call failed: ${error.message}`,
+              "error"
+            );
+            get().addLog(
+              `🎭 Continuing with fully mocked simulation`,
+              "info"
+            );
+          } finally {
+            apiCallInProgress = false; // Reset flag when API call completes
           }
+        })();
 
-          if (hasNFTAgent) {
-            output.nftAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
-            output.tokenId = "1";
-            output.transactionHash = `0x${Math.random()
-              .toString(16)
-              .substr(2, 64)}`;
-            output.explorerUrl = `https://etherscan.io/tx/${output.transactionHash}`;
-            output.collectionName = "AI Generated Collection";
-            output.tokenName = `AI NFT #${output.tokenId}`;
-          }
-
-          output.message = `Successfully executed ${
-            workflow.name || "workflow"
-          } with ${workflow.steps.length} steps`;
-          output.timestamp = Date.now();
-
-          return output;
-        };
+        get().addLog(
+          `🎭 Generated ${workflow.steps.length} mocked step results based on component types`,
+          "info"
+        );
+        get().addLog(
+          `📊 Terminal simulation running independently of API call`,
+          "info"
+        );
 
         // Start with orchestrator if it exists, otherwise start with first node
         const orchestratorNode = nodes.find(
@@ -922,29 +956,21 @@ export const useWorkflowStore = create<WorkflowState>()(
             // Generate final summary
             setTimeout(async () => {
               try {
+                // Wait for API call to complete if it's still running
+                await apiCallPromise;
+
                 if (workflow) {
                   let finalExecution: any;
                   let finalSummary: string;
 
                   if (realExecution) {
-                    // Poll for the latest execution status if we have a real execution
-                    try {
-                      const { execution: latestExecution } =
-                        await orchestratorAPI.getExecution(
-                          realExecution.executionId
-                        );
-                      finalExecution = latestExecution;
-                      get().addLog(
-                        "📊 Retrieved final execution results from orchestrator",
-                        "success"
-                      );
-                    } catch (pollError: any) {
-                      get().addLog(
-                        `⚠️ Could not poll execution status: ${pollError.message}`,
-                        "error"
-                      );
-                      finalExecution = realExecution;
-                    }
+                    // Don't poll for execution status since we only made a single executeAgent call
+                    // The realExecution object contains mock data, not a real orchestrator execution
+                    finalExecution = realExecution;
+                    get().addLog(
+                      "📊 Using single API call result (no polling needed)",
+                      "success"
+                    );
 
                     // Use the real summary if available, otherwise generate one
                     if (realExecutionSummary) {
@@ -972,7 +998,7 @@ export const useWorkflowStore = create<WorkflowState>()(
                           `Failed to generate summary: ${summaryError.message}`,
                           "error"
                         );
-                        finalSummary = `Workflow execution completed successfully with real orchestrator execution ID: ${finalExecution.executionId}`;
+                        finalSummary = `Workflow execution completed successfully with single API call result`;
                       }
                     }
                   } else {
@@ -1147,8 +1173,8 @@ Your workflow "${
               "info"
             );
 
-            // Find the corresponding real step result if available
-            const realStepResult = realStepResults.find(
+            // Find the corresponding step result
+            const stepResult = realStepResults.find(
               (r) => r.stepId === currentStep.stepId
             );
 
@@ -1157,27 +1183,51 @@ Your workflow "${
                 currentStep.agentName
               );
 
-              if (realStepResult) {
-                if (realStepResult.status === "completed") {
-                  get().addLog(
-                    `${emoji} ${currentStep.agentName}: ${completionMessage} (Real execution)`,
-                    "success"
-                  );
+              if (stepResult) {
+                // Check if this is the first step and has real API response
+                const isRealExecution = stepIndex === 0 && hasRealApiResponse && !stepResult.output?.mockGenerated;
+                const executionType = isRealExecution ? "Real API response" : "Mocked based on component";
+                
+                get().addLog(
+                  `${emoji} ${currentStep.agentName}: ${completionMessage} (${executionType})`,
+                  "success"
+                );
+                
+                if (isRealExecution) {
                   get().addLog(
                     `📊 Real output: ${JSON.stringify(
-                      realStepResult.output
+                      stepResult.output
                     ).substring(0, 100)}...`,
                     "info"
                   );
                 } else {
+                  // Add component-specific mocked output description
+                  const agentName = currentStep.agentName.toLowerCase();
+                  let mockDescription = "";
+                  
+                  if (agentName.includes("dall") || agentName.includes("image")) {
+                    mockDescription = "🎨 Generated mock image placeholder with realistic metadata";
+                  } else if (agentName.includes("nft")) {
+                    mockDescription = "💎 Generated mock NFT deployment with transaction hash";
+                  } else if (agentName.includes("hello") || agentName.includes("greet")) {
+                    mockDescription = "👋 Generated mock personalized greeting message";
+                  } else if (agentName.includes("gpt") || agentName.includes("claude") || agentName.includes("llm")) {
+                    mockDescription = "🧠 Generated mock LLM response with token count";
+                  } else {
+                    mockDescription = "⚡ Generated mock component output";
+                  }
+                  
+                  get().addLog(mockDescription, "info");
                   get().addLog(
-                    `${emoji} ${currentStep.agentName}: Failed - ${realStepResult.error}`,
-                    "error"
+                    `📋 Mock output: ${JSON.stringify(
+                      stepResult.output
+                    ).substring(0, 100)}...`,
+                    "info"
                   );
                 }
               } else {
                 get().addLog(
-                  `${emoji} ${currentStep.agentName}: ${completionMessage} (Simulation)`,
+                  `${emoji} ${currentStep.agentName}: ${completionMessage} (Fallback simulation)`,
                   "success"
                 );
               }
