@@ -197,19 +197,24 @@ export default function WorkflowPage() {
             // Convert workflow to nodes and edges
             const { nodes, edges } = convertWorkflowToGraph(workflow);
 
-            // Transform workflow steps to match WorkflowGraph Step interface
-            const transformedSteps = workflow.steps.map(
-              (step: any, index: number) => ({
-                id: `workflow-${step.stepId}`,
-                order: index + 1,
-                name: step.agentName,
-                modelType: "AI MODEL",
-                description: step.description,
-                status: "IDLE" as const,
-                icon: getIconForAgent(step.agentName),
-                cost: getCostForAgent(step.agentName),
-              })
-            );
+            // Transform workflow steps to match WorkflowGraph Step interface - only show unique agents
+            const uniqueAgents = new Map();
+            workflow.steps.forEach((step: any, index: number) => {
+              const agentName = step.agentName;
+              if (!uniqueAgents.has(agentName)) {
+                uniqueAgents.set(agentName, {
+                  id: `workflow-${step.stepId}`,
+                  order: uniqueAgents.size + 1,
+                  name: agentName,
+                  modelType: "AI MODEL",
+                  description: step.description,
+                  status: "IDLE" as const,
+                  icon: getIconForAgent(agentName),
+                  cost: getCostForAgent(agentName),
+                });
+              }
+            });
+            const transformedSteps = Array.from(uniqueAgents.values());
 
             const estimatedCost = workflow.steps.reduce(
               (sum: number, step: any) => {

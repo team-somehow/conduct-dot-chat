@@ -115,8 +115,20 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
         throw new Error('Failed to create workflow');
       }
 
-      // Convert workflow steps to nodes and edges manually
-      const nodes = workflow.steps.map((step: any, index: number) => ({
+      // Convert workflow steps to nodes and edges manually - only show unique agents
+      const uniqueAgentsForNodes = new Map();
+      workflow.steps.forEach((step: any, index: number) => {
+        const agentName = step.agentName;
+        if (!uniqueAgentsForNodes.has(agentName)) {
+          uniqueAgentsForNodes.set(agentName, {
+            ...step,
+            originalIndex: uniqueAgentsForNodes.size
+          });
+        }
+      });
+      const uniqueStepsForNodes = Array.from(uniqueAgentsForNodes.values());
+
+      const nodes = uniqueStepsForNodes.map((step: any, index: number) => ({
         id: `${variant}-${step.stepId}`,
         type: 'brutal',
         position: { x: index * 250, y: 50 },
@@ -131,24 +143,31 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
         }
       }));
 
-      const edges = workflow.steps.slice(1).map((step: any, index: number) => ({
-        id: `edge-${variant}-${workflow.steps[index].stepId}-${step.stepId}`,
-        source: `${variant}-${workflow.steps[index].stepId}`,
+      const edges = uniqueStepsForNodes.slice(1).map((step: any, index: number) => ({
+        id: `edge-${variant}-${uniqueStepsForNodes[index].stepId}-${step.stepId}`,
+        source: `${variant}-${uniqueStepsForNodes[index].stepId}`,
         target: `${variant}-${step.stepId}`,
         type: 'brutal'
       }));
 
-      // Convert to steps format for the WorkflowGraph component
-      const steps = workflow.steps.map((step: any, index: number) => ({
-        id: `${variant}-${step.stepId}`,
-        order: index + 1,
-        name: step.agentName,
-        modelType: 'AI MODEL',
-        description: step.description,
-        status: 'IDLE' as const,
-        icon: getIconForAgent(step.agentName),
-        cost: getCostForAgent(step.agentName)
-      }));
+      // Convert to steps format for the WorkflowGraph component - only show unique agents
+      const uniqueAgents = new Map();
+      workflow.steps.forEach((step: any, index: number) => {
+        const agentName = step.agentName;
+        if (!uniqueAgents.has(agentName)) {
+          uniqueAgents.set(agentName, {
+            id: `${variant}-${step.stepId}`,
+            order: uniqueAgents.size + 1,
+            name: agentName,
+            modelType: 'AI MODEL',
+            description: step.description,
+            status: 'IDLE' as const,
+            icon: getIconForAgent(agentName),
+            cost: getCostForAgent(agentName)
+          });
+        }
+      });
+      const steps = Array.from(uniqueAgents.values());
 
       // Calculate total cost from the actual workflow steps
       const totalCost = workflow.steps.reduce((sum: number, step: any) => {
@@ -226,8 +245,20 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
       ]
     };
 
-    // Convert to nodes and edges
-    const nodes = mockWorkflow.steps.map((step, index) => ({
+    // Convert to nodes and edges - only show unique agents
+    const uniqueAgentsForNodes = new Map();
+    mockWorkflow.steps.forEach((step: any, index: number) => {
+      const agentName = step.agentName;
+      if (!uniqueAgentsForNodes.has(agentName)) {
+        uniqueAgentsForNodes.set(agentName, {
+          ...step,
+          originalIndex: uniqueAgentsForNodes.size
+        });
+      }
+    });
+    const uniqueStepsForNodes = Array.from(uniqueAgentsForNodes.values());
+
+    const nodes = uniqueStepsForNodes.map((step, index) => ({
       id: `${variant}-${step.stepId}`,
       type: 'brutal',
       position: { x: index * 250, y: 50 },
@@ -242,23 +273,31 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
       }
     }));
 
-    const edges = mockWorkflow.steps.slice(1).map((step, index) => ({
-      id: `edge-${variant}-${mockWorkflow.steps[index].stepId}-${step.stepId}`,
-      source: `${variant}-${mockWorkflow.steps[index].stepId}`,
+    const edges = uniqueStepsForNodes.slice(1).map((step, index) => ({
+      id: `edge-${variant}-${uniqueStepsForNodes[index].stepId}-${step.stepId}`,
+      source: `${variant}-${uniqueStepsForNodes[index].stepId}`,
       target: `${variant}-${step.stepId}`,
       type: 'brutal'
     }));
 
-    const steps = mockWorkflow.steps.map((step, index) => ({
-      id: `${variant}-${step.stepId}`,
-      order: index + 1,
-      name: step.agentName,
-      modelType: 'AI MODEL',
-      description: step.description,
-      status: 'IDLE' as const,
-      icon: getIconForAgent(step.agentName),
-      cost: getCostForAgent(step.agentName)
-    }));
+    // Convert to steps format for the WorkflowGraph component - only show unique agents
+    const uniqueAgents = new Map();
+    mockWorkflow.steps.forEach((step: any, index: number) => {
+      const agentName = step.agentName;
+      if (!uniqueAgents.has(agentName)) {
+        uniqueAgents.set(agentName, {
+          id: `${variant}-${step.stepId}`,
+          order: uniqueAgents.size + 1,
+          name: agentName,
+          modelType: 'AI MODEL',
+          description: step.description,
+          status: 'IDLE' as const,
+          icon: getIconForAgent(agentName),
+          cost: getCostForAgent(agentName)
+        });
+      }
+    });
+    const steps = Array.from(uniqueAgents.values());
 
     const totalCost = mockWorkflow.steps.reduce((sum, step) => sum + getCostForAgent(step.agentName), 0);
     const estimatedDuration = mockWorkflow.steps.length * 30;

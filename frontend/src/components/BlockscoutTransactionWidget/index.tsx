@@ -45,7 +45,7 @@ const BlockscoutTransactionWidget = ({ txHash }: Props) => {
       <p>
         <strong>Transaction Hash:</strong>{" "}
         <a
-          href={`https://eth.blockscout.com/tx/${transaction.hash}`}
+          href={`https://eth-sepolia.blockscout.com/tx/${transaction.hash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 underline"
@@ -57,7 +57,7 @@ const BlockscoutTransactionWidget = ({ txHash }: Props) => {
       <p>
         <strong>From:</strong>{" "}
         <a
-          href={`https://eth.blockscout.com/address/${transaction.from.hash}`}
+          href={`https://eth-sepolia.blockscout.com/address/${transaction.from.hash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 underline"
@@ -69,7 +69,7 @@ const BlockscoutTransactionWidget = ({ txHash }: Props) => {
       <p>
         <strong>Transfer:</strong> {valueEth.toFixed(5)} ETH to{" "}
         <a
-          href={`https://eth.blockscout.com/address/${transaction.from.hash}`}
+          href={`https://eth-sepolia.blockscout.com/address/${transaction.from.hash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 underline"

@@ -147,8 +147,22 @@ export const convertWorkflowToGraph = (
     },
   });
 
-  // Create nodes for each step
+  // Filter for unique agents only
+  const uniqueAgents = new Map();
   workflow.steps.forEach((step, index) => {
+    const agentName = step.agentName;
+    if (!uniqueAgents.has(agentName)) {
+      uniqueAgents.set(agentName, {
+        ...step,
+        originalIndex: index
+      });
+    }
+  });
+
+  const uniqueSteps = Array.from(uniqueAgents.values());
+
+  // Create nodes for each unique step
+  uniqueSteps.forEach((step, index) => {
     // Better spacing: arrange in a more spread out pattern
     const x = 150 + (index % 2) * 500; // Alternate between left and right
     const y = 250 + Math.floor(index / 2) * 200; // Stack vertically every 2 nodes
@@ -181,7 +195,7 @@ export const convertWorkflowToGraph = (
 
     // Create edge from orchestrator to first step, or from previous step
     const sourceId =
-      index === 0 ? "orchestrator" : workflow.steps[index - 1].stepId;
+      index === 0 ? "orchestrator" : uniqueSteps[index - 1].stepId;
     edges.push({
       id: `edge-${sourceId}-${step.stepId}`,
       source: sourceId,
