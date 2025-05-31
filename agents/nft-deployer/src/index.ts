@@ -1,9 +1,5 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
-import { deployNFT } from "../scripts/deploy";
-import { mintNFT } from "../scripts/mint";
-import { ethers } from "hardhat";
-import { Log } from "ethers";
 
 dotenv.config();
 
@@ -153,7 +149,7 @@ app.get("/meta", (req: Request, res: Response) => {
 
 // POST /run - Execute the agent logic (MAHA contract requirement)
 // Set to /run1 for testing, so that master agent doesn't call it accidentally
-app.post("/run", async (req: Request, res: Response) => {
+app.post("/run1", async (req: Request, res: Response) => {
   try {
     const { name, symbol, mints, chainId } = req.body;
 
