@@ -11,25 +11,31 @@ via_ir = true
 fuzz = { runs = 10_000 }
 invariant = { runs = 1_000 }
 
-# Network configurations - Flow EVM Testnet only
+# Network configurations
 [rpc_endpoints]
 flow_testnet = "https://testnet.evm.nodes.onflow.org"
+hedera_testnet = "https://testnet.hashio.io/api"
 
 # Gas configuration for Flow EVM Testnet
 # Using 2 gwei (2000000000 wei) to ensure transactions are processed
 [profile.flow_testnet]
 gas_price = 2000000000  # 2 gwei in wei
 
+# Gas configuration for Hedera Testnet (adjust as needed)
+[profile.hedera_testnet]
+gas_price = 2000000000 # Example gas price, adjust based on Hedera recommendations
+
 # Deployment optimization to prevent hanging on Flow EVM Testnet
 [profile.fast_deploy]
 gas_price = 2000000000
 # These settings speed up deployments by reducing confirmation wait times
 
-# Etherscan configuration (commented out for initial deployment)
-# [etherscan]
-# flow_testnet = { key = "${ETHERSCAN_API_KEY}", url = "https://evm-testnet.flowscan.io" }
-# ethereum_mainnet = { key = "${ETHERSCAN_API_KEY}" }
-# ethereum_sepolia = { key = "${ETHERSCAN_API_KEY}" }
-# polygon_mainnet = { key = "${POLYGONSCAN_API_KEY}", url = "https://api.polygonscan.com/api" }
+# Etherscan configuration
+[etherscan]
+flow_testnet = { key = "${ETHERSCAN_API_KEY}", url = "https://evm-testnet.flowscan.io" }
+ethereum_mainnet = { key = "${ETHERSCAN_API_KEY}" }
+etherium_sepolia = { key = "${ETHERSCAN_API_KEY}" }
+polygon_mainnet = { key = "${POLYGONSCAN_API_KEY}", url = "https://api.polygonscan.com/api" }
+hedera_testnet = { key = "${ETHERSCAN_API_KEY}", url = "https://hashscan.io/testnet" } # Hedera Testnet explorer URL
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/crates/config 
