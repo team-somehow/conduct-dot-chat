@@ -14,18 +14,7 @@ app.use(express.json());
 
 // Chain explorer URLs mapping
 const CHAIN_EXPLORERS: { [chainId: number]: string } = {
-  1: "https://etherscan.io",      // Ethereum Mainnet
-  5: "https://goerli.etherscan.io", // Goerli Testnet
-  137: "https://polygonscan.com",  // Polygon Mainnet
-  80001: "https://mumbai.polygonscan.com", // Mumbai Testnet
-  42161: "https://arbiscan.io",    // Arbitrum One
-  421613: "https://goerli.arbiscan.io", // Arbitrum Goerli
-  10: "https://optimistic.etherscan.io", // Optimism
-  420: "https://goerli-optimism.etherscan.io", // Optimism Goerli
-  56: "https://bscscan.com",       // BSC
-  97: "https://testnet.bscscan.com", // BSC Testnet
-  43114: "https://snowtrace.io",   // Avalanche
-  43113: "https://testnet.snowtrace.io", // Avalanche Testnet
+  545: "https://evm-testnet.flowscan.io", // Flow EVM Testnet (correct explorer)
 };
 
 // Agent metadata - static information for MAHA protocol
@@ -50,7 +39,7 @@ const AGENT_META = {
       chainId: {
         type: "number",
         description: "Chain ID where the NFT will be deployed",
-        enum: [1, 5, 137, 80001, 42161, 421613, 10, 420, 56, 97, 43114, 43113],
+        enum: [545],
       },
       mints: {
         type: "array",
@@ -64,7 +53,7 @@ const AGENT_META = {
             },
             tokenURI: {
               type: "string",
-              description: "URI of the token metadata",
+              description: "Image URL for the NFT we want to mint",
             },
           },
           required: ["to", "tokenURI"],
