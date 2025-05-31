@@ -130,7 +130,7 @@ export default function WorkflowPage() {
             title: 'Standard Workflow',
             description: 'Optimized for reliability and accuracy',
             estimatedCost: estimatedCost,
-            estimatedDuration: '2-3 minutes',
+            estimatedDuration: workflow.steps.length * 30, // 30 seconds per step
             workflow: workflow,
             nodes: nodes,
             edges: edges,
@@ -144,7 +144,7 @@ export default function WorkflowPage() {
             title: 'Optimized Workflow',
             description: 'Optimized for speed and efficiency',
             estimatedCost: estimatedCost * 0.8, // 20% cheaper for optimized
-            estimatedDuration: '1-2 minutes',
+            estimatedDuration: workflow.steps.length * 20, // 20 seconds per step (faster)
             workflow: { ...workflow, workflowId: `${workflow.workflowId}-opt` },
             nodes: nodes,
             edges: edges,

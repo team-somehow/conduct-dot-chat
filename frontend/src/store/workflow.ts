@@ -620,290 +620,292 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
       },
       startExecutionSimulation: () => {
-        const { nodes, workflow } = get();
+        const { nodes, edges, workflow } = get();
         
-        get().addLog("🚀 Starting workflow execution...", "info");
+        if (!workflow || !workflow.steps || workflow.steps.length === 0) {
+          get().addLog("❌ No workflow data available for simulation", "error");
+          return;
+        }
         
-        // Simulate orchestrator activity
-        setTimeout(() => {
-          set({ activeNodeId: "orchestrator" });
-          get().addLog("🧠 Orchestrator: Analyzing workflow and coordinating agents...", "info");
+        get().addLog("🚀 Starting dynamic workflow execution...", "info");
+        get().addLog(`📋 Executing workflow: ${workflow.name || 'Unnamed Workflow'}`, "info");
+        get().addLog(`🔗 Processing ${workflow.steps.length} steps with ${nodes.length} agents`, "info");
+        
+        // Helper functions for dynamic simulation
+        const getAgentEmoji = (agentName: string): string => {
+          const name = agentName.toLowerCase();
+          if (name.includes('dall') || name.includes('image') || name.includes('generate')) return '🎨';
+          if (name.includes('nft') || name.includes('deploy')) return '💎';
+          if (name.includes('gpt') || name.includes('claude') || name.includes('llm')) return '🧠';
+          if (name.includes('hello') || name.includes('greet')) return '👋';
+          if (name.includes('send') || name.includes('transfer')) return '📤';
+          if (name.includes('verify') || name.includes('check')) return '🔍';
+          if (name.includes('store') || name.includes('save')) return '💾';
+          return '⚡';
+        };
+        
+        const getProcessingTime = (agentName: string): number => {
+          const name = agentName.toLowerCase();
+          if (name.includes('dall') || name.includes('image')) return 4000; // Image generation takes longer
+          if (name.includes('nft') || name.includes('deploy')) return 3500; // Blockchain operations
+          if (name.includes('gpt') || name.includes('claude')) return 2500; // LLM processing
+          return 2000; // Default processing time
+        };
+        
+        const getProgressMessage = (agentName: string): string => {
+          const name = agentName.toLowerCase();
+          if (name.includes('dall') || name.includes('image')) return 'Generating high-quality image...';
+          if (name.includes('nft') && name.includes('deploy')) return 'Preparing blockchain transaction...';
+          if (name.includes('gpt') || name.includes('claude')) return 'Processing natural language request...';
+          if (name.includes('hello') || name.includes('greet')) return 'Crafting personalized greeting...';
+          if (name.includes('send') || name.includes('transfer')) return 'Initiating transfer process...';
+          return 'Processing request...';
+        };
+        
+        const getCompletionMessage = (agentName: string): string => {
+          const name = agentName.toLowerCase();
+          if (name.includes('dall') || name.includes('image')) return 'Image generated successfully!';
+          if (name.includes('nft') && name.includes('deploy')) return 'NFT deployed to blockchain!';
+          if (name.includes('gpt') || name.includes('claude')) return 'Text processing completed!';
+          if (name.includes('hello') || name.includes('greet')) return 'Greeting message created!';
+          if (name.includes('send') || name.includes('transfer')) return 'Transfer completed successfully!';
+          return 'Task completed successfully!';
+        };
+        
+        const generateStepOutput = (step: any, index: number): any => {
+          const agentName = step.agentName.toLowerCase();
+          if (agentName.includes('dall') || agentName.includes('image')) {
+            return {
+              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+Image+${index + 1}`,
+              prompt: step.description || 'Generated image',
+              style: 'digital art'
+            };
+          }
+          if (agentName.includes('nft')) {
+            return {
+              nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+              tokenId: (index + 1).toString(),
+              transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
+              explorerUrl: `https://etherscan.io/tx/0x${Math.random().toString(16).substr(2, 64)}`
+            };
+          }
+          if (agentName.includes('hello') || agentName.includes('greet')) {
+            return {
+              message: `Hello! Thank you for your participation. This is a personalized greeting generated for step ${index + 1}.`,
+              tone: 'friendly',
+              personalized: true
+            };
+          }
+          return {
+            result: 'success',
+            data: `Output from ${step.agentName}`,
+            timestamp: Date.now()
+          };
+        };
+        
+        const generateRealisticOutput = (workflow: any): any => {
+          const hasImageAgent = workflow.steps.some((step: any) => 
+            step.agentName.toLowerCase().includes('dall') || 
+            step.agentName.toLowerCase().includes('image')
+          );
+          const hasNFTAgent = workflow.steps.some((step: any) => 
+            step.agentName.toLowerCase().includes('nft') || 
+            step.agentName.toLowerCase().includes('deploy')
+          );
           
-          setTimeout(() => {
-            // Find and activate first agent (DALL-E)
-            const dalleAgent = nodes.find(n => 
-              n.data?.label?.toLowerCase().includes('dall') || 
-              n.data?.label?.toLowerCase().includes('image')
-            );
+          const output: any = {
+            workflowId: workflow.workflowId,
+            executionTime: workflow.steps.length * 5,
+            stepsCompleted: workflow.steps.length,
+            status: 'completed'
+          };
+          
+          if (hasImageAgent) {
+            output.imageUrl = "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+NFT+Image";
+            output.imageDescription = "AI-generated image based on user request";
+          }
+          
+          if (hasNFTAgent) {
+            output.nftAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
+            output.tokenId = "1";
+            output.transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+            output.explorerUrl = `https://etherscan.io/tx/${output.transactionHash}`;
+            output.collectionName = "AI Generated Collection";
+            output.tokenName = `AI NFT #${output.tokenId}`;
+          }
+          
+          output.message = `Successfully executed ${workflow.name || 'workflow'} with ${workflow.steps.length} steps`;
+          output.timestamp = Date.now();
+          
+          return output;
+        };
+        
+        // Start with orchestrator if it exists, otherwise start with first node
+        const orchestratorNode = nodes.find(n => 
+          n.data?.label?.toLowerCase().includes('orchestrator') || 
+          n.data?.type?.toLowerCase().includes('coordinator')
+        );
+        
+        const startingNode = orchestratorNode || nodes[0];
+        
+        if (startingNode) {
+          set({ activeNodeId: startingNode.id });
+          get().addLog(`🧠 ${startingNode.data?.label || 'Orchestrator'}: Analyzing workflow and coordinating agents...`, "info");
+        }
+        
+        // Create a dynamic execution plan based on workflow steps
+        const executeStep = (stepIndex: number) => {
+          if (stepIndex >= workflow.steps.length) {
+            // All steps completed
+            get().addLog("✅ All workflow steps completed successfully!", "success");
             
-            if (dalleAgent) {
-              set({ activeNodeId: dalleAgent.id });
-              get().addLog("🎨 DALL-E 3: Generating thank you NFT image...", "info");
+            // Generate final summary
+            setTimeout(async () => {
+              try {
+                if (workflow) {
+                  // Create realistic execution data based on actual workflow
+                  const mockExecution = {
+                    executionId: `sim-${Date.now()}`,
+                    workflowId: workflow.workflowId,
+                    status: "completed" as const,
+                    startedAt: Date.now() - (workflow.steps.length * 5000), // 5 seconds per step
+                    completedAt: Date.now(),
+                    input: { userRequest: workflow.userIntent || workflow.description },
+                    output: generateRealisticOutput(workflow),
+                    stepResults: workflow.steps.map((step: any, index: number) => ({
+                      stepId: step.stepId,
+                      status: "completed" as const,
+                      startedAt: Date.now() - ((workflow.steps.length - index) * 5000),
+                      completedAt: Date.now() - ((workflow.steps.length - index - 1) * 5000),
+                      input: step.inputMapping || {},
+                      output: generateStepOutput(step, index)
+                    }))
+                  };
+
+                  const summaryRequest: SummaryRequest = {
+                    workflow: workflow,
+                    execution: mockExecution,
+                    logs: get().logs,
+                    executionType: "simulation"
+                  };
+                  
+                  get().addLog("🤖 Generating AI summary...", "info");
+                  const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                  
+                  set({ 
+                    activeNodeId: null,
+                    isExecuting: false,
+                    currentStep: "SHOW_RESULT",
+                    executionResults: mockExecution.output,
+                    executionSummary: summaryResponse.summary
+                  });
+                  get().addLog("✅ AI summary generated successfully!", "success");
+                }
+              } catch (summaryError: any) {
+                get().addLog(`Failed to generate AI summary: ${summaryError.message}`, "error");
+                
+                // Generate fallback summary with actual workflow data
+                const executionTime = workflow.steps.length * 5;
+                const agentPerformance = workflow.steps.map((step: any, index: number) => `
+### ${step.agentName}
+- **Task**: ${step.description || 'Process workflow step'}
+- **Status**: ✅ Completed
+- **Performance**: Excellent
+- **Duration**: ${3 + index * 2} seconds`).join('');
+                
+                const fallbackSummary = `# ✅ Workflow Execution Complete
+
+## 📊 Execution Overview
+- **Workflow**: ${workflow.name || 'AI Workflow'}
+- **Workflow ID**: ${workflow.workflowId}
+- **Total Steps**: ${workflow.steps.length}
+- **Execution Time**: ${executionTime} seconds
+- **Status**: ✅ Successfully Completed
+- **Mode**: Dynamic Simulation
+
+## 🤖 Agent Performance
+${agentPerformance}
+
+## 🎯 Key Achievements
+- ✅ Successfully processed user request: "${workflow.userIntent || workflow.description}"
+- ✅ Completed all ${workflow.steps.length} workflow steps without errors
+- ✅ Generated appropriate outputs for each agent
+- ✅ Workflow executed flawlessly with realistic timing
+
+## 📋 Technical Details
+- **Execution ID**: sim-${Date.now()}
+- **API Mode**: Dynamic Simulation
+- **Error Rate**: 0%
+- **Performance Score**: 100%
+- **Agents Used**: ${workflow.steps.map((s: any) => s.agentName).join(', ')}
+
+## 🚀 Results Summary
+Your workflow "${workflow.name || 'AI Workflow'}" has been successfully executed! All ${workflow.steps.length} agents completed their tasks perfectly, processing your request and generating the expected results based on the actual workflow configuration.
+
+---
+*Summary generated by AI Workflow Orchestrator - Dynamic Simulation Engine*`;
+
+                set({ 
+                  activeNodeId: null,
+                  isExecuting: false,
+                  currentStep: "SHOW_RESULT",
+                  executionResults: generateRealisticOutput(workflow),
+                  executionSummary: fallbackSummary
+                });
+                get().addLog("✅ Fallback summary generated successfully!", "success");
+              }
+              get().addLog("✅ Workflow execution completed successfully!", "success");
+            }, 1000);
+            return;
+          }
+          
+          const currentStep = workflow.steps[stepIndex];
+          const stepNode = nodes.find(n => 
+            n.data?.label?.toLowerCase().includes(currentStep.agentName.toLowerCase()) ||
+            n.id.includes(currentStep.stepId) ||
+            n.data?.agentName === currentStep.agentName
+          );
+          
+          if (stepNode) {
+            set({ activeNodeId: stepNode.id });
+            
+            // Generate dynamic log messages based on agent type and task
+            const agentEmoji = getAgentEmoji(currentStep.agentName);
+            const taskDescription = currentStep.description || `Processing step ${stepIndex + 1}`;
+            
+            get().addLog(`${agentEmoji} ${currentStep.agentName}: Starting ${taskDescription}...`, "info");
+            
+            // Simulate processing time based on agent type
+            const processingTime = getProcessingTime(currentStep.agentName);
+            
+            setTimeout(() => {
+              get().addLog(`${agentEmoji} ${currentStep.agentName}: ${getProgressMessage(currentStep.agentName)}`, "info");
               
               setTimeout(() => {
-                get().addLog("🎨 DALL-E 3: Processing image generation request...", "info");
+                get().addLog(`✨ ${currentStep.agentName}: ${getCompletionMessage(currentStep.agentName)}`, "success");
                 
+                // Move to next step after a brief pause
                 setTimeout(() => {
-                  get().addLog("✨ DALL-E 3: Image generation completed successfully!", "success");
-                  
-                  setTimeout(() => {
-                    // Find and activate NFT deployer
-                    const nftAgent = nodes.find(n => 
-                      n.data?.label?.toLowerCase().includes('nft') || 
-                      n.data?.label?.toLowerCase().includes('deploy')
-                    );
-                    
-                    if (nftAgent) {
-                      set({ activeNodeId: nftAgent.id });
-                      get().addLog("🔗 NFT Deployer: Preparing blockchain transaction...", "info");
-                      
-                      setTimeout(() => {
-                        get().addLog("🔗 NFT Deployer: Minting NFT with generated image...", "info");
-                        
-                        setTimeout(() => {
-                          get().addLog("🔗 NFT Deployer: Deploying to blockchain...", "info");
-                          
-                          setTimeout(() => {
-                            get().addLog("💎 NFT Deployer: NFT successfully minted and sent!", "success");
-                            get().addLog("🎉 Transaction hash: 0xdemo123...abcdef", "success");
-                            
-                            // Keep the node active for a bit longer to show completion
-                            setTimeout(() => {
-                              get().addLog("✅ All agents completed successfully!", "success");
-                              
-                              // Generate AI summary using API for simulation
-                              setTimeout(async () => {
-                                try {
-                                  if (workflow) {
-                                    // Create mock execution data for simulation
-                                    const mockExecution = {
-                                      executionId: `sim-${Date.now()}`,
-                                      workflowId: workflow.workflowId,
-                                      status: "completed" as const,
-                                      startedAt: Date.now() - 30000, // 30 seconds ago
-                                      completedAt: Date.now(),
-                                      input: { userRequest: workflow.userIntent },
-                                      output: {
-                                    nftAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
-                                    tokenId: "1",
-                                    imageUrl: "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
-                                    transactionHash: "0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-                                    collectionName: "ETH Global Prague Thank You",
-                                    tokenName: "Thank You NFT #1",
-                                    metadataUri: "https://demo.metadata.uri/1",
-                                    explorerUrl: "https://etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-                                      },
-                                      stepResults: workflow.steps.map((step: WorkflowStep, index: number) => ({
-                                        stepId: step.stepId,
-                                        status: "completed" as const,
-                                        startedAt: Date.now() - (30000 - index * 10000),
-                                        completedAt: Date.now() - (20000 - index * 10000),
-                                        input: step.inputMapping,
-                                        output: index === 0 ? { imageUrl: "generated_image.png" } : { nftAddress: "0x742d35Cc..." }
-                                      }))
-                                    };
-
-                                    const summaryRequest: SummaryRequest = {
-                                      workflow: workflow,
-                                      execution: mockExecution,
-                                      logs: get().logs,
-                                      executionType: "simulation"
-                                    };
-                                    
-                                    get().addLog("🤖 Generating AI summary...", "info");
-                                    const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
-                                    
-                                    set({ 
-                                      activeNodeId: null,
-                                      isExecuting: false,
-                                      currentStep: "SHOW_RESULT",
-                                      executionResults: mockExecution.output,
-                                      executionSummary: summaryResponse.summary
-                                    });
-                                    get().addLog("✅ AI summary generated successfully!", "success");
-                                  }
-                                } catch (summaryError: any) {
-                                  get().addLog(`Failed to generate AI summary: ${summaryError.message}`, "error");
-                                  
-                                  // Generate fallback summary locally for generic workflow
-                                  const fallbackSummary = `# ✅ Workflow Execution Complete
-
-## 📊 Execution Overview
-- **Workflow ID**: ${workflow?.workflowId || 'demo-workflow'}
-- **Total Steps**: ${workflow?.steps?.length || 1}
-- **Execution Time**: 10 seconds
-- **Status**: ✅ Successfully Completed
-- **Mode**: Simulation
-
-## 🤖 Agent Performance
-${workflow?.steps?.map((step: any, index: number) => `
-### ${step.agentName || `Agent ${index + 1}`}
-- **Task**: ${step.description || 'Process workflow step'}
-- **Status**: ✅ Completed
-- **Performance**: Excellent
-- **Duration**: ${3 + index * 2} seconds
-`).join('') || `
-### AI Agent
-- **Task**: Process user request
-- **Status**: ✅ Completed
-- **Performance**: Excellent
-- **Duration**: 5 seconds
-`}
-
-## 🎯 Key Achievements
-- ✅ Successfully processed user request
-- ✅ Completed all workflow steps without errors
-- ✅ Generated appropriate response
-- ✅ Workflow executed flawlessly
-
-## 📋 Technical Details
-- **Execution ID**: sim-${Date.now()}
-- **API Mode**: Simulation
-- **Error Rate**: 0%
-- **Performance Score**: 100%
-
-## 🚀 Results Summary
-Your workflow has been successfully executed! All agents completed their tasks perfectly, processing your request and generating the expected results.
-
----
-*Summary generated by AI Workflow Orchestrator*`;
-
-                                  set({ 
-                                    activeNodeId: null,
-                                    isExecuting: false,
-                                    currentStep: "SHOW_RESULT",
-                                    executionResults: {
-                                      message: "Demo workflow completed successfully!",
-                                      timestamp: Date.now()
-                                    },
-                                    executionSummary: fallbackSummary
-                                  });
-                                  get().addLog("✅ Fallback summary generated successfully!", "success");
-                                }
-                                get().addLog("✅ Workflow execution completed successfully!", "success");
-                              }, 1000); // Wait 1 second before generating summary
-                            }, 1500); // Keep final node active for 1.5 seconds
-                          }, 2000); // Deploying phase
-                        }, 2000); // Minting phase
-                      }, 1500); // Preparation phase
-                    }
-                  }, 1500); // Transition delay between agents
-                }, 2500); // Image processing time
-              }, 2000); // Initial DALL-E processing
-            } else {
-              // Generic agent simulation fallback
-              const firstAgent = nodes.find(n => n.id !== "orchestrator");
-              if (firstAgent) {
-                set({ activeNodeId: firstAgent.id });
-                get().addLog(`🤖 ${firstAgent.data?.label}: Processing request...`, "info");
+                  executeStep(stepIndex + 1);
+                }, 1000);
                 
-                setTimeout(async () => {
-                  get().addLog(`✅ ${firstAgent.data?.label}: Task completed successfully!`, "success");
-                  
-                  // Generate AI summary for generic workflow
-                  try {
-                    if (workflow) {
-                      const mockExecution = {
-                        executionId: `sim-${Date.now()}`,
-                        workflowId: workflow.workflowId,
-                        status: "completed" as const,
-                        startedAt: Date.now() - 10000,
-                        completedAt: Date.now(),
-                        input: { userRequest: workflow.userIntent },
-                        output: { message: "Demo workflow completed successfully!", timestamp: Date.now() },
-                        stepResults: workflow.steps.map((step: WorkflowStep) => ({
-                          stepId: step.stepId,
-                          status: "completed" as const,
-                          startedAt: Date.now() - 5000,
-                          completedAt: Date.now(),
-                          input: step.inputMapping,
-                          output: { result: "success" }
-                        }))
-                      };
-
-                      const summaryRequest: SummaryRequest = {
-                        workflow: workflow,
-                        execution: mockExecution,
-                        logs: get().logs,
-                        executionType: "simulation"
-                      };
-                      
-                      get().addLog("🤖 Generating AI summary...", "info");
-                      const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
-                      
-                      set({ 
-                        activeNodeId: null,
-                        isExecuting: false,
-                        currentStep: "SHOW_RESULT",
-                        executionResults: mockExecution.output,
-                        executionSummary: summaryResponse.summary
-                      });
-                      get().addLog("✅ AI summary generated successfully!", "success");
-                    }
-                  } catch (summaryError: any) {
-                    get().addLog(`Failed to generate AI summary: ${summaryError.message}`, "error");
-                    
-                    // Generate fallback summary locally for generic workflow
-                    const fallbackSummary = `# ✅ Workflow Execution Complete
-
-## 📊 Execution Overview
-- **Workflow ID**: ${workflow?.workflowId || 'demo-workflow'}
-- **Total Steps**: ${workflow?.steps?.length || 1}
-- **Execution Time**: 10 seconds
-- **Status**: ✅ Successfully Completed
-- **Mode**: Simulation
-
-## 🤖 Agent Performance
-${workflow?.steps?.map((step: any, index: number) => `
-### ${step.agentName || `Agent ${index + 1}`}
-- **Task**: ${step.description || 'Process workflow step'}
-- **Status**: ✅ Completed
-- **Performance**: Excellent
-- **Duration**: ${3 + index * 2} seconds
-`).join('') || `
-### AI Agent
-- **Task**: Process user request
-- **Status**: ✅ Completed
-- **Performance**: Excellent
-- **Duration**: 5 seconds
-`}
-
-## 🎯 Key Achievements
-- ✅ Successfully processed user request
-- ✅ Completed all workflow steps without errors
-- ✅ Generated appropriate response
-- ✅ Workflow executed flawlessly
-
-## 📋 Technical Details
-- **Execution ID**: sim-${Date.now()}
-- **API Mode**: Simulation
-- **Error Rate**: 0%
-- **Performance Score**: 100%
-
-## 🚀 Results Summary
-Your workflow has been successfully executed! All agents completed their tasks perfectly, processing your request and generating the expected results.
-
----
-*Summary generated by AI Workflow Orchestrator*`;
-
-                    set({ 
-                      activeNodeId: null,
-                      isExecuting: false,
-                      currentStep: "SHOW_RESULT",
-                      executionResults: {
-                        message: "Demo workflow completed successfully!",
-                        timestamp: Date.now()
-                      },
-                      executionSummary: fallbackSummary
-                    });
-                    get().addLog("✅ Fallback summary generated successfully!", "success");
-                  }
-                    get().addLog("✅ Workflow execution completed!", "success");
-                }, 3000);
-              }
-            }
-          }, 2000); // Orchestrator analysis time
-        }, 1000); // Initial delay
+              }, processingTime * 0.7); // 70% of processing time for completion
+            }, processingTime * 0.3); // 30% of processing time for progress
+          } else {
+            // If no specific node found, use generic processing
+            get().addLog(`⚡ ${currentStep.agentName}: Processing ${currentStep.description || 'task'}...`, "info");
+            
+            setTimeout(() => {
+              get().addLog(`✅ ${currentStep.agentName}: Task completed successfully!`, "success");
+              executeStep(stepIndex + 1);
+            }, 3000);
+          }
+        };
+        
+        // Start execution after orchestrator analysis
+        setTimeout(() => {
+          executeStep(0);
+        }, 2000);
       },
 
       // Utility
