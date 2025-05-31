@@ -228,7 +228,7 @@ app.post("/run", async (req: Request, res: Response) => {
 
     // Remove undefined fields
     Object.keys(metadata).forEach(
-      (k) => metadata[k] === undefined && delete metadata[k]
+      (k) => (metadata as any)[k] === undefined && delete (metadata as any)[k]
     );
 
     console.log(`Generated OpenSea NFT metadata for '${name}':`, metadata);
