@@ -15,10 +15,53 @@ export const AGENTS = [
   "http://localhost:3006", // NFT Metadata Creator Agent
 ];
 
-// Basic configuration (no blockchain for now)
+// Flow EVM Testnet Configuration - Deployed Contracts
+export const FLOW_EVM_CONFIG = {
+  NETWORK_NAME: "Flow EVM Testnet",
+  CHAIN_ID: 545,
+  RPC_URL: "https://testnet.evm.nodes.onflow.org",
+  BLOCK_EXPLORER: "https://evm-testnet.flowscan.io",
+  GAS_PRICE: "2000000000", // 2 gwei in wei
+
+  // Deployed Contract Addresses
+  CONTRACTS: {
+    AgentRegistry: "0x0dcCe2649be92E4457d9d381D8173f3fD7FcAA68",
+    ReputationLayer: "0xDE36662dD44343a65a60FB6c1927A2FCB042936e",
+    OrchestrationContract: "0xBE0caD36B87c428a2d67e73f6738B321A86547df",
+  },
+
+  // Private key for blockchain transactions (from .env)
+  PRIVATE_KEY: process.env.MY_METAMASK_PRIVATE_KEY_WITH_FLOW_TESTNET,
+};
+
+// Configuration with blockchain integration
 export const config = {
   PORT: process.env.PORT || 8080,
   NODE_ENV: process.env.NODE_ENV || "development",
+
+  // Blockchain Configuration
+  BLOCKCHAIN: {
+    ENABLED: true,
+    RPC_URL: FLOW_EVM_CONFIG.RPC_URL,
+    CHAIN_ID: FLOW_EVM_CONFIG.CHAIN_ID,
+    PRIVATE_KEY: FLOW_EVM_CONFIG.PRIVATE_KEY,
+    CONTRACTS: FLOW_EVM_CONFIG.CONTRACTS,
+    GAS_SETTINGS: {
+      gasPrice: FLOW_EVM_CONFIG.GAS_PRICE,
+      gasLimit: "500000", // Default gas limit
+    },
+  },
+
+  // Agent Discovery: Use blockchain contracts instead of hardcoded URLs
+  AGENT_DISCOVERY: {
+    SOURCE: "blockchain", // "blockchain" | "hardcoded"
+    FALLBACK_AGENTS: AGENTS, // Fallback if blockchain is unavailable
+    REFRESH_INTERVAL: 300000, // 5 minutes
+  },
+
+  // Reputation & Cost Management: Use blockchain contracts
+  REPUTATION_SOURCE: "blockchain", // "blockchain" | "local"
+  COST_SOURCE: "blockchain", // "blockchain" | "agent"
 };
 
 /**
@@ -93,6 +136,54 @@ export function loadMCPConfig(): MCPServersConfig {
   }
 
   return mcpConfig;
+}
+
+/**
+ * Load blockchain configuration and validate contract addresses
+ */
+export function validateBlockchainConfig(): boolean {
+  try {
+    if (!config.BLOCKCHAIN.ENABLED) {
+      console.log("📋 Blockchain integration disabled");
+      return false;
+    }
+
+    if (!config.BLOCKCHAIN.PRIVATE_KEY) {
+      console.warn("⚠️ No private key configured for blockchain transactions");
+      console.log(
+        "💡 Set MY_METAMASK_PRIVATE_KEY_WITH_FLOW_TESTNET in .env file"
+      );
+      return false;
+    }
+
+    if (!config.BLOCKCHAIN.RPC_URL) {
+      console.error("❌ No RPC URL configured for blockchain");
+      return false;
+    }
+
+    const contracts = config.BLOCKCHAIN.CONTRACTS;
+    if (
+      !contracts.AgentRegistry ||
+      !contracts.ReputationLayer ||
+      !contracts.OrchestrationContract
+    ) {
+      console.error("❌ Missing contract addresses");
+      return false;
+    }
+
+    console.log("✅ Blockchain configuration validated");
+    console.log(
+      `🌐 Network: ${FLOW_EVM_CONFIG.NETWORK_NAME} (Chain ID: ${FLOW_EVM_CONFIG.CHAIN_ID})`
+    );
+    console.log(`📍 RPC: ${config.BLOCKCHAIN.RPC_URL}`);
+    console.log(
+      `💼 Contracts: AgentRegistry, ReputationLayer, OrchestrationContract`
+    );
+    return true;
+  } catch (error) {
+    console.error("❌ Failed to validate blockchain config:", error);
+    return false;
+  }
 }
 
 /**

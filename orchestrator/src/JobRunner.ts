@@ -1,5 +1,12 @@
 import { HttpAgent, loadAgent, runAgent } from "./agents.http";
-import { AGENTS, loadMCPConfig, validateMCPConfig } from "./config";
+import {
+  AGENTS,
+  config,
+  validateBlockchainConfig,
+  FLOW_EVM_CONFIG,
+  loadMCPConfig,
+  validateMCPConfig,
+} from "./config";
 import { AgentMetadata, JobData, TaskExecution, Agent } from "./types";
 import { MCPManager } from "./MCPManager";
 import { MCPAgentService, MCPAgentAdapter } from "./MCPAgent";
@@ -22,6 +29,8 @@ export interface TaskResult {
   success?: boolean;
   executionTime?: number;
   blockchainTxHash?: string;
+  agentCost?: string; // Cost in FLOW tokens
+  agentReputation?: number;
 }
 
 export class JobRunner {
@@ -30,16 +39,25 @@ export class JobRunner {
   private mcpAgentService: MCPAgentService;
   private mcpAgentAdapters: Map<string, MCPAgentAdapter> = new Map();
   private blockchainService: BlockchainService;
+  private blockchainEnabled: boolean;
 
   constructor() {
     this.mcpManager = new MCPManager();
     this.mcpAgentService = new MCPAgentService(this.mcpManager);
 
-    // Initialize blockchain service with graceful fallback
-    this.blockchainService = createBlockchainService(
-      process.env.RPC_URL,
-      process.env.ORCHESTRATOR_PRIVATE_KEY
-    );
+    // Initialize blockchain service with Flow EVM Testnet configuration
+    this.blockchainEnabled = validateBlockchainConfig();
+
+    if (this.blockchainEnabled) {
+      console.log(
+        "🔗 Initializing blockchain service with Flow EVM Testnet..."
+      );
+      this.blockchainService = createBlockchainService();
+    } else {
+      console.log("⚠️ Blockchain integration disabled - using fallback mode");
+      // Create a dummy blockchain service for fallback
+      this.blockchainService = createBlockchainService("", "");
+    }
 
     this.initializeMCPServers();
   }
@@ -102,24 +120,46 @@ export class JobRunner {
     return agent;
   }
 
-  // Enhanced agent discovery with blockchain integration
+  /**
+   * Enhanced agent discovery with blockchain-first approach
+   * Uses Flow EVM Testnet contracts for cost and reputation data
+   */
   async discoverAgents(): Promise<Agent[]> {
     const agents: Agent[] = [];
 
-    // First, try to discover agents from blockchain
-    try {
-      if (this.blockchainService.isAvailable()) {
-        console.log("🔍 Discovering agents from blockchain registry...");
+    // Primary: Blockchain-based agent discovery (Flow EVM Testnet)
+    if (this.blockchainEnabled && this.blockchainService.isAvailable()) {
+      console.log("🔍 Discovering agents from Flow EVM Testnet registry...");
+
+      try {
         const blockchainAgents = await this.blockchainService.getActiveAgents();
+        console.log(
+          `📊 Found ${blockchainAgents.length} agents in blockchain registry`
+        );
 
         for (const blockchainAgent of blockchainAgents) {
           try {
-            // Try to fetch metadata for better agent info
+            // Fetch metadata from IPFS/HTTP if available
             let metadata: any = {};
             try {
-              if (blockchainAgent.metadataURI.startsWith("http")) {
-                const response = await fetch(blockchainAgent.metadataURI);
-                metadata = await response.json();
+              if (
+                blockchainAgent.metadataURI &&
+                (blockchainAgent.metadataURI.startsWith("http") ||
+                  blockchainAgent.metadataURI.startsWith("ipfs://"))
+              ) {
+                const metadataUrl = blockchainAgent.metadataURI.startsWith(
+                  "ipfs://"
+                )
+                  ? `https://ipfs.io/ipfs/${blockchainAgent.metadataURI.replace(
+                      "ipfs://",
+                      ""
+                    )}`
+                  : blockchainAgent.metadataURI;
+
+                const response = await fetch(metadataUrl);
+                if (response.ok) {
+                  metadata = await response.json();
+                }
               }
             } catch (metadataError) {
               console.warn(
@@ -128,46 +168,14 @@ export class JobRunner {
               );
             }
 
-            // Get reputation data
-            let reputationData: any = {};
-            try {
-              reputationData = await this.blockchainService.getReputationData(
-                blockchainAgent.wallet
-              );
-            } catch (reputationError) {
-              console.warn(
-                `⚠️ Failed to get reputation for ${blockchainAgent.wallet}:`,
-                reputationError
-              );
-            }
-
-            // Convert blockchain agent to orchestrator agent format
+            // Convert blockchain agent to orchestrator agent format with reputation
             const orchestratorAgent =
-              this.blockchainService.blockchainToOrchestratorAgent(
+              await this.blockchainService.blockchainToOrchestratorAgent(
                 blockchainAgent,
                 metadata
               );
 
-            // Enhance with reputation data
-            if (reputationData) {
-              orchestratorAgent.rating = {
-                score: reputationData.averageRating || 0,
-                reviews: reputationData.totalTasks || 0,
-                lastUpdated: new Date().toISOString(),
-              };
-              orchestratorAgent.performance = {
-                avgResponseTime: reputationData.averageLatency || 0,
-                uptime: blockchainAgent.isActive ? 100 : 0,
-                successRate:
-                  reputationData.totalTasks > 0
-                    ? (reputationData.successfulTasks /
-                        reputationData.totalTasks) *
-                      100
-                    : 0,
-              };
-            }
-
-            // Determine agent type and create proper agent object
+            // Create proper agent object based on type
             if (blockchainAgent.agentType === 0) {
               // HTTP agent
               agents.push({
@@ -185,9 +193,11 @@ export class JobRunner {
                 inputSchema: metadata.inputSchema || {},
                 outputSchema: metadata.outputSchema || {},
                 previewURI: orchestratorAgent.previewURI,
-              } as Agent);
-            } else {
-              // MCP agent (type 1)
+                // Blockchain data for cost and reputation
+                blockchain: orchestratorAgent.blockchain,
+              } as Agent & { blockchain: any });
+            } else if (blockchainAgent.agentType === 1) {
+              // MCP agent
               agents.push({
                 type: "mcp",
                 name: orchestratorAgent.name,
@@ -199,11 +209,17 @@ export class JobRunner {
                 inputSchema: metadata.inputSchema || {},
                 outputSchema: metadata.outputSchema || {},
                 previewURI: orchestratorAgent.previewURI,
-              } as Agent);
+                // Blockchain data for cost and reputation
+                blockchain: orchestratorAgent.blockchain,
+              } as Agent & { blockchain: any });
             }
 
             console.log(
-              `✅ Discovered blockchain agent: ${orchestratorAgent.name} (${blockchainAgent.agentUrl})`
+              `✅ Loaded blockchain agent: ${
+                orchestratorAgent.name
+              } (${ethers.formatEther(
+                blockchainAgent.baseCostPerTask
+              )} FLOW/task)`
             );
           } catch (error) {
             console.warn(
@@ -212,57 +228,117 @@ export class JobRunner {
             );
           }
         }
+      } catch (error) {
+        console.error("❌ Failed to discover agents from blockchain:", error);
       }
-    } catch (error) {
-      console.warn(
-        "⚠️ Failed to discover agents from blockchain, falling back to traditional discovery:",
-        error
-      );
     }
 
-    // Fallback to traditional HTTP agent discovery
-    for (const endpoint of AGENTS) {
-      try {
-        // Skip if we already have this agent from blockchain
-        const existingAgent = agents.find(
-          (a) => a.type === "http" && (a as any).url === endpoint
-        );
-        if (existingAgent) {
-          console.log(
-            `⏭️ Skipping ${endpoint} - already discovered from blockchain`
+    // Fallback: Traditional agent discovery from config
+    if (
+      config.AGENT_DISCOVERY.SOURCE === "hardcoded" ||
+      (agents.length === 0 && config.AGENT_DISCOVERY.FALLBACK_AGENTS)
+    ) {
+      console.log("🔄 Using fallback agent discovery...");
+      const fallbackAgents = config.AGENT_DISCOVERY.FALLBACK_AGENTS || [];
+
+      for (const endpoint of fallbackAgents) {
+        try {
+          // Skip if we already have this agent from blockchain
+          const existingAgent = agents.find(
+            (a) => a.type === "http" && (a as any).url === endpoint
           );
-          continue;
-        }
+          if (existingAgent) {
+            console.log(
+              `⏭️ Skipping ${endpoint} - already discovered from blockchain`
+            );
+            continue;
+          }
 
-        const httpAgent = await this.loadAgent(endpoint);
-        agents.push({
-          type: "http",
-          url: httpAgent.url,
-          name: httpAgent.name,
-          description: httpAgent.description,
-          wallet: httpAgent.wallet,
-          vendor: httpAgent.vendor,
-          category: httpAgent.category,
-          tags: httpAgent.tags,
-          pricing: httpAgent.pricing,
-          rating: httpAgent.rating,
-          performance: httpAgent.performance,
-          inputSchema: {}, // Will be filled by validation function
-          outputSchema: {},
-          previewURI: httpAgent.previewURI,
-        } as Agent);
-        console.log(
-          `✅ Discovered HTTP agent: ${httpAgent.name} (${endpoint})`
-        );
-      } catch (error: any) {
-        console.log(
-          `❌ Failed to load HTTP agent from ${endpoint}:`,
-          error.message
-        );
+          const httpAgent = await this.loadAgent(endpoint);
+
+          // For fallback agents, try to get cost from blockchain if possible
+          let blockchainCost: bigint | null = null;
+          let reputationData: any = null;
+
+          if (this.blockchainEnabled && this.blockchainService.isAvailable()) {
+            try {
+              blockchainCost = await this.blockchainService.getAgentCost(
+                endpoint
+              );
+              const blockchainAgent =
+                await this.blockchainService.getAgentByUrl(endpoint);
+              if (blockchainAgent) {
+                reputationData = await this.blockchainService.getReputationData(
+                  blockchainAgent.wallet
+                );
+              }
+            } catch (error) {
+              console.warn(`⚠️ Could not get blockchain data for ${endpoint}`);
+            }
+          }
+
+          // Use blockchain cost if available, otherwise use agent's pricing
+          const pricing = blockchainCost
+            ? {
+                model: "per-task",
+                amount: Number(ethers.formatEther(blockchainCost)),
+                currency: "FLOW",
+                unit: "task",
+              }
+            : httpAgent.pricing;
+
+          // Use blockchain reputation if available
+          const rating = reputationData
+            ? {
+                score: reputationData.averageRating || 0,
+                reviews: reputationData.totalTasks || 0,
+                lastUpdated: new Date().toISOString(),
+              }
+            : httpAgent.rating;
+
+          const performance = reputationData
+            ? {
+                avgResponseTime: reputationData.averageLatency || 0,
+                uptime: 100,
+                successRate:
+                  reputationData.totalTasks > 0
+                    ? (reputationData.successfulTasks /
+                        reputationData.totalTasks) *
+                      100
+                    : 0,
+              }
+            : httpAgent.performance;
+
+          agents.push({
+            type: "http",
+            url: httpAgent.url,
+            name: httpAgent.name,
+            description: httpAgent.description,
+            wallet: httpAgent.wallet,
+            vendor: httpAgent.vendor,
+            category: httpAgent.category,
+            tags: httpAgent.tags,
+            pricing: pricing,
+            rating: rating,
+            performance: performance,
+            inputSchema: {},
+            outputSchema: {},
+            previewURI: httpAgent.previewURI,
+          } as Agent);
+
+          console.log(
+            `✅ Loaded fallback HTTP agent: ${httpAgent.name} (${endpoint})`
+          );
+        } catch (error: any) {
+          console.log(
+            `❌ Failed to load HTTP agent from ${endpoint}:`,
+            error.message
+          );
+        }
       }
     }
 
-    // Discover MCP agents (unchanged)
+    // MCP agent discovery (unchanged but with blockchain integration)
     try {
       await this.refreshMCPAgents();
       for (const [url, adapter] of this.mcpAgentAdapters) {
@@ -296,13 +372,72 @@ export class JobRunner {
       console.log(`❌ Failed to discover MCP agents:`, error.message);
     }
 
+    // Sort agents by reputation score if available
+    if (config.REPUTATION_SOURCE === "blockchain") {
+      agents.sort((a, b) => {
+        const aRating =
+          (a as any).blockchain?.reputation?.reputationScore ||
+          (a as any).rating?.score ||
+          0;
+        const bRating =
+          (b as any).blockchain?.reputation?.reputationScore ||
+          (b as any).rating?.score ||
+          0;
+        return bRating - aRating; // Higher reputation first
+      });
+    }
+
     console.log(
-      `🎯 Total agents discovered: ${agents.length} (blockchain-enhanced discovery)`
+      `🎯 Total agents discovered: ${agents.length} (blockchain-first discovery on Flow EVM Testnet)`
     );
+    console.log(
+      `💰 Cost source: ${config.COST_SOURCE}, Reputation source: ${config.REPUTATION_SOURCE}`
+    );
+
     return agents;
   }
 
-  // Enhanced task execution with blockchain integration
+  /**
+   * Get agent cost from blockchain or fallback
+   */
+  async getAgentCost(
+    agentUrl: string
+  ): Promise<{ amount: number; currency: string } | null> {
+    if (
+      config.COST_SOURCE === "blockchain" &&
+      this.blockchainEnabled &&
+      this.blockchainService.isAvailable()
+    ) {
+      try {
+        const cost = await this.blockchainService.getAgentCost(agentUrl);
+        if (cost !== null) {
+          return {
+            amount: Number(ethers.formatEther(cost)),
+            currency: "FLOW",
+          };
+        }
+      } catch (error) {
+        console.warn(
+          `⚠️ Failed to get blockchain cost for ${agentUrl}:`,
+          error
+        );
+      }
+    }
+
+    // Fallback to agent's reported cost
+    try {
+      const agent = await this.loadAgent(agentUrl);
+      return {
+        amount: agent.pricing?.amount || 0,
+        currency: agent.pricing?.currency || "ETH",
+      };
+    } catch (error) {
+      console.warn(`⚠️ Failed to get agent cost for ${agentUrl}:`, error);
+      return null;
+    }
+  }
+
+  // Enhanced task execution with blockchain integration and cost tracking
   async executeAgentTask<TIn, TOut>(
     agentUrl: string,
     input: TIn
@@ -310,8 +445,18 @@ export class JobRunner {
     const startTime = Date.now();
     let success = false;
     let result: TOut;
+    let agentCost: { amount: number; currency: string } | null = null;
 
     try {
+      // Get agent cost for tracking
+      agentCost = await this.getAgentCost(agentUrl);
+
+      console.log(
+        `💰 Executing task on ${agentUrl}${
+          agentCost ? ` (Cost: ${agentCost.amount} ${agentCost.currency})` : ""
+        }`
+      );
+
       // Check if it's an MCP agent
       if (MCPAgentService.isMCPUrl(agentUrl)) {
         const adapter = this.mcpAgentAdapters.get(agentUrl);
@@ -333,21 +478,29 @@ export class JobRunner {
         success = true;
       }
 
-      // Record successful completion on blockchain if possible
-      await this.recordTaskCompletion(agentUrl, true, Date.now() - startTime);
+      // Record successful completion on blockchain if enabled
+      if (config.REPUTATION_SOURCE === "blockchain") {
+        await this.recordTaskCompletion(agentUrl, true, Date.now() - startTime);
+      }
 
       return result;
     } catch (error) {
       console.error(`❌ Task execution failed for ${agentUrl}:`, error);
 
-      // Record failed completion on blockchain if possible
-      await this.recordTaskCompletion(agentUrl, false, Date.now() - startTime);
+      // Record failed completion on blockchain if enabled
+      if (config.REPUTATION_SOURCE === "blockchain") {
+        await this.recordTaskCompletion(
+          agentUrl,
+          false,
+          Date.now() - startTime
+        );
+      }
 
       throw error;
     }
   }
 
-  // Record task completion on blockchain with fallback
+  // Record task completion on blockchain with Flow EVM Testnet integration
   private async recordTaskCompletion(
     agentUrl: string,
     success: boolean,
@@ -355,11 +508,12 @@ export class JobRunner {
   ): Promise<void> {
     try {
       if (
+        !this.blockchainEnabled ||
         !this.blockchainService.isAvailable() ||
         !this.blockchainService.hasWallet()
       ) {
         console.log(
-          `⚠️ Blockchain not available for recording task completion`
+          `⚠️ Blockchain recording not available (enabled: ${this.blockchainEnabled})`
         );
         return;
       }
@@ -369,12 +523,20 @@ export class JobRunner {
         agentUrl
       );
       if (!blockchainAgent) {
-        console.log(`⚠️ Agent ${agentUrl} not found in blockchain registry`);
+        console.log(
+          `⚠️ Agent ${agentUrl} not found in Flow EVM Testnet registry`
+        );
         return;
       }
 
       // Convert execution time to seconds
       const executionTimeSeconds = Math.ceil(executionTimeMs / 1000);
+
+      console.log(
+        `📊 Recording task completion on Flow EVM Testnet: ${
+          blockchainAgent.wallet
+        } (${success ? "success" : "failure"})`
+      );
 
       // Record task completion
       const txHash = await this.blockchainService.recordTaskCompletion(
@@ -384,7 +546,9 @@ export class JobRunner {
       );
 
       if (txHash) {
-        console.log(`📊 Task completion recorded on blockchain: ${txHash}`);
+        console.log(
+          `✅ Task completion recorded on Flow EVM Testnet: ${FLOW_EVM_CONFIG.BLOCK_EXPLORER}/tx/${txHash}`
+        );
       }
     } catch (error) {
       console.warn(`⚠️ Failed to record task completion on blockchain:`, error);
@@ -411,9 +575,34 @@ export class JobRunner {
       const startTime = Date.now();
       let success = false;
       let blockchainTxHash: string | undefined;
+      let agentCost: string | undefined;
+      let agentReputation: number | undefined;
 
       try {
         let agentName: string;
+
+        // Get cost and reputation data
+        const costData = await this.getAgentCost(task.agentUrl);
+        if (costData) {
+          agentCost = `${costData.amount} ${costData.currency}`;
+        }
+
+        if (this.blockchainEnabled && this.blockchainService.isAvailable()) {
+          try {
+            const blockchainAgent = await this.blockchainService.getAgentByUrl(
+              task.agentUrl
+            );
+            if (blockchainAgent) {
+              const reputationData =
+                await this.blockchainService.getReputationData(
+                  blockchainAgent.wallet
+                );
+              agentReputation = reputationData?.reputationScore;
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to get reputation for ${task.agentUrl}`);
+          }
+        }
 
         if (MCPAgentService.isMCPUrl(task.agentUrl)) {
           const adapter = this.mcpAgentAdapters.get(task.agentUrl);
@@ -438,6 +627,8 @@ export class JobRunner {
           success,
           executionTime,
           blockchainTxHash,
+          agentCost,
+          agentReputation,
         });
       } catch (error) {
         const executionTime = Date.now() - startTime;
@@ -453,6 +644,8 @@ export class JobRunner {
           success: false,
           executionTime,
           blockchainTxHash,
+          agentCost,
+          agentReputation,
         });
 
         throw error;
@@ -474,9 +667,34 @@ export class JobRunner {
       const startTime = Date.now();
       let success = false;
       let blockchainTxHash: string | undefined;
+      let agentCost: string | undefined;
+      let agentReputation: number | undefined;
 
       try {
         let agentName: string;
+
+        // Get cost and reputation data
+        const costData = await this.getAgentCost(task.agentUrl);
+        if (costData) {
+          agentCost = `${costData.amount} ${costData.currency}`;
+        }
+
+        if (this.blockchainEnabled && this.blockchainService.isAvailable()) {
+          try {
+            const blockchainAgent = await this.blockchainService.getAgentByUrl(
+              task.agentUrl
+            );
+            if (blockchainAgent) {
+              const reputationData =
+                await this.blockchainService.getReputationData(
+                  blockchainAgent.wallet
+                );
+              agentReputation = reputationData?.reputationScore;
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to get reputation for ${task.agentUrl}`);
+          }
+        }
 
         if (MCPAgentService.isMCPUrl(task.agentUrl)) {
           const adapter = this.mcpAgentAdapters.get(task.agentUrl);
@@ -501,10 +719,12 @@ export class JobRunner {
           success,
           executionTime,
           blockchainTxHash,
+          agentCost,
+          agentReputation,
         };
       } catch (error) {
         const executionTime = Date.now() - startTime;
-        console.error(`❌ Parallel task failed for ${task.agentUrl}:`, error);
+        console.error(`❌ Parallel task failed:`, error);
 
         return {
           agentName: "Unknown",
@@ -516,6 +736,8 @@ export class JobRunner {
           success: false,
           executionTime,
           blockchainTxHash,
+          agentCost,
+          agentReputation,
         };
       }
     });

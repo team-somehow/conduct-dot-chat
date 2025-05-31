@@ -1,18 +1,13 @@
 import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
+import { config, FLOW_EVM_CONFIG } from "./config";
 
-// Contract addresses (these would be loaded from environment variables in production)
+// Use deployed Flow EVM Testnet contract addresses from config
 const CONTRACT_ADDRESSES = {
-  AgentRegistry:
-    process.env.AGENT_REGISTRY_ADDRESS ||
-    "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  ReputationLayer:
-    process.env.REPUTATION_LAYER_ADDRESS ||
-    "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  OrchestrationContract:
-    process.env.ORCHESTRATION_CONTRACT_ADDRESS ||
-    "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+  AgentRegistry: config.BLOCKCHAIN.CONTRACTS.AgentRegistry,
+  ReputationLayer: config.BLOCKCHAIN.CONTRACTS.ReputationLayer,
+  OrchestrationContract: config.BLOCKCHAIN.CONTRACTS.OrchestrationContract,
 };
 
 // Load ABIs from the protocol directory
@@ -61,6 +56,14 @@ export interface BlockchainTask {
   executionTime: number;
 }
 
+export interface AgentReputation {
+  totalTasks: number;
+  successfulTasks: number;
+  averageLatency: number;
+  averageRating: number;
+  reputationScore: number;
+}
+
 export class BlockchainService {
   private provider: ethers.Provider | null = null;
   private wallet: ethers.Wallet | null = null;
@@ -70,7 +73,7 @@ export class BlockchainService {
   private isInitialized = false;
 
   constructor(
-    private rpcUrl: string = process.env.RPC_URL || "http://localhost:8545",
+    private rpcUrl: string = config.BLOCKCHAIN.RPC_URL,
     private privateKey?: string
   ) {
     this.initialize().catch((error) => {
@@ -80,32 +83,60 @@ export class BlockchainService {
 
   private async initialize(): Promise<void> {
     try {
+      console.log(`🌐 Connecting to Flow EVM Testnet...`);
+      console.log(`📍 RPC URL: ${this.rpcUrl}`);
+      console.log(`⛓️ Chain ID: ${FLOW_EVM_CONFIG.CHAIN_ID}`);
+
       // Initialize provider
       this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
 
+      // Verify network connection
+      const network = await this.provider.getNetwork();
+      console.log(
+        `✅ Connected to network: ${network.name} (Chain ID: ${network.chainId})`
+      );
+
+      if (Number(network.chainId) !== FLOW_EVM_CONFIG.CHAIN_ID) {
+        console.warn(
+          `⚠️ Expected Chain ID ${FLOW_EVM_CONFIG.CHAIN_ID} but got ${network.chainId}`
+        );
+      }
+
       // Initialize wallet if private key is provided
-      if (this.privateKey) {
-        this.wallet = new ethers.Wallet(this.privateKey, this.provider);
+      if (this.privateKey || config.BLOCKCHAIN.PRIVATE_KEY) {
+        const key = this.privateKey || config.BLOCKCHAIN.PRIVATE_KEY;
+        this.wallet = new ethers.Wallet(key!, this.provider);
+        console.log(`🔑 Wallet connected: ${this.wallet.address}`);
+
+        // Check wallet balance
+        const balance = await this.provider.getBalance(this.wallet.address);
+        console.log(`💰 Wallet balance: ${ethers.formatEther(balance)} FLOW`);
       }
 
       // Load contract ABIs
+      console.log("📜 Loading contract ABIs...");
       const agentRegistryABI = loadABI("AgentRegistry");
       const reputationLayerABI = loadABI("ReputationLayer");
       const orchestrationContractABI = loadABI("OrchestrationContract");
 
-      // Initialize contracts
+      // Initialize contracts with deployed addresses
       const signer = this.wallet || this.provider;
 
+      console.log("🔗 Initializing contracts...");
       this.agentRegistry = new ethers.Contract(
         CONTRACT_ADDRESSES.AgentRegistry,
         agentRegistryABI,
         signer
       );
+      console.log(`  ✅ AgentRegistry: ${CONTRACT_ADDRESSES.AgentRegistry}`);
 
       this.reputationLayer = new ethers.Contract(
         CONTRACT_ADDRESSES.ReputationLayer,
         reputationLayerABI,
         signer
+      );
+      console.log(
+        `  ✅ ReputationLayer: ${CONTRACT_ADDRESSES.ReputationLayer}`
       );
 
       this.orchestrationContract = new ethers.Contract(
@@ -113,11 +144,13 @@ export class BlockchainService {
         orchestrationContractABI,
         signer
       );
+      console.log(
+        `  ✅ OrchestrationContract: ${CONTRACT_ADDRESSES.OrchestrationContract}`
+      );
 
       this.isInitialized = true;
-      console.log("✅ Blockchain service initialized");
-      console.log(`📍 RPC URL: ${this.rpcUrl}`);
-      console.log(`🔑 Wallet: ${this.wallet ? "Connected" : "Not connected"}`);
+      console.log("✅ Blockchain service initialized on Flow EVM Testnet");
+      console.log(`🔗 Block Explorer: ${FLOW_EVM_CONFIG.BLOCK_EXPLORER}`);
     } catch (error) {
       console.error("❌ Failed to initialize blockchain service:", error);
       // Don't throw here - allow graceful fallbacks
@@ -125,7 +158,7 @@ export class BlockchainService {
   }
 
   /**
-   * Agent Registry Methods
+   * Agent Registry Methods - Get costs and metadata from blockchain
    */
 
   async getActiveAgents(): Promise<BlockchainAgent[]> {
@@ -134,7 +167,7 @@ export class BlockchainService {
         throw new Error("Blockchain service not initialized");
       }
 
-      console.log("🔍 Fetching active agents from blockchain...");
+      console.log("🔍 Fetching active agents from Flow EVM Testnet...");
       const agents = await this.agentRegistry.getActiveAgents();
 
       const processedAgents = agents.map((agent: any) => ({
@@ -149,7 +182,7 @@ export class BlockchainService {
       }));
 
       console.log(
-        `✅ Found ${processedAgents.length} active agents on blockchain`
+        `✅ Found ${processedAgents.length} active agents on Flow EVM Testnet`
       );
       return processedAgents;
     } catch (error) {
@@ -164,16 +197,25 @@ export class BlockchainService {
         throw new Error("Blockchain service not initialized");
       }
 
-      const agent = await this.agentRegistry.getAgentByUrl(url);
+      const agentAddress = await this.agentRegistry.urlToAgent(url);
+      if (agentAddress === ethers.ZeroAddress) {
+        return null;
+      }
+
+      const agent = await this.agentRegistry.agents(agentAddress);
+      if (agent.registeredAt === 0) {
+        return null;
+      }
+
       return {
-        wallet: agent.wallet,
+        wallet: agentAddress,
         agentUrl: agent.agentUrl,
         metadataURI: agent.metadataURI,
         baseCostPerTask: agent.baseCostPerTask,
         agentType: Number(agent.agentType),
         isActive: agent.isActive,
         registeredAt: Number(agent.registeredAt),
-        agentOwner: agent.agentOwner,
+        agentOwner: agent.owner,
       };
     } catch (error) {
       console.warn(`⚠️ Agent not found on blockchain for URL: ${url}`);
@@ -181,8 +223,18 @@ export class BlockchainService {
     }
   }
 
+  async getAgentCost(agentUrl: string): Promise<bigint | null> {
+    try {
+      const agent = await this.getAgentByUrl(agentUrl);
+      return agent ? agent.baseCostPerTask : null;
+    } catch (error) {
+      console.error(`❌ Failed to get agent cost for ${agentUrl}:`, error);
+      return null;
+    }
+  }
+
   /**
-   * Reputation Layer Methods
+   * Reputation Layer Methods - Get reputation from blockchain
    */
 
   async recordTaskCompletion(
@@ -202,14 +254,21 @@ export class BlockchainService {
         `📊 Recording task completion for ${agentAddress}: success=${success}, latency=${latency}s`
       );
 
+      // Convert latency to appropriate units for contract (e.g., milliseconds)
+      const latencyMs = Math.floor(latency * 1000);
+
       const tx = await this.reputationLayer.recordTaskCompletion(
         agentAddress,
         success,
-        latency
+        latencyMs,
+        {
+          gasPrice: config.BLOCKCHAIN.GAS_SETTINGS.gasPrice,
+          gasLimit: config.BLOCKCHAIN.GAS_SETTINGS.gasLimit,
+        }
       );
 
       await tx.wait();
-      console.log("✅ Task completion recorded on blockchain");
+      console.log("✅ Task completion recorded on Flow EVM Testnet");
       return tx.hash;
     } catch (error) {
       console.error("❌ Failed to record task completion:", error);
@@ -217,7 +276,9 @@ export class BlockchainService {
     }
   }
 
-  async getReputationData(agentAddress: string): Promise<any> {
+  async getReputationData(
+    agentAddress: string
+  ): Promise<AgentReputation | null> {
     try {
       if (!this.isInitialized || !this.reputationLayer) {
         throw new Error("Blockchain service not initialized");
@@ -280,18 +341,22 @@ export class BlockchainService {
       console.log(
         `💰 Creating blockchain task for ${agentAddress} with payment ${ethers.formatEther(
           paymentAmount
-        )} ETH`
+        )} FLOW`
       );
 
       const tx = await this.orchestrationContract.createTask(
         agentAddress,
         inputHash,
         deadline,
-        { value: paymentAmount }
+        {
+          value: paymentAmount,
+          gasPrice: config.BLOCKCHAIN.GAS_SETTINGS.gasPrice,
+          gasLimit: config.BLOCKCHAIN.GAS_SETTINGS.gasLimit,
+        }
       );
 
       await tx.wait();
-      console.log("✅ Task created on blockchain");
+      console.log("✅ Task created on Flow EVM Testnet");
       return tx.hash;
     } catch (error) {
       console.error("❌ Failed to create task:", error);
@@ -313,11 +378,15 @@ export class BlockchainService {
 
       const tx = await this.orchestrationContract.submitTaskResult(
         taskId,
-        outputHash
+        outputHash,
+        {
+          gasPrice: config.BLOCKCHAIN.GAS_SETTINGS.gasPrice,
+          gasLimit: config.BLOCKCHAIN.GAS_SETTINGS.gasLimit,
+        }
       );
       await tx.wait();
 
-      console.log("✅ Task result submitted on blockchain");
+      console.log("✅ Task result submitted on Flow EVM Testnet");
       return tx.hash;
     } catch (error) {
       console.error("❌ Failed to submit task result:", error);
@@ -349,15 +418,28 @@ export class BlockchainService {
     }
   }
 
+  getNetworkInfo() {
+    return {
+      name: FLOW_EVM_CONFIG.NETWORK_NAME,
+      chainId: FLOW_EVM_CONFIG.CHAIN_ID,
+      rpcUrl: this.rpcUrl,
+      blockExplorer: FLOW_EVM_CONFIG.BLOCK_EXPLORER,
+      contracts: CONTRACT_ADDRESSES,
+    };
+  }
+
   /**
    * Integration Helper Methods
    */
 
-  // Convert blockchain agent to orchestrator agent format
-  blockchainToOrchestratorAgent(
+  // Convert blockchain agent to orchestrator agent format with reputation data
+  async blockchainToOrchestratorAgent(
     blockchainAgent: BlockchainAgent,
     metadata?: any
-  ): any {
+  ): Promise<any> {
+    // Get reputation data from blockchain
+    const reputation = await this.getReputationData(blockchainAgent.wallet);
+
     return {
       name: metadata?.name || `Agent ${blockchainAgent.wallet.slice(0, 8)}`,
       url: blockchainAgent.agentUrl,
@@ -369,20 +451,31 @@ export class BlockchainService {
       pricing: {
         model: "per-task",
         amount: Number(ethers.formatEther(blockchainAgent.baseCostPerTask)),
-        currency: "ETH",
+        currency: "FLOW",
         unit: "task",
       },
       rating: {
-        score: 0, // Will be populated from reputation data
-        reviews: 0,
+        score: reputation?.averageRating || 0,
+        reviews: reputation?.totalTasks || 0,
         lastUpdated: new Date().toISOString(),
       },
       performance: {
-        avgResponseTime: 0, // Will be populated from reputation data
+        avgResponseTime: reputation?.averageLatency || 0,
         uptime: blockchainAgent.isActive ? 100 : 0,
-        successRate: 0, // Will be populated from reputation data
+        successRate: reputation
+          ? (reputation.successfulTasks / Math.max(reputation.totalTasks, 1)) *
+            100
+          : 0,
       },
       previewURI: metadata?.previewURI || blockchainAgent.metadataURI,
+      // Blockchain specific data
+      blockchain: {
+        address: blockchainAgent.wallet,
+        registeredAt: blockchainAgent.registeredAt,
+        agentType: blockchainAgent.agentType,
+        owner: blockchainAgent.agentOwner,
+        reputation: reputation,
+      },
     };
   }
 
@@ -399,12 +492,15 @@ export class BlockchainService {
   }
 }
 
-// Factory function to create blockchain service
+// Factory function to create blockchain service with Flow EVM Testnet config
 export function createBlockchainService(
   rpcUrl?: string,
   privateKey?: string
 ): BlockchainService {
-  return new BlockchainService(rpcUrl, privateKey);
+  return new BlockchainService(
+    rpcUrl || config.BLOCKCHAIN.RPC_URL,
+    privateKey || config.BLOCKCHAIN.PRIVATE_KEY
+  );
 }
 
 export default BlockchainService;

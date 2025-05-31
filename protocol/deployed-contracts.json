@@ -1,0 +1,60 @@
+{
+  "network": "Flow EVM Testnet",
+  "chainId": 545,
+  "rpcUrl": "https://testnet.evm.nodes.onflow.org",
+  "blockExplorer": "https://evm-testnet.flowscan.io",
+  "deployedAt": "2025-01-03",
+  "deployer": "0x09fAF606dC609687792847662B0Af4E4C4F4995B",
+  "contracts": {
+    "AgentRegistry": {
+      "address": "0x0dcCe2649be92E4457d9d381D8173f3fD7FcAA68",
+      "description": "Registry for AI agents, stores metadata and enables discovery",
+      "deploymentTx": "0x1ef4f393f0c8f4c6b5619c77a2735a4ddf4a258ed1d5ca2e9ba3f51627713489"
+    },
+    "ReputationLayer": {
+      "address": "0xDE36662dD44343a65a60FB6c1927A2FCB042936e",
+      "description": "Tracks agent performance and reputation scores",
+      "deploymentTx": "0xa0c83cd166dfeb9dc5f991773e86ca6dd737101880132d18364c2940846ded4c"
+    },
+    "OrchestrationContract": {
+      "address": "0xBE0caD36B87c428a2d67e73f6738B321A86547df",
+      "description": "Main orchestration contract for task management - DEPLOYED SUCCESSFULLY!",
+      "deploymentTx": "0xb2c99a3303f856a0eadfd8835a60455bc346ef1401cf719831042d1c2cfea285"
+    }
+  },
+  "gasSettings": {
+    "gasPrice": "2000000000",
+    "gasPriceGwei": "2",
+    "description": "Recommended gas price for Flow EVM Testnet transactions"
+  },
+  "deploymentOptimization": {
+    "issue": "Forge hangs waiting for transaction confirmations on Flow EVM Testnet",
+    "solutions": [
+      "Use --skip-simulation flag to skip transaction simulation",
+      "Use --legacy flag for legacy transaction format",
+      "Use --timeout 30 to limit confirmation wait time",
+      "Use --confirmations 1 to require fewer confirmations"
+    ],
+    "fastDeployCommand": "forge script script/DeployFlowTestnet.s.sol:DeployFlowTestnet --rpc-url https://testnet.evm.nodes.onflow.org --gas-price 2000000000 --broadcast --skip-simulation --legacy --timeout 30 --confirmations 1"
+  },
+  "orchestratorIntegration": {
+    "privateKey": "MY_METAMASK_PRIVATE_KEY_WITH_FLOW_TESTNET",
+    "rpcEndpoint": "https://testnet.evm.nodes.onflow.org",
+    "agentUrls": [
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://localhost:3003",
+      "http://localhost:3004",
+      "http://localhost:3005",
+      "http://localhost:3006"
+    ]
+  },
+  "status": "✅ DEPLOYMENT COMPLETE",
+  "nextSteps": [
+    "✅ All contracts successfully deployed to Flow EVM Testnet",
+    "Update orchestrator config with these contract addresses",
+    "Start agent servers on ports 3001-3006",
+    "Register agents using their actual wallet addresses",
+    "Configure MCP agents (Akave, etc.)"
+  ]
+}

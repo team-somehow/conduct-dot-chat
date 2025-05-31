@@ -1,0 +1,13 @@
+{
+  "networks": {
+    "flow-testnet": {
+      "name": "Flow EVM Testnet",
+      "description": "The public RPC url for Flow Testnet",
+      "rpcUrl": "https://testnet.evm.nodes.onflow.org",
+      "chainId": 545,
+      "currencySymbol": "FLOW",
+      "blockExplorer": "https://evm-testnet.flowscan.io",
+      "faucet": "https://testnet-faucet.onflow.org/fund-account"
+    }
+  }
+}
