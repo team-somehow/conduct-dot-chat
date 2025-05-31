@@ -23,7 +23,7 @@ const BlockscoutTransactionWidget = ({ txHash }: Props) => {
     };
 
     fetchTransaction();
-  }, [fetchTransactionDetails, txHash]);
+  }, []);
 
   if (!transaction) {
     return <div className="text-gray-600">Loading transaction...</div>;
