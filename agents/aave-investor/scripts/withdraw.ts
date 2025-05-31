@@ -17,6 +17,7 @@ async function testWithdraw() {
     wallet
   );
 
+  console.log("Withdrawing token...");
   // Call withdraw on the contract
   const withdrawTx = await aaveInvestor.withdrawAll();
   await withdrawTx.wait();

@@ -31,6 +31,7 @@ async function testDeposit() {
     aaveInvestorAddress
   );
   if (allowance < ethers.parseEther("1")) {
+    console.log("Approving token...");
     const approveTx = await ERC20TokenContract.approve(
       aaveInvestorAddress,
       ethers.MaxUint256
@@ -38,6 +39,7 @@ async function testDeposit() {
     await approveTx.wait();
   }
 
+  console.log("Depositing token...");
   // Call deposit on the contract
   const depositTx = await aaveInvestor.deposit(ethers.parseEther("1"));
   await depositTx.wait();
