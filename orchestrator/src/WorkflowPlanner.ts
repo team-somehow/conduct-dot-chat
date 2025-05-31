@@ -99,21 +99,36 @@ ${i + 1}. ${agent.name}
 INSTRUCTIONS:
 1. Analyze the user request to understand what they want to accomplish
 2. Determine which agents are needed and in what order
-3. Design input/output mappings to chain agents together effectively
-4. Consider if agents should run sequentially (one after another) or in parallel
+3. For multi-agent workflows, use "sequential" execution mode to enable data flow between agents
+4. Design simple input/output mappings that reference actual user input fields or previous step outputs
 5. Create meaningful step descriptions
+
+EXECUTION MODE RULES:
+- Use "sequential" for workflows where one agent's output feeds into the next agent's input
+- Use "parallel" only when agents can run independently without dependencies
+- Use "conditional" for if/then logic workflows
+
+INPUT MAPPING RULES:
+- For first step: map directly from user input fields (e.g., "name": "name")
+- For subsequent steps: map from previous step outputs (e.g., "prompt": "generatedGreeting")
+- Keep mappings simple - avoid complex expressions or concatenations
+- Use empty object {} to pass through all user input
+
+OUTPUT MAPPING RULES:
+- Map agent outputs to workflow variables for use in subsequent steps
+- Use descriptive variable names (e.g., "greeting": "personalizedGreeting")
 
 RESPONSE FORMAT (JSON only):
 {
   "reasoning": "Brief explanation of your workflow design decisions",
-  "executionMode": "sequential" | "parallel" | "conditional",
+  "executionMode": "sequential",
   "steps": [
     {
       "stepId": "step_1",
       "agentName": "exact agent name from available agents",
       "description": "what this step accomplishes",
       "inputMapping": {
-        "agentInputField": "sourceVariable or userInput field"
+        "agentInputField": "userInputField"
       },
       "outputMapping": {
         "agentOutputField": "workflowVariableName"
@@ -122,16 +137,15 @@ RESPONSE FORMAT (JSON only):
   ]
 }
 
-EXAMPLES OF GOOD INPUT/OUTPUT MAPPINGS:
-- For first step: "inputMapping": {"name": "userName"} maps user's "name" field to agent's "name" input
-- For chained steps: "inputMapping": {"prompt": "generatedGreeting"} uses output from previous step
-- For output: "outputMapping": {"greeting": "personalizedMessage"} saves agent's "greeting" output as "personalizedMessage"
+EXAMPLES FOR MULTI-AGENT NFT WORKFLOW:
+Step 1 (Greeting): inputMapping: {"name": "name", "language": "language"}, outputMapping: {"greeting": "personalizedGreeting"}
+Step 2 (Image): inputMapping: {"prompt": "imageTheme"}, outputMapping: {"imageUrl": "generatedImageUrl"}  
+Step 3 (NFT): inputMapping: {"imageUrl": "generatedImageUrl", "collectionName": "collectionName", "recipientAddress": "recipientAddress"}, outputMapping: {"nftDetails": "finalNFT"}
 
 IMPORTANT:
+- Always use "sequential" for multi-agent workflows
 - Only use agents that are actually available in the list above
-- Ensure input mappings reference valid fields from user input or previous step outputs
-- Make sure output mappings capture useful data for subsequent steps
-- If user wants greeting + image, run greeting first, then use greeting text as image prompt
+- Keep input mappings simple - reference user input fields or previous outputs directly
 - Respond with ONLY the JSON object, no additional text
 `;
   }

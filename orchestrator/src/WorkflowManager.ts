@@ -133,124 +133,11 @@ export class WorkflowManager {
   }
 
   // Private helper methods
-  private async analyzeIntentAndCreateSteps(
-    userIntent: UserIntent,
-    availableAgents: any[]
-  ): Promise<WorkflowStep[]> {
-    const intent = userIntent.description.toLowerCase();
-    const steps: WorkflowStep[] = [];
-
-    // Check for multi-agent workflows (hello + image)
-    const needsGreeting =
-      intent.includes("hello") ||
-      intent.includes("greet") ||
-      intent.includes("welcome");
-    const needsImage =
-      intent.includes("image") ||
-      intent.includes("picture") ||
-      intent.includes("generate") ||
-      intent.includes("create");
-    const isChained =
-      intent.includes("then") ||
-      intent.includes("and then") ||
-      (needsGreeting && needsImage);
-
-    // Find available agents
-    const greetingAgent = availableAgents.find(
-      (agent) =>
-        agent.name.toLowerCase().includes("hello") ||
-        agent.name.toLowerCase().includes("greet")
-    );
-
-    const imageAgent = availableAgents.find(
-      (agent) =>
-        agent.name.toLowerCase().includes("image") ||
-        agent.name.toLowerCase().includes("dall") ||
-        agent.description.toLowerCase().includes("image")
-    );
-
-    // Create multi-agent workflow if both agents are needed
-    if (isChained && greetingAgent && imageAgent) {
-      console.log("🔗 Creating multi-agent workflow: Greeting → Image");
-
-      // Step 1: Generate greeting FIRST
-      steps.push({
-        stepId: "step_1",
-        agentUrl: greetingAgent.url,
-        agentName: greetingAgent.name,
-        description: "Generate personalized greeting",
-        inputMapping: { name: "userName" },
-        outputMapping: { greeting: "generatedGreeting" },
-      });
-
-      // Step 2: Generate image based on greeting SECOND
-      steps.push({
-        stepId: "step_2",
-        agentUrl: imageAgent.url,
-        agentName: imageAgent.name,
-        description: "Generate image based on greeting text",
-        inputMapping: { prompt: "generatedGreeting" }, // Use greeting as prompt
-        outputMapping: { imageUrl: "finalImage" },
-      });
-    }
-    // Single agent workflows
-    else if (needsImage && imageAgent && !needsGreeting) {
-      steps.push({
-        stepId: "step_1",
-        agentUrl: imageAgent.url,
-        agentName: imageAgent.name,
-        description: "Generate image based on user prompt",
-        inputMapping: {},
-        outputMapping: { imageUrl: "generatedImage" },
-      });
-    } else if (needsGreeting && greetingAgent && !needsImage) {
-      steps.push({
-        stepId: "step_1",
-        agentUrl: greetingAgent.url,
-        agentName: greetingAgent.name,
-        description: "Generate personalized greeting",
-        inputMapping: { name: "userName" },
-        outputMapping: { greeting: "personalizedGreeting" },
-      });
-    }
-    // Fallback: use the first available agent
-    else if (steps.length === 0 && availableAgents.length > 0) {
-      const fallbackAgent = availableAgents[0];
-      steps.push({
-        stepId: "step_1",
-        agentUrl: fallbackAgent.url,
-        agentName: fallbackAgent.name,
-        description: "Process user request with available agent",
-        inputMapping: {},
-        outputMapping: {},
-      });
-    }
-
-    return steps;
-  }
-
   private determineExecutionMode(
     userIntent: UserIntent,
     steps: WorkflowStep[]
   ): "sequential" | "parallel" | "conditional" {
-    const intent = userIntent.description.toLowerCase();
-
-    if (
-      intent.includes("then") ||
-      intent.includes("after") ||
-      intent.includes("followed by")
-    ) {
-      return "sequential";
-    } else if (intent.includes("and") && steps.length > 1) {
-      return "parallel";
-    } else if (
-      intent.includes("if") ||
-      intent.includes("when") ||
-      intent.includes("depending")
-    ) {
-      return "conditional";
-    }
-
+    // Default to sequential for multi-step workflows
     return steps.length > 1 ? "sequential" : "sequential";
   }
 
@@ -416,8 +303,10 @@ export class WorkflowManager {
           ) {
             mappedInput[inputKey] = defaultInput.name;
           } else {
-            console.warn(
-              `⚠️  Could not find variable '${variableName}' for input key '${inputKey}'`
+            // Treat as literal value if not found as a variable
+            mappedInput[inputKey] = variableName;
+            console.log(
+              `📝 Using literal value '${variableName}' for input key '${inputKey}'`
             );
           }
         }
