@@ -1,17 +1,17 @@
-# Node modules
-/node_modules
+node_modules
+.env
 
-# Compilation output
-/dist
-
-# pnpm deploy output
-/bundle
-
-# Hardhat Build Artifacts
+# Hardhat files
+/cache
 /artifacts
 
-# Hardhat compilation (v2) support directory
-/cache
+# TypeChain files
+/typechain
+/typechain-types
 
-# Typechain output
-/types
+# solidity-coverage files
+/coverage
+/coverage.json
+
+# Hardhat Ignition default folder for deployments against a local node
+ignition/deployments/chain-31337
