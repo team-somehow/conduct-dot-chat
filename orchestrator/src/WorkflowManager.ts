@@ -9,16 +9,21 @@ import { JobRunner } from "./JobRunner";
 import { WorkflowPlanner } from "./WorkflowPlanner";
 import { loadAgent } from "./agents.http";
 import { AGENTS } from "./config";
+import OpenAI from "openai";
 
 export class WorkflowManager {
   private workflows: Map<string, WorkflowDefinition> = new Map();
   private executions: Map<string, WorkflowExecution> = new Map();
   private jobRunner: JobRunner;
   private workflowPlanner: WorkflowPlanner;
+  private openai: OpenAI;
 
   constructor(jobRunner: JobRunner) {
     this.jobRunner = jobRunner;
     this.workflowPlanner = new WorkflowPlanner();
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
   }
 
   // Analyze user intent and create a workflow
@@ -310,6 +315,11 @@ export class WorkflowManager {
   ): Promise<void> {
     let currentInput = input;
     const workflowVariables: Record<string, any> = { userInput: input };
+    const workflowContext = {
+      userIntent: workflow.userIntent,
+      workflowVariables,
+      description: workflow.description,
+    };
 
     for (let i = 0; i < workflow.steps.length; i++) {
       const step = workflow.steps[i];
@@ -322,8 +332,52 @@ export class WorkflowManager {
         stepResult.status = "running";
         stepResult.startedAt = Date.now();
 
-        // Map input based on step configuration
-        mappedInput = this.mapStepInput(step, workflowVariables, currentInput);
+        // Get the target agent's input schema for intelligent transformation
+        let targetInputSchema: any = {};
+        try {
+          // Fetch the raw schema from the agent's meta endpoint
+          const fetch = require("node-fetch");
+          const metaResponse = await fetch(`${step.agentUrl}/meta`);
+          if (metaResponse.ok) {
+            const meta = await metaResponse.json();
+            targetInputSchema = meta.inputSchema || {};
+            console.log(
+              `📋 Fetched input schema for ${step.agentName}:`,
+              JSON.stringify(targetInputSchema, null, 2)
+            );
+          } else {
+            console.warn(
+              `⚠️ Could not fetch meta for ${step.agentUrl}: ${metaResponse.status}`
+            );
+          }
+        } catch (schemaError) {
+          console.warn(
+            `⚠️ Could not fetch input schema for ${step.agentUrl}:`,
+            schemaError
+          );
+        }
+
+        // Use LLM to intelligently transform input from previous step
+        if (i === 0) {
+          // For the first step, use the original mapping approach with default input
+          mappedInput = this.mapStepInput(
+            step,
+            workflowVariables,
+            currentInput
+          );
+        } else {
+          // For subsequent steps, use LLM transformation
+          console.log(
+            `🔄 Transforming output from step ${i} to input for step ${i + 1}`
+          );
+          mappedInput = await this.llmTransformStepInput(
+            step,
+            currentInput, // Previous step's output
+            targetInputSchema,
+            workflowContext
+          );
+        }
+
         stepResult.input = mappedInput;
 
         // Execute the step
@@ -338,13 +392,26 @@ export class WorkflowManager {
 
         // Map output to workflow variables
         if (step.outputMapping) {
+          console.log(
+            `🔍 Processing outputMapping for ${step.stepId}:`,
+            step.outputMapping
+          );
+          console.log(`🔍 Agent result:`, result);
           for (const [outputKey, variableName] of Object.entries(
             step.outputMapping
           )) {
             if (result && typeof result === "object" && outputKey in result) {
               workflowVariables[variableName] = (result as any)[outputKey];
+              console.log(
+                `✅ Set workflow variable '${variableName}' = ${workflowVariables[variableName]}`
+              );
+            } else {
+              console.log(
+                `❌ Failed to set workflow variable '${variableName}': outputKey '${outputKey}' not found in result`
+              );
             }
           }
+          console.log(`🔍 Current workflow variables:`, workflowVariables);
         }
 
         // Use result as input for next step
@@ -489,22 +556,33 @@ export class WorkflowManager {
     workflowVariables: Record<string, any>,
     defaultInput: any
   ): any {
+    console.log(`🔍 Mapping inputs for ${step.stepId}`);
+    console.log(
+      `🔍 Available workflow variables:`,
+      Object.keys(workflowVariables)
+    );
+    console.log(`🔍 Input mapping:`, step.inputMapping);
+
     if (!step.inputMapping || Object.keys(step.inputMapping).length === 0) {
       return defaultInput;
     }
 
     const mappedInput: any = {};
 
-    for (const [inputKey, variableName] of Object.entries(step.inputMapping)) {
-      if (variableName in workflowVariables) {
-        // Use value from workflow variables (from previous steps)
-        mappedInput[inputKey] = workflowVariables[variableName];
+    for (const [inputKey, variableNameOrValue] of Object.entries(
+      step.inputMapping
+    )) {
+      // Handle simple variable mapping
+      if (
+        typeof variableNameOrValue === "string" &&
+        variableNameOrValue in workflowVariables
+      ) {
+        mappedInput[inputKey] = workflowVariables[variableNameOrValue];
         console.log(
-          `🔗 Mapping ${inputKey} from workflow variable '${variableName}': ${workflowVariables[variableName]}`
+          `🔗 Mapping ${inputKey} from workflow variable '${variableNameOrValue}': ${workflowVariables[variableNameOrValue]}`
         );
-      } else if (variableName === "userInput") {
-        // Special case: if we're mapping from "userInput" and the input has the same key,
-        // extract that specific value instead of the whole object
+      } else if (variableNameOrValue === "userInput") {
+        // Special case: userInput mapping
         if (
           defaultInput &&
           typeof defaultInput === "object" &&
@@ -512,33 +590,16 @@ export class WorkflowManager {
         ) {
           mappedInput[inputKey] = defaultInput[inputKey];
         } else {
-          // Otherwise use the entire input
           mappedInput[inputKey] = defaultInput;
         }
       } else {
-        // Check if the variable name exists as a key in defaultInput
-        if (
-          defaultInput &&
-          typeof defaultInput === "object" &&
-          variableName in defaultInput
-        ) {
-          mappedInput[inputKey] = defaultInput[variableName];
-        } else {
-          // Try to extract from user input context
-          if (
-            variableName === "userName" &&
-            defaultInput &&
-            defaultInput.name
-          ) {
-            mappedInput[inputKey] = defaultInput.name;
-          } else {
-            // Treat as literal value if not found as a variable
-            mappedInput[inputKey] = variableName;
-            console.log(
-              `📝 Using literal value '${variableName}' for input key '${inputKey}'`
-            );
-          }
-        }
+        // Handle complex objects and arrays by recursively replacing variable references
+        mappedInput[inputKey] = this.replaceVariablesInValue(
+          variableNameOrValue,
+          workflowVariables,
+          defaultInput
+        );
+        console.log(`📝 Mapped ${inputKey} with value:`, mappedInput[inputKey]);
       }
     }
 
@@ -546,6 +607,209 @@ export class WorkflowManager {
       Object.keys(mappedInput).length > 0 ? mappedInput : defaultInput;
     console.log(`📤 Step input mapping result:`, result);
     return result;
+  }
+
+  // Helper function to recursively replace variable references in nested structures
+  private replaceVariablesInValue(
+    value: any,
+    workflowVariables: Record<string, any>,
+    defaultInput: any
+  ): any {
+    if (typeof value === "string") {
+      // If it's a variable name, replace with the variable value
+      if (value in workflowVariables) {
+        console.log(
+          `🔗 Replacing variable '${value}' with: ${workflowVariables[value]}`
+        );
+        return workflowVariables[value];
+      } else if (
+        defaultInput &&
+        typeof defaultInput === "object" &&
+        value in defaultInput
+      ) {
+        return defaultInput[value];
+      } else if (value === "userName" && defaultInput && defaultInput.name) {
+        return defaultInput.name;
+      } else {
+        // Return as literal value
+        console.log(`📝 Using literal value '${value}'`);
+        return value;
+      }
+    } else if (Array.isArray(value)) {
+      // Recursively process arrays
+      return value.map((item) =>
+        this.replaceVariablesInValue(item, workflowVariables, defaultInput)
+      );
+    } else if (value && typeof value === "object") {
+      // Recursively process objects
+      const processedObject: any = {};
+      for (const [key, nestedValue] of Object.entries(value)) {
+        processedObject[key] = this.replaceVariablesInValue(
+          nestedValue,
+          workflowVariables,
+          defaultInput
+        );
+      }
+      return processedObject;
+    } else {
+      // Return primitive values as-is
+      return value;
+    }
+  }
+
+  /**
+   * Use LLM to intelligently transform the output from the previous step
+   * to match the input schema of the current step
+   */
+  private async llmTransformStepInput(
+    step: WorkflowStep,
+    previousStepOutput: any,
+    targetInputSchema: any,
+    workflowContext: any
+  ): Promise<any> {
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn("⚠️ No OpenAI API key, falling back to manual mapping");
+      return this.mapStepInput(
+        step,
+        workflowContext.workflowVariables,
+        previousStepOutput
+      );
+    }
+
+    try {
+      console.log(`🧠 Using LLM to transform input for ${step.stepId}`);
+      console.log(
+        `📤 Previous step output:`,
+        JSON.stringify(previousStepOutput, null, 2)
+      );
+      console.log(
+        `📋 Target input schema:`,
+        JSON.stringify(targetInputSchema, null, 2)
+      );
+
+      const prompt = this.buildTransformationPrompt(
+        step,
+        previousStepOutput,
+        targetInputSchema,
+        workflowContext
+      );
+
+      const completion = await this.openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert data transformation assistant. Your job is to intelligently convert data from one format to another based on schemas and context. Always return valid JSON that matches the target schema exactly. Do not include any comments or explanations, only return the transformed JSON data.`,
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error("No response from LLM");
+      }
+
+      console.log(`🤖 LLM transformation response:`, response);
+
+      const transformedInput = JSON.parse(response);
+      console.log(
+        `✅ Successfully transformed input for ${step.stepId}:`,
+        transformedInput
+      );
+
+      return transformedInput;
+    } catch (error: any) {
+      console.error(
+        `❌ LLM transformation failed for ${step.stepId}:`,
+        error.message
+      );
+      console.log(`🔄 Falling back to manual mapping`);
+
+      // Fallback to the original mapping approach
+      return this.mapStepInput(
+        step,
+        workflowContext.workflowVariables,
+        previousStepOutput
+      );
+    }
+  }
+
+  /**
+   * Build a detailed prompt for the LLM to transform data between workflow steps
+   */
+  private buildTransformationPrompt(
+    step: WorkflowStep,
+    previousOutput: any,
+    targetSchema: any,
+    workflowContext: any
+  ): string {
+    return `
+=== DATA TRANSFORMATION TASK ===
+
+You need to transform the output from the previous workflow step into the correct input format for the next step.
+
+CURRENT STEP: ${step.stepId} - ${step.agentName}
+DESCRIPTION: ${step.description}
+
+=== PREVIOUS STEP OUTPUT ===
+${JSON.stringify(previousOutput, null, 2)}
+
+=== TARGET INPUT SCHEMA ===
+The next step expects input in this exact format:
+${JSON.stringify(targetSchema, null, 2)}
+
+=== WORKFLOW CONTEXT ===
+User Intent: ${workflowContext.userIntent}
+Available Variables: ${JSON.stringify(
+      Object.keys(workflowContext.workflowVariables)
+    )}
+
+=== TRANSFORMATION RULES ===
+
+1. **Required Fields**: Ensure ALL required fields from the target schema are provided
+2. **Data Types**: Match the exact data types specified in the schema
+3. **Field Mapping**: Map semantically equivalent fields (e.g., "imageUrl" → "image", "metadataUrl" → "tokenURI")
+4. **Array Structures**: For complex arrays like NFT mints, construct the proper structure
+5. **Default Values**: Use reasonable defaults for missing optional fields
+6. **Context Awareness**: Use the workflow context and user intent to fill in missing information
+
+=== SPECIAL CASES ===
+
+**For NFT Deployer Agent:**
+- If the schema requires a "mints" array, create it with the recipient address and metadata URL
+- Map "metadataUrl" from previous step to "metadataUrl" in the mints array
+- Use chainId 11155111 (Sepolia testnet) as default
+- Extract collection name and symbol from context
+
+**For Metadata Creator:**
+- Map "imageUrl" or "image" fields correctly
+- Extract name and description from context or previous output
+
+**For Image Generation:**
+- Use descriptive prompts based on user intent
+- Set appropriate size, quality, and style parameters
+
+=== OUTPUT REQUIREMENTS ===
+
+Return ONLY valid JSON that exactly matches the target schema structure. Do not include any explanations, comments, or additional text. The output must be immediately usable as input to the next workflow step.
+
+Example output format:
+{
+  "field1": "value1",
+  "field2": ["array", "values"],
+  "field3": {
+    "nested": "object"
+  }
+}
+
+Transform the data now:
+`;
   }
 
   private generateWorkflowId(): string {

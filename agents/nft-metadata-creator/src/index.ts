@@ -218,7 +218,7 @@ app.post("/run", async (req: Request, res: Response) => {
     if (!Array.isArray(attributes)) attributes = [];
 
     // Standard OpenSea NFT metadata JSON
-    const metadata = {
+    const metadata: any = {
       name,
       description: finalDescription,
       image: imageUrl,

@@ -202,6 +202,11 @@ For requests involving NFT creation, minting, or collections, use this sequence:
 2. NFT Metadata Creator Agent → creates OpenSea-compliant metadata JSON from image + details
 3. NFT Deployer Agent → mints/deploys NFT using the metadata URL
 
+**IMPORTANT FOR NFT WORKFLOWS:**
+- Step 2 outputMapping should map "metadataUrl" to "nft_metadata_url"
+- Step 3 inputMapping should map "metadataUrl" to "nft_metadata_url" (inside the mints array)
+- For complex fields like arrays, use simple variable references that will be dynamically constructed
+
 **IMAGE WORKFLOWS:**
 - Use Image Generation agents for creating new images
 - Pass generated imageUrl to subsequent agents that need images

@@ -135,8 +135,7 @@ app.get("/meta", (req: Request, res: Response) => {
 });
 
 // POST /run - Execute the agent logic (MAHA contract requirement)
-// Set to /run1 for testing, so that master agent doesn't call it accidentally
-app.post("/run1", async (req: Request, res: Response) => {
+app.post("/run", async (req: Request, res: Response) => {
   try {
     const { name, symbol, mints, chainId } = req.body;
 
