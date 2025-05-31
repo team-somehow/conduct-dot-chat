@@ -1,43 +1,43 @@
-import React, { useEffect } from 'react';
-import { useWorkflowStore } from '../store/workflow';
+import React, { useEffect } from "react";
+import { useWorkflowStore } from "../store/workflow";
 
 const TimelineBar: React.FC = () => {
-  const { 
-    interactionStep, 
-    isPaused, 
-    setInteractionStep, 
+  const {
+    interactionStep,
+    isPaused,
+    setInteractionStep,
     togglePause,
     advanceNode,
-    startExecutionSimulation 
+    startExecutionSimulation,
   } = useWorkflowStore();
 
   const steps = [
-    'Start',
-    'GPT-4',
-    'Coordinate',
-    'Stable Diffusion',
-    'Complete'
+    "Start",
+    "GPT-4",
+    "Coordinate",
+    "Stable Diffusion",
+    "Complete",
   ];
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === "Space") {
         e.preventDefault();
         togglePause();
-      } else if (e.code === 'ArrowLeft') {
+      } else if (e.code === "ArrowLeft") {
         e.preventDefault();
         const newStep = Math.max(0, interactionStep - 1);
         setInteractionStep(newStep);
-      } else if (e.code === 'ArrowRight') {
+      } else if (e.code === "ArrowRight") {
         e.preventDefault();
         const newStep = Math.min(steps.length - 1, interactionStep + 1);
         setInteractionStep(newStep);
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
   }, [interactionStep, togglePause, setInteractionStep]);
 
   const handleStepClick = (stepIndex: number) => {
@@ -64,17 +64,19 @@ const TimelineBar: React.FC = () => {
                 onClick={() => handleStepClick(index)}
                 className={`w-4 h-4 border-2 border-black transition-all duration-200 ${
                   index === interactionStep
-                    ? 'bg-[#FF5484] scale-125'
+                    ? "bg-[#FF5484] scale-125"
                     : index < interactionStep
-                    ? 'bg-[#7C82FF]'
-                    : 'bg-gray-300'
+                    ? "bg-[#7C82FF]"
+                    : "bg-gray-300"
                 } hover:scale-110`}
                 title={step}
               />
               {index < steps.length - 1 && (
-                <div className={`w-8 h-0.5 mx-2 ${
-                  index < interactionStep ? 'bg-[#7C82FF]' : 'bg-gray-300'
-                }`} />
+                <div
+                  className={`w-8 h-0.5 mx-2 ${
+                    index < interactionStep ? "bg-[#7C82FF]" : "bg-gray-300"
+                  }`}
+                />
               )}
             </div>
           ))}
@@ -89,7 +91,7 @@ const TimelineBar: React.FC = () => {
             onClick={handlePlayPause}
             className="bg-[#7C82FF] text-white font-black uppercase text-sm px-4 py-2 border-2 border-black shadow-neo hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-neo-sm transition-all duration-150"
           >
-            {isPaused ? '▶ PLAY' : '⏸ PAUSE'}
+            {isPaused ? "▶ PLAY" : "⏸ PAUSE"}
           </button>
         </div>
       </div>
@@ -104,4 +106,4 @@ const TimelineBar: React.FC = () => {
   );
 };
 
-export default TimelineBar; 
+export default TimelineBar;

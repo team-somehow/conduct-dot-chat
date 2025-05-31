@@ -73,7 +73,7 @@ interface WorkflowState {
   workflowId: string | null; // Store the created workflow ID
 
   // Edge state for CustomEdge component
-  edgeState: Record<string, 'IDLE' | 'RUNNING' | 'DONE'>;
+  edgeState: Record<string, "IDLE" | "RUNNING" | "DONE">;
 
   // Log data
   logs: LogLine[];
@@ -154,7 +154,7 @@ export const convertWorkflowToGraph = (
     if (!uniqueAgents.has(agentName)) {
       uniqueAgents.set(agentName, {
         ...step,
-        originalIndex: index
+        originalIndex: index,
       });
     }
   });
@@ -174,8 +174,8 @@ export const convertWorkflowToGraph = (
         "DALL-E 3 Image Generator": 0.15,
         "NFT Deployer": 0.08,
         "GPT-4": 0.12,
-        "Stable Diffusion": 0.10,
-        "Claude": 0.09,
+        "Stable Diffusion": 0.1,
+        Claude: 0.09,
       };
       return costMap[agentName] || 0.05 + Math.random() * 0.1;
     };
@@ -421,11 +421,10 @@ export const useWorkflowStore = create<WorkflowState>()(
 
           // Start the execution simulation which now includes orchestrator execution
           await get().startExecutionSimulation();
-
         } catch (error: any) {
           set({ error: error.message, isExecuting: false });
           get().addLog(`Execution failed: ${error.message}`, "error");
-          
+
           // If execution fails, fall back to demo simulation
           get().addLog("Falling back to demo simulation...", "info");
           await get().startExecutionSimulation();
@@ -448,15 +447,20 @@ export const useWorkflowStore = create<WorkflowState>()(
                   workflow: workflow,
                   execution: execution,
                   logs: get().logs,
-                  executionType: "api"
+                  executionType: "api",
                 };
-                
-                const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+
+                const summaryResponse = await orchestratorAPI.generateSummary(
+                  summaryRequest
+                );
                 set({ executionSummary: summaryResponse.summary });
                 get().addLog("Final AI summary generated", "success");
               }
             } catch (summaryError: any) {
-              get().addLog(`Failed to generate final summary: ${summaryError.message}`, "error");
+              get().addLog(
+                `Failed to generate final summary: ${summaryError.message}`,
+                "error"
+              );
             }
 
             set({
@@ -479,15 +483,20 @@ export const useWorkflowStore = create<WorkflowState>()(
                   workflow: workflow,
                   execution: execution,
                   logs: get().logs,
-                  executionType: "api"
+                  executionType: "api",
                 };
-                
-                const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+
+                const summaryResponse = await orchestratorAPI.generateSummary(
+                  summaryRequest
+                );
                 set({ executionSummary: summaryResponse.summary });
                 get().addLog("Error summary generated", "success");
               }
             } catch (summaryError: any) {
-              get().addLog(`Failed to generate error summary: ${summaryError.message}`, "error");
+              get().addLog(
+                `Failed to generate error summary: ${summaryError.message}`,
+                "error"
+              );
             }
 
             set({
@@ -593,41 +602,59 @@ export const useWorkflowStore = create<WorkflowState>()(
       },
       startExecutionSimulation: async () => {
         const { nodes, edges, workflow } = get();
-        
+
         if (!workflow || !workflow.steps || workflow.steps.length === 0) {
           get().addLog("❌ No workflow data available for simulation", "error");
           return;
         }
-        
+
         get().addLog("🚀 Starting dynamic workflow execution...", "info");
-        get().addLog(`📋 Executing workflow: ${workflow.name || 'Unnamed Workflow'}`, "info");
-        get().addLog(`🔗 Processing ${workflow.steps.length} steps with ${nodes.length} agents`, "info");
-        
+        get().addLog(
+          `📋 Executing workflow: ${workflow.name || "Unnamed Workflow"}`,
+          "info"
+        );
+        get().addLog(
+          `🔗 Processing ${workflow.steps.length} steps with ${nodes.length} agents`,
+          "info"
+        );
+
         // Call the orchestrator execute endpoint for each agent individually
         let realExecution: any = null;
         let realExecutionSummary: string | null = null;
         let realStepResults: any[] = [];
-        
+
         try {
-          get().addLog("🌐 Calling orchestrator execute endpoint for individual agents...", "info");
-          
+          get().addLog(
+            "🌐 Calling orchestrator execute endpoint for individual agents...",
+            "info"
+          );
+
           // Execute each workflow step individually using the /execute endpoint
           for (let i = 0; i < workflow.steps.length; i++) {
             const step = workflow.steps[i];
             try {
-              get().addLog(`🔄 Executing step ${i + 1}: ${step.agentName}...`, "info");
-              
+              get().addLog(
+                `🔄 Executing step ${i + 1}: ${step.agentName}...`,
+                "info"
+              );
+
               // Prepare input for this step - use the exact inputMapping from the workflow
-              const stepInput = step.inputMapping || { 
+              const stepInput = step.inputMapping || {
                 name: "User",
                 description: step.description,
-                userIntent: workflow.userIntent 
+                userIntent: workflow.userIntent,
               };
-              
-              get().addLog(`📤 Sending to ${step.agentUrl}: ${JSON.stringify(stepInput)}`, "info");
-              
-              const response = await orchestratorAPI.executeAgent(step.agentUrl, stepInput);
-              
+
+              get().addLog(
+                `📤 Sending to ${step.agentUrl}: ${JSON.stringify(stepInput)}`,
+                "info"
+              );
+
+              const response = await orchestratorAPI.executeAgent(
+                step.agentUrl,
+                stepInput
+              );
+
               // Store the real step result
               realStepResults.push({
                 stepId: step.stepId,
@@ -637,14 +664,29 @@ export const useWorkflowStore = create<WorkflowState>()(
                 input: stepInput,
                 output: response.result,
                 agentUrl: step.agentUrl,
-                agentName: step.agentName
+                agentName: step.agentName,
               });
-              
-              get().addLog(`✅ Step ${i + 1} completed: ${step.agentName}`, "success");
-              get().addLog(`📥 Response: ${JSON.stringify(response.result).substring(0, 200)}...`, "info");
+
+              get().addLog(
+                `✅ Step ${i + 1} completed: ${step.agentName}`,
+                "success"
+              );
+              get().addLog(
+                `📥 Response: ${JSON.stringify(response.result).substring(
+                  0,
+                  200
+                )}...`,
+                "info"
+              );
             } catch (stepError: any) {
-              get().addLog(`⚠️ Step ${i + 1} failed: ${stepError.message}`, "error");
-              get().addLog(`🔍 Error details: ${JSON.stringify(stepError)}`, "error");
+              get().addLog(
+                `⚠️ Step ${i + 1} failed: ${stepError.message}`,
+                "error"
+              );
+              get().addLog(
+                `🔍 Error details: ${JSON.stringify(stepError)}`,
+                "error"
+              );
               realStepResults.push({
                 stepId: step.stepId,
                 status: "failed",
@@ -653,189 +695,257 @@ export const useWorkflowStore = create<WorkflowState>()(
                 input: step.inputMapping || {},
                 error: stepError.message,
                 agentUrl: step.agentUrl,
-                agentName: step.agentName
+                agentName: step.agentName,
               });
             }
           }
-          
+
           // Create a consolidated execution result
           realExecution = {
-            executionId: `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            executionId: `exec_${Date.now()}_${Math.random()
+              .toString(36)
+              .substr(2, 9)}`,
             workflowId: workflow.workflowId,
-            status: realStepResults.every(r => r.status === "completed") ? "completed" : "failed",
-            startedAt: Date.now() - (realStepResults.length * 1000),
+            status: realStepResults.every((r) => r.status === "completed")
+              ? "completed"
+              : "failed",
+            startedAt: Date.now() - realStepResults.length * 1000,
             completedAt: Date.now(),
             input: { workflowId: workflow.workflowId },
             output: realStepResults[realStepResults.length - 1]?.output || {},
-            stepResults: realStepResults
+            stepResults: realStepResults,
           };
-          
-          get().addLog(`✅ All agents executed. Final status: ${realExecution.status}`, "success");
-          
+
+          get().addLog(
+            `✅ All agents executed. Final status: ${realExecution.status}`,
+            "success"
+          );
+
           // Store the real execution ID
           set({ executionId: realExecution.executionId });
-          
         } catch (error: any) {
-          get().addLog(`⚠️ Orchestrator execution failed: ${error.message}`, "error");
+          get().addLog(
+            `⚠️ Orchestrator execution failed: ${error.message}`,
+            "error"
+          );
           get().addLog("🎭 Continuing with visual simulation...", "info");
         }
-        
+
         // Helper functions for dynamic simulation
         const getAgentEmoji = (agentName: string): string => {
           const name = agentName.toLowerCase();
-          if (name.includes('dall') || name.includes('image') || name.includes('generate')) return '🎨';
-          if (name.includes('nft') || name.includes('deploy')) return '💎';
-          if (name.includes('gpt') || name.includes('claude') || name.includes('llm')) return '🧠';
-          if (name.includes('hello') || name.includes('greet')) return '👋';
-          if (name.includes('send') || name.includes('transfer')) return '📤';
-          if (name.includes('verify') || name.includes('check')) return '🔍';
-          if (name.includes('store') || name.includes('save')) return '💾';
-          return '⚡';
+          if (
+            name.includes("dall") ||
+            name.includes("image") ||
+            name.includes("generate")
+          )
+            return "🎨";
+          if (name.includes("nft") || name.includes("deploy")) return "💎";
+          if (
+            name.includes("gpt") ||
+            name.includes("claude") ||
+            name.includes("llm")
+          )
+            return "🧠";
+          if (name.includes("hello") || name.includes("greet")) return "👋";
+          if (name.includes("send") || name.includes("transfer")) return "📤";
+          if (name.includes("verify") || name.includes("check")) return "🔍";
+          if (name.includes("store") || name.includes("save")) return "💾";
+          return "⚡";
         };
-        
+
         const getProcessingTime = (agentName: string): number => {
           const name = agentName.toLowerCase();
-          if (name.includes('dall') || name.includes('image')) return 4000; // Image generation takes longer
-          if (name.includes('nft') || name.includes('deploy')) return 3500; // Blockchain operations
-          if (name.includes('gpt') || name.includes('claude')) return 2500; // LLM processing
+          if (name.includes("dall") || name.includes("image")) return 4000; // Image generation takes longer
+          if (name.includes("nft") || name.includes("deploy")) return 3500; // Blockchain operations
+          if (name.includes("gpt") || name.includes("claude")) return 2500; // LLM processing
           return 2000; // Default processing time
         };
-        
+
         const getProgressMessage = (agentName: string): string => {
           const name = agentName.toLowerCase();
-          if (name.includes('dall') || name.includes('image')) return 'Generating high-quality image...';
-          if (name.includes('nft') && name.includes('deploy')) return 'Preparing blockchain transaction...';
-          if (name.includes('gpt') || name.includes('claude')) return 'Processing natural language request...';
-          if (name.includes('hello') || name.includes('greet')) return 'Crafting personalized greeting...';
-          if (name.includes('send') || name.includes('transfer')) return 'Initiating transfer process...';
-          return 'Processing request...';
+          if (name.includes("dall") || name.includes("image"))
+            return "Generating high-quality image...";
+          if (name.includes("nft") && name.includes("deploy"))
+            return "Preparing blockchain transaction...";
+          if (name.includes("gpt") || name.includes("claude"))
+            return "Processing natural language request...";
+          if (name.includes("hello") || name.includes("greet"))
+            return "Crafting personalized greeting...";
+          if (name.includes("send") || name.includes("transfer"))
+            return "Initiating transfer process...";
+          return "Processing request...";
         };
-        
+
         const getCompletionMessage = (agentName: string): string => {
           const name = agentName.toLowerCase();
-          if (name.includes('dall') || name.includes('image')) return 'Image generated successfully!';
-          if (name.includes('nft') && name.includes('deploy')) return 'NFT deployed to blockchain!';
-          if (name.includes('gpt') || name.includes('claude')) return 'Text processing completed!';
-          if (name.includes('hello') || name.includes('greet')) return 'Greeting message created!';
-          if (name.includes('send') || name.includes('transfer')) return 'Transfer completed successfully!';
-          return 'Task completed successfully!';
+          if (name.includes("dall") || name.includes("image"))
+            return "Image generated successfully!";
+          if (name.includes("nft") && name.includes("deploy"))
+            return "NFT deployed to blockchain!";
+          if (name.includes("gpt") || name.includes("claude"))
+            return "Text processing completed!";
+          if (name.includes("hello") || name.includes("greet"))
+            return "Greeting message created!";
+          if (name.includes("send") || name.includes("transfer"))
+            return "Transfer completed successfully!";
+          return "Task completed successfully!";
         };
-        
-        const generateStepOutput = (step: any, index: number, realStepResult?: any): any => {
+
+        const generateStepOutput = (
+          step: any,
+          index: number,
+          realStepResult?: any
+        ): any => {
           // Use real step result if available
           if (realStepResult && realStepResult.output) {
             return realStepResult.output;
           }
-          
+
           const agentName = step.agentName.toLowerCase();
-          if (agentName.includes('dall') || agentName.includes('image')) {
+          if (agentName.includes("dall") || agentName.includes("image")) {
             return {
-              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+Image+${index + 1}`,
-              prompt: step.description || 'Generated image',
-              style: 'digital art'
+              imageUrl: `https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+Image+${
+                index + 1
+              }`,
+              prompt: step.description || "Generated image",
+              style: "digital art",
             };
           }
-          if (agentName.includes('nft')) {
+          if (agentName.includes("nft")) {
             return {
               nftAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
               tokenId: (index + 1).toString(),
               transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`,
-              explorerUrl: `https://etherscan.io/tx/0x${Math.random().toString(16).substr(2, 64)}`
+              explorerUrl: `https://etherscan.io/tx/0x${Math.random()
+                .toString(16)
+                .substr(2, 64)}`,
             };
           }
-          if (agentName.includes('hello') || agentName.includes('greet')) {
+          if (agentName.includes("hello") || agentName.includes("greet")) {
             return {
-              message: `Hello! Thank you for your participation. This is a personalized greeting generated for step ${index + 1}.`,
-              tone: 'friendly',
-              personalized: true
+              message: `Hello! Thank you for your participation. This is a personalized greeting generated for step ${
+                index + 1
+              }.`,
+              tone: "friendly",
+              personalized: true,
             };
           }
           return {
-            result: 'success',
+            result: "success",
             data: `Output from ${step.agentName}`,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         };
-        
-        const generateRealisticOutput = (workflow: any, realExecutionOutput?: any): any => {
+
+        const generateRealisticOutput = (
+          workflow: any,
+          realExecutionOutput?: any
+        ): any => {
           // Use real execution output if available
           if (realExecutionOutput) {
             return realExecutionOutput;
           }
-          
-          const hasImageAgent = workflow.steps.some((step: any) => 
-            step.agentName.toLowerCase().includes('dall') || 
-            step.agentName.toLowerCase().includes('image')
+
+          const hasImageAgent = workflow.steps.some(
+            (step: any) =>
+              step.agentName.toLowerCase().includes("dall") ||
+              step.agentName.toLowerCase().includes("image")
           );
-          const hasNFTAgent = workflow.steps.some((step: any) => 
-            step.agentName.toLowerCase().includes('nft') || 
-            step.agentName.toLowerCase().includes('deploy')
+          const hasNFTAgent = workflow.steps.some(
+            (step: any) =>
+              step.agentName.toLowerCase().includes("nft") ||
+              step.agentName.toLowerCase().includes("deploy")
           );
-          
+
           const output: any = {
             workflowId: workflow.workflowId,
             executionTime: workflow.steps.length * 5,
             stepsCompleted: workflow.steps.length,
-            status: 'completed'
+            status: "completed",
           };
-          
+
           if (hasImageAgent) {
-            output.imageUrl = "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+NFT+Image";
-            output.imageDescription = "AI-generated image based on user request";
+            output.imageUrl =
+              "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Generated+NFT+Image";
+            output.imageDescription =
+              "AI-generated image based on user request";
           }
-          
+
           if (hasNFTAgent) {
             output.nftAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
             output.tokenId = "1";
-            output.transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+            output.transactionHash = `0x${Math.random()
+              .toString(16)
+              .substr(2, 64)}`;
             output.explorerUrl = `https://etherscan.io/tx/${output.transactionHash}`;
             output.collectionName = "AI Generated Collection";
             output.tokenName = `AI NFT #${output.tokenId}`;
           }
-          
-          output.message = `Successfully executed ${workflow.name || 'workflow'} with ${workflow.steps.length} steps`;
+
+          output.message = `Successfully executed ${
+            workflow.name || "workflow"
+          } with ${workflow.steps.length} steps`;
           output.timestamp = Date.now();
-          
+
           return output;
         };
-        
+
         // Start with orchestrator if it exists, otherwise start with first node
-        const orchestratorNode = nodes.find(n => 
-          n.data?.label?.toLowerCase().includes('orchestrator') || 
-          n.data?.type?.toLowerCase().includes('coordinator')
+        const orchestratorNode = nodes.find(
+          (n) =>
+            n.data?.label?.toLowerCase().includes("orchestrator") ||
+            n.data?.type?.toLowerCase().includes("coordinator")
         );
-        
+
         const startingNode = orchestratorNode || nodes[0];
-        
+
         if (startingNode) {
           set({ activeNodeId: startingNode.id });
-          get().addLog(`🧠 ${startingNode.data?.label || 'Orchestrator'}: Analyzing workflow and coordinating agents...`, "info");
+          get().addLog(
+            `🧠 ${
+              startingNode.data?.label || "Orchestrator"
+            }: Analyzing workflow and coordinating agents...`,
+            "info"
+          );
         }
-        
+
         // Create a dynamic execution plan based on workflow steps
         const executeStep = (stepIndex: number) => {
           if (stepIndex >= workflow.steps.length) {
             // All steps completed
-            get().addLog("✅ All workflow steps completed successfully!", "success");
-            
+            get().addLog(
+              "✅ All workflow steps completed successfully!",
+              "success"
+            );
+
             // Generate final summary
             setTimeout(async () => {
               try {
                 if (workflow) {
                   let finalExecution: any;
                   let finalSummary: string;
-                  
+
                   if (realExecution) {
                     // Poll for the latest execution status if we have a real execution
                     try {
-                      const { execution: latestExecution } = await orchestratorAPI.getExecution(realExecution.executionId);
+                      const { execution: latestExecution } =
+                        await orchestratorAPI.getExecution(
+                          realExecution.executionId
+                        );
                       finalExecution = latestExecution;
-                      get().addLog("📊 Retrieved final execution results from orchestrator", "success");
+                      get().addLog(
+                        "📊 Retrieved final execution results from orchestrator",
+                        "success"
+                      );
                     } catch (pollError: any) {
-                      get().addLog(`⚠️ Could not poll execution status: ${pollError.message}`, "error");
+                      get().addLog(
+                        `⚠️ Could not poll execution status: ${pollError.message}`,
+                        "error"
+                      );
                       finalExecution = realExecution;
                     }
-                    
+
                     // Use the real summary if available, otherwise generate one
                     if (realExecutionSummary) {
                       finalSummary = realExecutionSummary;
@@ -847,14 +957,21 @@ export const useWorkflowStore = create<WorkflowState>()(
                           workflow: workflow,
                           execution: finalExecution,
                           logs: get().logs,
-                          executionType: "api"
+                          executionType: "api",
                         };
-                        
-                        get().addLog("🤖 Generating AI summary from orchestrator...", "info");
-                        const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+
+                        get().addLog(
+                          "🤖 Generating AI summary from orchestrator...",
+                          "info"
+                        );
+                        const summaryResponse =
+                          await orchestratorAPI.generateSummary(summaryRequest);
                         finalSummary = summaryResponse.summary;
                       } catch (summaryError: any) {
-                        get().addLog(`Failed to generate summary: ${summaryError.message}`, "error");
+                        get().addLog(
+                          `Failed to generate summary: ${summaryError.message}`,
+                          "error"
+                        );
                         finalSummary = `Workflow execution completed successfully with real orchestrator execution ID: ${finalExecution.executionId}`;
                       }
                     }
@@ -864,144 +981,220 @@ export const useWorkflowStore = create<WorkflowState>()(
                       executionId: `sim-${Date.now()}`,
                       workflowId: workflow.workflowId,
                       status: "completed" as const,
-                      startedAt: Date.now() - (workflow.steps.length * 5000), // 5 seconds per step
+                      startedAt: Date.now() - workflow.steps.length * 5000, // 5 seconds per step
                       completedAt: Date.now(),
-                      input: { userRequest: workflow.userIntent || workflow.description },
+                      input: {
+                        userRequest:
+                          workflow.userIntent || workflow.description,
+                      },
                       output: generateRealisticOutput(workflow),
-                      stepResults: workflow.steps.map((step: any, index: number) => ({
-                        stepId: step.stepId,
-                        status: "completed" as const,
-                        startedAt: Date.now() - ((workflow.steps.length - index) * 5000),
-                        completedAt: Date.now() - ((workflow.steps.length - index - 1) * 5000),
-                        input: step.inputMapping || {},
-                        output: generateStepOutput(step, index)
-                      }))
+                      stepResults: workflow.steps.map(
+                        (step: any, index: number) => ({
+                          stepId: step.stepId,
+                          status: "completed" as const,
+                          startedAt:
+                            Date.now() - (workflow.steps.length - index) * 5000,
+                          completedAt:
+                            Date.now() -
+                            (workflow.steps.length - index - 1) * 5000,
+                          input: step.inputMapping || {},
+                          output: generateStepOutput(step, index),
+                        })
+                      ),
                     };
 
                     const summaryRequest: SummaryRequest = {
                       workflow: workflow,
                       execution: finalExecution,
                       logs: get().logs,
-                      executionType: "simulation"
+                      executionType: "simulation",
                     };
-                    
+
                     get().addLog("🤖 Generating AI summary...", "info");
-                    const summaryResponse = await orchestratorAPI.generateSummary(summaryRequest);
+                    const summaryResponse =
+                      await orchestratorAPI.generateSummary(summaryRequest);
                     finalSummary = summaryResponse.summary;
                   }
-                  
-                  set({ 
+
+                  set({
                     activeNodeId: null,
                     isExecuting: false,
                     currentStep: "SHOW_RESULT",
-                    executionResults: finalExecution.output || generateRealisticOutput(workflow, finalExecution.output),
-                    executionSummary: finalSummary
+                    executionResults:
+                      finalExecution.output ||
+                      generateRealisticOutput(workflow, finalExecution.output),
+                    executionSummary: finalSummary,
                   });
-                  get().addLog("✅ Execution completed with orchestrator integration!", "success");
+                  get().addLog(
+                    "✅ Execution completed with orchestrator integration!",
+                    "success"
+                  );
                 }
               } catch (summaryError: any) {
-                get().addLog(`Failed to generate AI summary: ${summaryError.message}`, "error");
-                
+                get().addLog(
+                  `Failed to generate AI summary: ${summaryError.message}`,
+                  "error"
+                );
+
                 // Generate fallback summary with actual workflow data
                 const executionTime = workflow.steps.length * 5;
-                const agentPerformance = workflow.steps.map((step: any, index: number) => `
+                const agentPerformance = workflow.steps
+                  .map(
+                    (step: any, index: number) => `
 ### ${step.agentName}
-- **Task**: ${step.description || 'Process workflow step'}
+- **Task**: ${step.description || "Process workflow step"}
 - **Status**: ✅ Completed
 - **Performance**: Excellent
-- **Duration**: ${3 + index * 2} seconds`).join('');
-                
+- **Duration**: ${3 + index * 2} seconds`
+                  )
+                  .join("");
+
                 const fallbackSummary = `# ✅ Workflow Execution Complete
 
 ## 📊 Execution Overview
-- **Workflow**: ${workflow.name || 'AI Workflow'}
+- **Workflow**: ${workflow.name || "AI Workflow"}
 - **Workflow ID**: ${workflow.workflowId}
 - **Total Steps**: ${workflow.steps.length}
 - **Execution Time**: ${executionTime} seconds
 - **Status**: ✅ Successfully Completed
-- **Mode**: ${realExecution ? 'Orchestrator Integration' : 'Dynamic Simulation'}
-${realExecution ? `- **Execution ID**: ${realExecution.executionId}` : ''}
+- **Mode**: ${realExecution ? "Orchestrator Integration" : "Dynamic Simulation"}
+${realExecution ? `- **Execution ID**: ${realExecution.executionId}` : ""}
 
 ## 🤖 Agent Performance
 ${agentPerformance}
 
 ## 🎯 Key Achievements
-- ✅ Successfully processed user request: "${workflow.userIntent || workflow.description}"
+- ✅ Successfully processed user request: "${
+                  workflow.userIntent || workflow.description
+                }"
 - ✅ Completed all ${workflow.steps.length} workflow steps without errors
 - ✅ Generated appropriate outputs for each agent
 - ✅ Workflow executed flawlessly with realistic timing
-${realExecution ? '- ✅ Integrated with orchestrator backend for real execution' : ''}
+${
+  realExecution
+    ? "- ✅ Integrated with orchestrator backend for real execution"
+    : ""
+}
 
 ## 📋 Technical Details
-- **Execution ID**: ${realExecution ? realExecution.executionId : `sim-${Date.now()}`}
-- **API Mode**: ${realExecution ? 'Orchestrator Integration' : 'Dynamic Simulation'}
+- **Execution ID**: ${
+                  realExecution
+                    ? realExecution.executionId
+                    : `sim-${Date.now()}`
+                }
+- **API Mode**: ${
+                  realExecution
+                    ? "Orchestrator Integration"
+                    : "Dynamic Simulation"
+                }
 - **Error Rate**: 0%
 - **Performance Score**: 100%
-- **Agents Used**: ${workflow.steps.map((s: any) => s.agentName).join(', ')}
+- **Agents Used**: ${workflow.steps.map((s: any) => s.agentName).join(", ")}
 
 ## 🚀 Results Summary
-Your workflow "${workflow.name || 'AI Workflow'}" has been successfully executed! All ${workflow.steps.length} agents completed their tasks perfectly, processing your request and generating the expected results based on the actual workflow configuration.
+Your workflow "${
+                  workflow.name || "AI Workflow"
+                }" has been successfully executed! All ${
+                  workflow.steps.length
+                } agents completed their tasks perfectly, processing your request and generating the expected results based on the actual workflow configuration.
 
 ---
-*Summary generated by AI Workflow Orchestrator - ${realExecution ? 'Orchestrator Integration' : 'Dynamic Simulation Engine'}*`;
-                
-                set({ 
+*Summary generated by AI Workflow Orchestrator - ${
+                  realExecution
+                    ? "Orchestrator Integration"
+                    : "Dynamic Simulation Engine"
+                }*`;
+
+                set({
                   activeNodeId: null,
                   isExecuting: false,
                   currentStep: "SHOW_RESULT",
-                  executionResults: realExecution?.output || generateRealisticOutput(workflow),
-                  executionSummary: fallbackSummary
+                  executionResults:
+                    realExecution?.output || generateRealisticOutput(workflow),
+                  executionSummary: fallbackSummary,
                 });
               }
-              get().addLog("✅ Workflow execution completed successfully!", "success");
+              get().addLog(
+                "✅ Workflow execution completed successfully!",
+                "success"
+              );
             }, 1000);
             return;
           }
-          
+
           const currentStep = workflow.steps[stepIndex];
-          const stepNode = nodes.find(n => 
-            n.data?.label?.toLowerCase().includes(currentStep.agentName.toLowerCase()) ||
-            n.id.includes(currentStep.stepId) ||
-            n.data?.name?.toLowerCase().includes(currentStep.agentName.toLowerCase())
-          ) || nodes[stepIndex % nodes.length]; // Fallback to index-based selection
-          
+          const stepNode =
+            nodes.find(
+              (n) =>
+                n.data?.label
+                  ?.toLowerCase()
+                  .includes(currentStep.agentName.toLowerCase()) ||
+                n.id.includes(currentStep.stepId) ||
+                n.data?.name
+                  ?.toLowerCase()
+                  .includes(currentStep.agentName.toLowerCase())
+            ) || nodes[stepIndex % nodes.length]; // Fallback to index-based selection
+
           if (stepNode) {
             set({ activeNodeId: stepNode.id });
-            
+
             const emoji = getAgentEmoji(currentStep.agentName);
             const progressMessage = getProgressMessage(currentStep.agentName);
             const processingTime = getProcessingTime(currentStep.agentName);
-            
-            get().addLog(`${emoji} ${currentStep.agentName}: ${progressMessage}`, "info");
-            
+
+            get().addLog(
+              `${emoji} ${currentStep.agentName}: ${progressMessage}`,
+              "info"
+            );
+
             // Find the corresponding real step result if available
-            const realStepResult = realStepResults.find(r => r.stepId === currentStep.stepId);
-            
+            const realStepResult = realStepResults.find(
+              (r) => r.stepId === currentStep.stepId
+            );
+
             setTimeout(() => {
-              const completionMessage = getCompletionMessage(currentStep.agentName);
-              
+              const completionMessage = getCompletionMessage(
+                currentStep.agentName
+              );
+
               if (realStepResult) {
                 if (realStepResult.status === "completed") {
-                  get().addLog(`${emoji} ${currentStep.agentName}: ${completionMessage} (Real execution)`, "success");
-                  get().addLog(`📊 Real output: ${JSON.stringify(realStepResult.output).substring(0, 100)}...`, "info");
+                  get().addLog(
+                    `${emoji} ${currentStep.agentName}: ${completionMessage} (Real execution)`,
+                    "success"
+                  );
+                  get().addLog(
+                    `📊 Real output: ${JSON.stringify(
+                      realStepResult.output
+                    ).substring(0, 100)}...`,
+                    "info"
+                  );
                 } else {
-                  get().addLog(`${emoji} ${currentStep.agentName}: Failed - ${realStepResult.error}`, "error");
+                  get().addLog(
+                    `${emoji} ${currentStep.agentName}: Failed - ${realStepResult.error}`,
+                    "error"
+                  );
                 }
               } else {
-                get().addLog(`${emoji} ${currentStep.agentName}: ${completionMessage} (Simulation)`, "success");
+                get().addLog(
+                  `${emoji} ${currentStep.agentName}: ${completionMessage} (Simulation)`,
+                  "success"
+                );
               }
-              
+
               // Update edge state to show completion
-              const outgoingEdges = get().edges.filter(edge => edge.source === stepNode.id);
-              outgoingEdges.forEach(edge => {
-                set(state => ({
+              const outgoingEdges = get().edges.filter(
+                (edge) => edge.source === stepNode.id
+              );
+              outgoingEdges.forEach((edge) => {
+                set((state) => ({
                   edgeState: {
                     ...state.edgeState,
-                    [edge.id]: 'DONE'
-                  }
+                    [edge.id]: "DONE",
+                  },
                 }));
               });
-              
+
               // Continue to next step
               executeStep(stepIndex + 1);
             }, processingTime);
@@ -1010,7 +1203,7 @@ Your workflow "${workflow.name || 'AI Workflow'}" has been successfully executed
             executeStep(stepIndex + 1);
           }
         };
-        
+
         // Start execution after orchestrator analysis
         setTimeout(() => {
           executeStep(0);

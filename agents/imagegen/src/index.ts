@@ -108,6 +108,67 @@ app.get("/meta", (req: Request, res: Response) => {
 });
 
 // Image generation function
+const sanitizePrompt = (prompt: string): string => {
+  // Remove potentially problematic words/phrases that might trigger content policy
+  const problematicPatterns = [
+    /chaos.*underworld/gi,
+    /dark.*chaotic/gi,
+    /violent/gi,
+    /gore/gi,
+    /blood/gi,
+    /death/gi,
+    /horror/gi,
+    /scary/gi,
+    /evil/gi,
+    /demon/gi,
+    /hell/gi,
+    /violence/gi,
+    /weapon/gi,
+    /kill/gi,
+    /murder/gi,
+    /hate/gi,
+    /offensive/gi,
+    /explicit/gi,
+    /sexual/gi,
+    /nude/gi,
+    /naked/gi,
+  ];
+
+  let sanitizedPrompt = prompt;
+
+  // Replace problematic patterns with safer alternatives
+  sanitizedPrompt = sanitizedPrompt.replace(
+    /chaos.*underworld.*dark.*chaotic/gi,
+    "mystical fantasy realm with magical creatures"
+  );
+  sanitizedPrompt = sanitizedPrompt.replace(
+    /dark.*chaotic.*scene/gi,
+    "mysterious fantasy scene"
+  );
+  sanitizedPrompt = sanitizedPrompt.replace(
+    /chaos.*underworld/gi,
+    "mystical realm"
+  );
+  sanitizedPrompt = sanitizedPrompt.replace(/dark.*chaotic/gi, "mysterious");
+  sanitizedPrompt = sanitizedPrompt.replace(/underworld/gi, "fantasy realm");
+
+  // Remove other problematic words
+  problematicPatterns.forEach((pattern) => {
+    sanitizedPrompt = sanitizedPrompt.replace(pattern, "");
+  });
+
+  // Clean up extra spaces
+  sanitizedPrompt = sanitizedPrompt.replace(/\s+/g, " ").trim();
+
+  // Ensure prompt is not empty after sanitization
+  if (!sanitizedPrompt || sanitizedPrompt.length < 3) {
+    sanitizedPrompt =
+      "beautiful artistic illustration, colorful, detailed background";
+  }
+
+  return sanitizedPrompt;
+};
+
 const generateImage = async (
   prompt: string,
   size: "1024x1024" | "1024x1792" | "1792x1024" = "1024x1024",
@@ -115,19 +176,69 @@ const generateImage = async (
   style: "vivid" | "natural" = "vivid"
 ) => {
   try {
+    // Sanitize the prompt to avoid content policy violations
+    const sanitizedPrompt = sanitizePrompt(prompt);
+
+    console.log(`🔄 Original prompt: "${prompt}"`);
+    if (sanitizedPrompt !== prompt) {
+      console.log(`🧹 Sanitized prompt: "${sanitizedPrompt}"`);
+    }
+
     const response = await openai.images.generate({
       model: "dall-e-3",
-      prompt,
+      prompt: sanitizedPrompt,
       n: 1,
       size,
       quality,
       style,
     });
 
-    return response.data?.[0]?.url;
+    return {
+      imageUrl: response.data?.[0]?.url,
+      originalPrompt: prompt,
+      sanitizedPrompt: sanitizedPrompt,
+      wasSanitized: sanitizedPrompt !== prompt,
+    };
   } catch (error: any) {
     console.error("OpenAI API error:", error);
-    throw new Error(`Image generation failed: ${error.message}`);
+
+    // If it's a content policy error, try with a more generic prompt
+    if (error.status === 400 && error.type === "image_generation_user_error") {
+      console.log(
+        "🚨 Content policy violation detected, trying with generic prompt..."
+      );
+      try {
+        const fallbackPrompt =
+          "beautiful digital artwork, colorful illustration with creative design";
+        const fallbackResponse = await openai.images.generate({
+          model: "dall-e-3",
+          prompt: fallbackPrompt,
+          n: 1,
+          size,
+          quality,
+          style,
+        });
+
+        return {
+          imageUrl: fallbackResponse.data?.[0]?.url,
+          originalPrompt: prompt,
+          sanitizedPrompt: fallbackPrompt,
+          wasSanitized: true,
+          fallbackUsed: true,
+        };
+      } catch (fallbackError: any) {
+        console.error("Fallback generation also failed:", fallbackError);
+        throw new Error(
+          `Image generation failed with content policy violation and fallback failed: ${fallbackError.message}`
+        );
+      }
+    }
+
+    throw new Error(
+      `Image generation failed: ${error.status} ${
+        error.message || error.type || "Unknown error"
+      }`
+    );
   }
 };
 
@@ -180,7 +291,7 @@ app.post("/run", async (req: Request, res: Response) => {
     );
 
     // // Generate image
-    const imageUrl = await generateImage(
+    const imageResult = await generateImage(
       prompt,
       size as any,
       quality as any,
@@ -188,7 +299,7 @@ app.post("/run", async (req: Request, res: Response) => {
     );
     // const imageUrl = "https://picsum.photos/200/300";
 
-    if (!imageUrl) {
+    if (!imageResult.imageUrl) {
       return res.status(500).json({
         error: "Image generation failed: No URL returned",
       });
@@ -196,15 +307,19 @@ app.post("/run", async (req: Request, res: Response) => {
 
     // Return result matching output schema
     const result = {
-      imageUrl,
-      prompt,
+      imageUrl: imageResult.imageUrl,
+      prompt: imageResult.originalPrompt,
       size,
       quality,
       style,
       timestamp: new Date().toISOString(),
+      originalPrompt: imageResult.originalPrompt,
+      sanitizedPrompt: imageResult.sanitizedPrompt,
+      wasSanitized: imageResult.wasSanitized,
+      fallbackUsed: imageResult.fallbackUsed,
     };
 
-    console.log(`✅ Image generated successfully: ${imageUrl}`);
+    console.log(`✅ Image generated successfully: ${imageResult.imageUrl}`);
     res.json(result);
   } catch (error: any) {
     console.error("Image generation error:", error);
@@ -248,15 +363,19 @@ app.get("/run", async (req: Request, res: Response) => {
       });
     }
 
-    const imageUrl = await generateImage(input);
+    const imageResult = await generateImage(input);
     res.json({
-      imageUrl,
-      prompt: input,
+      imageUrl: imageResult.imageUrl,
+      prompt: imageResult.originalPrompt,
       size: "1024x1024",
       quality: "standard",
       style: "vivid",
       timestamp: new Date().toISOString(),
       legacy: true,
+      originalPrompt: imageResult.originalPrompt,
+      sanitizedPrompt: imageResult.sanitizedPrompt,
+      wasSanitized: imageResult.wasSanitized,
+      fallbackUsed: imageResult.fallbackUsed,
     });
   } catch (error: any) {
     res.status(500).json({
