@@ -120,8 +120,8 @@ Returns both HTTP and MCP agents:
   "agents": [
     {
       "type": "http",
-      "name": "Hello World Agent",
-      "url": "http://localhost:3001"
+      "name": "DALL-E 3 Image Generator",
+      "url": "http://localhost:7030"
     },
     {
       "type": "mcp",
@@ -233,65 +233,15 @@ Configure in `src/config.ts`:
 
 ```typescript
 export const AGENTS = [
-  "http://localhost:3001", // Hello World Agent
-  "http://localhost:3002", // DALL-E 3 Image Generator
-  "http://localhost:3003", // NFT Deployer Agent
+  // "http://localhost:7029", // Hello World Agent (commented out)
+  "http://localhost:7030", // DALL-E 3 Image Generator
+  "http://localhost:7031", // NFT Deployer Agent
+  "http://localhost:7032", // 1inch Balance Agent
+  "http://localhost:7033", // Aave Investor Agent
+  "http://localhost:7034", // NFT Metadata Creator Agent
 ];
 ```
 
 ### MCP Server Configuration
 
-Create `mcp.json` file or set `MCP_CONFIG` environment variable. See [MCP_INTEGRATION.md](./MCP_INTEGRATION.md) for details.
-
-## 📝 Example Prompts
-
-The orchestrator can handle various types of requests with both HTTP and MCP agents:
-
-- **Simple Greeting**: `"Generate a greeting for Bob"`
-- **File Operations**: `"Store 'Hello World' in a file using Akave"`
-- **Multi-step Workflows**: `"Create a personalized hello, save it to Akave, and generate an image"`
-- **GitHub Integration**: `"Read a file and create a GitHub issue about it"`
-- **NFT Creation**: `"Create an NFT collection called 'Digital Dreams' with AI artwork"`
-
-## 🔍 MCP Server Examples
-
-### Popular MCP Servers
-
-- **Akave Storage**: `akave-mcp-js`
-- **GitHub**: `@modelcontextprotocol/server-github`
-- **File System**: `@modelcontextprotocol/server-filesystem`
-- **Web Fetch**: `@modelcontextprotocol/server-fetch`
-- **SQLite**: `@modelcontextprotocol/server-sqlite`
-
-### Configuration Examples
-
-See [MCP_INTEGRATION.md](./MCP_INTEGRATION.md) for complete configuration examples and setup instructions.
-
-## 🚨 Error Handling
-
-The API returns structured error responses for both HTTP and MCP agents:
-
-```json
-{
-  "error": "Workflow creation failed",
-  "details": "MCP server not available: akave"
-}
-```
-
-## 🔍 Monitoring
-
-- Check `/health` for system status (includes MCP server status)
-- Monitor execution status via `/executions/:executionId`
-- View MCP server status via `/mcp/servers`
-- Use `/mcp/refresh` to refresh MCP agent capabilities
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
+Create `

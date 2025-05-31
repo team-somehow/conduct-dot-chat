@@ -2,7 +2,7 @@ import axios from "axios";
 import express, { Request, Response } from "express";
 
 const app = express();
-const port = process.env.PORT || 3004;
+const port = process.env.PORT || 7032;
 
 app.use(express.json());
 

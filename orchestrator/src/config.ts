@@ -7,12 +7,12 @@ import { MCPServersConfig } from "./types";
 dotenv.config();
 
 export const AGENTS = [
-  "http://localhost:3001", // Hello World Agent
-  "http://localhost:3002", // DALL-E 3 Image Generator Agent
-  "http://localhost:3003", // NFT Deployer Agent
-  "http://localhost:3004", // 1inch Balance Agent
-  "http://localhost:3005", // Aave Investor Agent
-  "http://localhost:3006", // NFT Metadata Creator Agent
+  // "http://localhost:3001", // Hello World Agent (commented out)
+  "http://localhost:7030", // DALL-E 3 Image Generator Agent
+  "http://localhost:7031", // NFT Deployer Agent
+  "http://localhost:7032", // 1inch Balance Agent
+  "http://localhost:7033", // Aave Investor Agent
+  "http://localhost:7034", // NFT Metadata Creator Agent
 ];
 
 // Flow EVM Testnet Configuration - Deployed Contracts

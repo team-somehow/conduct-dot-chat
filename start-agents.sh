@@ -137,46 +137,46 @@ show_status() {
     print_status "Agent Status:"
     echo ""
     
-    # Check Hello Agent (Port 3001)
-    if check_port 3001; then
-        echo -e "  🤖 Hello Agent      │ ${RED}STOPPED${NC} │ Port 3001"
+    # Check Hello Agent (Port 7029)
+    # if check_port 7029; then
+    #     echo -e "  🤖 Hello Agent      │ ${RED}STOPPED${NC} │ Port 7029"
+    # else
+    #     echo -e "  🤖 Hello Agent      │ ${GREEN}RUNNING${NC} │ Port 7029 │ http://localhost:7029"
+    # fi
+    
+    # Check ImageGen Agent (Port 7030)
+    if check_port 7030; then
+        echo -e "  🎨 ImageGen Agent   │ ${RED}STOPPED${NC} │ Port 7030"
     else
-        echo -e "  🤖 Hello Agent      │ ${GREEN}RUNNING${NC} │ Port 3001 │ http://localhost:3001"
+        echo -e "  🎨 ImageGen Agent   │ ${GREEN}RUNNING${NC} │ Port 7030 │ http://localhost:7030"
     fi
     
-    # Check ImageGen Agent (Port 3002)
-    if check_port 3002; then
-        echo -e "  🎨 ImageGen Agent   │ ${RED}STOPPED${NC} │ Port 3002"
+    # Check NFT Deployer Agent (Port 7031)
+    if check_port 7031; then
+        echo -e "  🚀 NFT Deployer     │ ${RED}STOPPED${NC} │ Port 7031"
     else
-        echo -e "  🎨 ImageGen Agent   │ ${GREEN}RUNNING${NC} │ Port 3002 │ http://localhost:3002"
+        echo -e "  🚀 NFT Deployer     │ ${GREEN}RUNNING${NC} │ Port 7031 │ http://localhost:7031"
     fi
     
-    # Check NFT Deployer Agent (Port 3003)
-    if check_port 3003; then
-        echo -e "  🚀 NFT Deployer     │ ${RED}STOPPED${NC} │ Port 3003"
+    # Check 1inch Wallet Balance Agent (Port 7032)
+    if check_port 7032; then
+        echo -e "  💰 1inch Agent      │ ${RED}STOPPED${NC} │ Port 7032"
     else
-        echo -e "  🚀 NFT Deployer     │ ${GREEN}RUNNING${NC} │ Port 3003 │ http://localhost:3003"
+        echo -e "  💰 1inch Agent      │ ${GREEN}RUNNING${NC} │ Port 7032 │ http://localhost:7032"
     fi
     
-    # Check 1inch Wallet Balance Agent (Port 3004)
-    if check_port 3004; then
-        echo -e "  💰 1inch Agent      │ ${RED}STOPPED${NC} │ Port 3004"
+    # Check Aave Investor Agent (Port 7033)
+    if check_port 7033; then
+        echo -e "  🏦 Aave Investor    │ ${RED}STOPPED${NC} │ Port 7033"
     else
-        echo -e "  💰 1inch Agent      │ ${GREEN}RUNNING${NC} │ Port 3004 │ http://localhost:3004"
+        echo -e "  🏦 Aave Investor    │ ${GREEN}RUNNING${NC} │ Port 7033 │ http://localhost:7033"
     fi
     
-    # Check Aave Investor Agent (Port 3005)
-    if check_port 3005; then
-        echo -e "  🏦 Aave Investor    │ ${RED}STOPPED${NC} │ Port 3005"
+    # Check NFT Metadata Creator Agent (Port 7034)
+    if check_port 7034; then
+        echo -e "  📝 NFT Metadata     │ ${RED}STOPPED${NC} │ Port 7034"
     else
-        echo -e "  🏦 Aave Investor    │ ${GREEN}RUNNING${NC} │ Port 3005 │ http://localhost:3005"
-    fi
-    
-    # Check NFT Metadata Creator Agent (Port 3006)
-    if check_port 3006; then
-        echo -e "  📝 NFT Metadata     │ ${RED}STOPPED${NC} │ Port 3006"
-    else
-        echo -e "  📝 NFT Metadata     │ ${GREEN}RUNNING${NC} │ Port 3006 │ http://localhost:3006"
+        echo -e "  📝 NFT Metadata     │ ${GREEN}RUNNING${NC} │ Port 7034 │ http://localhost:7034"
     fi
     
     echo ""
@@ -189,22 +189,22 @@ case "$1" in
         echo ""
         
         # Start Hello Agent
-        start_agent "hello" "Hello Agent" 3001 "npm run dev"
+        # start_agent "hello" "Hello Agent" 7029 "npm run dev"
         
         # Start ImageGen Agent  
-        start_agent "imagegen" "ImageGen Agent" 3002 "npm start"
+        start_agent "imagegen" "ImageGen Agent" 7030 "npm start"
         
         # Start NFT Deployer Agent
-        start_agent "nft-deployer" "NFT Deployer Agent" 3003 "npm run dev"
+        start_agent "nft-deployer" "NFT Deployer Agent" 7031 "npm run dev"
         
         # Start 1inch Wallet Balance Agent
-        start_agent "1inch" "1inch Wallet Balance Agent" 3004 "npm start"
+        start_agent "1inch" "1inch Wallet Balance Agent" 7032 "npm start"
         
         # Start Aave Investor Agent
-        start_agent "aave-investor" "Aave Investor Agent" 3005 "npm run dev"
+        start_agent "aave-investor" "Aave Investor Agent" 7033 "npm run dev"
         
         # Start NFT Metadata Creator Agent
-        start_agent "nft-metadata-creator" "NFT Metadata Creator Agent" 3006 "npm run dev"
+        start_agent "nft-metadata-creator" "NFT Metadata Creator Agent" 7034 "npm run dev"
         
         echo ""
         print_success "All agents startup initiated!"
@@ -240,8 +240,8 @@ case "$1" in
             ls -la logs/*.log 2>/dev/null | awk '{print "  " $9}'
             echo ""
             print_status "Usage: $0 logs <agent>"
-            print_status "Example: $0 logs hello"
-            print_status "Available agents: hello, imagegen, nft-deployer, 1inch, aave-investor, nft-metadata-creator"
+            print_status "Example: $0 logs imagegen"
+            print_status "Available agents: imagegen, nft-deployer, 1inch, aave-investor, nft-metadata-creator"
         else
             if [ -f "logs/$2.log" ]; then
                 print_status "Showing logs for $2 agent (Press Ctrl+C to exit):"
@@ -266,12 +266,12 @@ case "$1" in
         echo "  logs     - Show available logs or tail specific agent log"
         echo ""
         echo "Available agents:"
-        echo "  • Hello Agent (Port 3001)"
-        echo "  • ImageGen Agent (Port 3002)"
-        echo "  • NFT Deployer Agent (Port 3003)"
-        echo "  • 1inch Wallet Balance Agent (Port 3004)"
-        echo "  • Aave Investor Agent (Port 3005)"
-        echo "  • NFT Metadata Creator Agent (Port 3006)"
+        echo "  # • Hello Agent (Port 7029)"
+        echo "  • ImageGen Agent (Port 7030)"
+        echo "  • NFT Deployer Agent (Port 7031)"
+        echo "  • 1inch Wallet Balance Agent (Port 7032)"
+        echo "  • Aave Investor Agent (Port 7033)"
+        echo "  • NFT Metadata Creator Agent (Port 7034)"
         echo ""
         echo "Examples:"
         echo "  $0 start"
