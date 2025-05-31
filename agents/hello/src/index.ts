@@ -10,6 +10,25 @@ const AGENT_META = {
   name: "Hello World Agent",
   description: "A simple greeting agent that personalizes hello messages",
   wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual wallet
+  vendor: "MAHA Labs",
+  category: "Text",
+  tags: ["text", "greeting", "personalization", "multilingual"],
+  pricing: {
+    model: "per_request",
+    amount: 0.05,
+    currency: "USD",
+    unit: "request",
+  },
+  rating: {
+    score: 4.8,
+    reviews: 1247,
+    lastUpdated: "2024-01-15T00:00:00Z",
+  },
+  performance: {
+    avgResponseTime: 120,
+    uptime: 99.9,
+    successRate: 99.8,
+  },
   inputSchema: {
     type: "object",
     properties: {

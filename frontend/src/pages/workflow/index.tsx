@@ -1,213 +1,280 @@
 // Workflow visualization page with step-by-step animated demo
 // Features: Auto-cycling through 6 stages with Neo-Brutalist styling
 
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
-import { useWorkflowStore } from '../../store/workflow';
-import Navbar from '../../components/Navbar';
-import StepLoader from '../../components/StepLoader';
-import WorkflowCanvas from '../../components/WorkflowCanvas';
-import WorkflowSteps from '../../components/WorkflowSteps';
-import ModelList from '../../components/ModelList';
-import ResultPanel from '../../components/ResultPanel';
-import CostEstimation from '../../components/CostEstimation';
-import InteractionTerminal from '../../components/InteractionTerminal';
-import FinishConfetti from '../../components/FinishConfetti';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
+import { useWorkflowStore } from "../../store/workflow";
+import Navbar from "../../components/Navbar";
+import StepLoader from "../../components/StepLoader";
+import WorkflowSteps from "../../components/WorkflowSteps";
+import CostEstimation from "../../components/CostEstimation";
+import WorkflowCanvas from "../../components/WorkflowCanvas";
+import InteractionTerminal from "../../components/InteractionTerminal";
+import ResultPanel from "../../components/ResultPanel";
+import FinishConfetti from "../../components/FinishConfetti";
 
-const STEP_DURATION = 10000; // 10 seconds per step
+const STEP_DURATION = 3000; // 3 seconds per step
 
-const WorkflowPage = () => {
+export default function WorkflowPage() {
   const [searchParams] = useSearchParams();
-  const initialPrompt = searchParams.get('prompt');
-  
+  const initialPrompt = searchParams.get("prompt") || "";
+  const [userPrompt, setUserPrompt] = useState(initialPrompt);
+  const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
+
   const {
     currentStep,
+    isLoading,
+    error,
     nodes,
     edges,
-    selectedModels,
-    result,
-    feedback,
-    isApproved,
-    interactionStep,
+    selectedModel,
+    estimatedCost,
+    isExecuting,
+    executionResults,
+    logs,
+    availableAgents,
+    startDemo,
     nextStep,
-    setFeedback,
-    initializeDemoData,
-    resetDemo,
-    approveWorkflow,
-    startInteractionSimulation,
-    setInteractionCompleteCallback,
+    resetWorkflow,
+    loadAvailableAgents,
+    createWorkflow,
   } = useWorkflowStore();
 
-  // Initialize demo data and reset step on mount
   useEffect(() => {
-    initializeDemoData();
-    resetDemo();
-  }, [initializeDemoData, resetDemo]);
+    // Initialize demo data when component mounts
+    // initializeDemoData();
+  }, []);
 
-  // Set up interaction completion callback
   useEffect(() => {
-    setInteractionCompleteCallback(() => {
-      // Advance to the next step when interaction simulation completes
-      nextStep();
-    });
-  }, [setInteractionCompleteCallback, nextStep]);
-
-  // Start interaction simulation when entering SHOW_INTERACTION step
-  useEffect(() => {
-    if (currentStep === 'SHOW_INTERACTION') {
-      // Small delay to let the UI render first
-      const timer = setTimeout(() => {
-        startInteractionSimulation();
-      }, 500);
-      
-      return () => clearTimeout(timer);
+    // Auto-advance demo when not on workflow creation step
+    if (currentStep !== "GENERATING_WORKFLOW" && !isLoading) {
+      // Auto-advance logic can be added here if needed
     }
-  }, [currentStep, startInteractionSimulation]);
+  }, [currentStep, isLoading]);
 
-  // Auto-advance through steps
   useEffect(() => {
-    // Don't set timer if we're already at the last step, waiting for approval, showing workflow (manual start), or showing interaction (controlled by simulation)
-    if (currentStep === 'SHOW_RESULT' || 
-        (currentStep === 'COST_ESTIMATION' && !isApproved) ||
-        currentStep === 'SHOW_WORKFLOW' ||
-        currentStep === 'SHOW_INTERACTION') {
-      return;
+    // Handle workflow creation from URL prompt
+    if (initialPrompt && !isLoading) {
+      // createWorkflowFromPrompt(initialPrompt);
     }
+  }, [initialPrompt, isLoading]);
 
-    const timer = setTimeout(() => {
-      nextStep();
-    }, STEP_DURATION);
+  useEffect(() => {
+    // Set up interaction completion callback
+    // setInteractionCompleteCallback(() => {
+    //   console.log("Interaction simulation completed");
+    // });
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [currentStep, nextStep, isApproved]);
+  const handleStartDemo = () => {
+    startDemo();
+  };
+
+  const handleStartInteraction = () => {
+    // startInteractionSimulation();
+  };
+
+  const handleApprove = () => {
+    // approveWorkflow();
+  };
+
+  const handleCreateWorkflow = async (prompt: string) => {
+    if (!prompt.trim()) return;
+
+    setIsCreatingWorkflow(true);
+    try {
+      await createWorkflowFromPrompt(prompt);
+      // After successful creation, advance to show workflow
+      setTimeout(() => {
+        nextStep();
+        setIsCreatingWorkflow(false);
+      }, 1000);
+    } catch (error) {
+      setIsCreatingWorkflow(false);
+      console.error("Failed to create workflow:", error);
+    }
+  };
+
+  const handleExecuteWorkflow = async () => {
+    if (!currentWorkflow) return;
+
+    try {
+      await executeCurrentWorkflow();
+    } catch (error) {
+      console.error("Failed to execute workflow:", error);
+    }
+  };
+
+  // Test function to load agents
+  const handleLoadAgents = async () => {
+    await loadAvailableAgents();
+  };
+
+  // Test function to create a workflow
+  const handleCreateWorkflowTest = async () => {
+    await createWorkflow(
+      "Create a personalized greeting and generate an image of a sunset"
+    );
+  };
+
+  const handleNextStep = () => {
+    nextStep();
+  };
+
+  const handleReset = () => {
+    resetWorkflow();
+  };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 'GENERATING_WORKFLOW':
+      case "GENERATING_WORKFLOW":
         return (
-          <StepLoader text="Generating workflow..." />
-        );
-
-      case 'SHOW_WORKFLOW':
-        return (
-          <div className="min-h-screen bg-[#FFFDEE] px-6 md:px-10 pt-24 pb-32">
-            <div className="max-w-6xl mx-auto">
-              {/* Header */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-8"
-              >
-                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-black mb-4">
-                  AI Workflow Generated
-                </h1>
-                {initialPrompt && (
-                  <div className="bg-white border-4 border-black shadow-neo p-4 inline-block">
-                    <p className="text-sm font-bold text-black">
-                      <span className="uppercase">Prompt:</span> {initialPrompt}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Workflow Steps */}
-              <WorkflowSteps className="mx-auto" />
-
-              {/* Start Process Button */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.0 }}
-                className="text-center mt-8"
-              >
-                <button
-                  onClick={nextStep}
-                  className="bg-[#7C82FF] text-white font-black uppercase text-lg px-8 py-4 border-4 border-black shadow-neo hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-neo-lg transition-all duration-150"
-                >
-                  Start Process
-                </button>
-              </motion.div>
-            </div>
-          </div>
-        );
-
-      case 'SELECTING_MODELS':
-        return (
-          <StepLoader text="Selecting AI models from marketplace..." />
-        );
-
-      case 'COST_ESTIMATION':
-        return (
-          <div className="min-h-screen bg-[#FFFDEE] px-6 md:px-10 pt-24 pb-32">
-            <CostEstimation 
-              models={selectedModels}
-              onApprove={approveWorkflow}
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <StepLoader
+              title="Generating Workflow"
+              subtitle="AI is analyzing your request and selecting optimal agents..."
+              isLoading={isLoading}
             />
           </div>
         );
 
-      case 'SHOW_INTERACTION':
+      case "SHOW_WORKFLOW":
         return (
-          <div className="min-h-screen bg-[#FFFDEE] px-6 md:px-10 pt-24 pb-32">
-            <div className="max-w-7xl mx-auto">
-              {/* Header */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-8"
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-4">Generated Workflow</h2>
+              <p className="text-gray-600">
+                Review the AI-generated workflow below
+              </p>
+            </div>
+            <WorkflowCanvas nodes={nodes} edges={edges} />
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleNextStep}
+                className="px-8 py-3 bg-[#FF5484] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
               >
-                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-black mb-4">
-                  AI Network Active
-                </h1>
-                <p className="text-lg font-bold text-black/70 uppercase">
-                  Watch the magic happen in real-time
+                APPROVE WORKFLOW
+              </button>
+            </div>
+          </div>
+        );
+
+      case "COST_ESTIMATION":
+        return (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <StepLoader
+              title="Cost Estimation"
+              subtitle="Calculating execution costs..."
+              isLoading={isLoading}
+            />
+            {estimatedCost > 0 && (
+              <div className="mt-8 text-center">
+                <p className="text-2xl font-bold">
+                  Estimated Cost: ${estimatedCost}
                 </p>
-              </motion.div>
-
-              {/* Main interaction area */}
-              <div className="flex gap-6">
-                {/* Workflow Canvas */}
-                <div className="flex-1">
-                  <WorkflowCanvas 
-                    nodes={nodes} 
-                    edges={edges}
-                    isAnimating={true}
-                  />
-                </div>
-                
-                {/* Terminal Log */}
-                <InteractionTerminal />
+                <button
+                  onClick={handleNextStep}
+                  className="mt-4 px-8 py-3 bg-green-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+                >
+                  PROCEED
+                </button>
               </div>
+            )}
+          </div>
+        );
+
+      case "SHOW_INTERACTION":
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-4">Workflow Execution</h2>
+              <p className="text-gray-600">
+                Watch your workflow execute in real-time
+              </p>
+            </div>
+            <WorkflowCanvas nodes={nodes} edges={edges} />
+            <div className="bg-black text-green-400 p-4 rounded font-mono text-sm max-h-64 overflow-y-auto">
+              {logs.map((log) => (
+                <div key={log.id} className="mb-1">
+                  <span className="text-gray-500">[{log.timestamp}]</span>{" "}
+                  {log.message}
+                </div>
+              ))}
             </div>
           </div>
         );
 
-      case 'SHOW_RESULT':
+      case "SHOW_RESULT":
         return (
-          <div className="min-h-screen bg-[#FFFDEE] px-6 md:px-10 pt-24 pb-32">
-            <ResultPanel 
-              result={result}
-              onFeedback={setFeedback}
-              selectedFeedback={feedback}
-              onRunAgain={resetDemo}
-              selectedModels={selectedModels}
-            />
-            {/* Confetti for successful completion */}
-            <FinishConfetti trigger={currentStep === 'SHOW_RESULT'} />
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-4">Workflow Complete!</h2>
+              <p className="text-gray-600">
+                Your workflow has been executed successfully
+              </p>
+            </div>
+            {executionResults && <ResultPanel results={executionResults} />}
+            <div className="flex justify-center">
+              <button
+                onClick={handleReset}
+                className="px-8 py-3 bg-blue-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+              >
+                CREATE NEW WORKFLOW
+              </button>
+            </div>
           </div>
         );
 
       default:
-        return <StepLoader text="Loading..." />;
+        return (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <h2 className="text-3xl font-bold mb-8">
+              AI Workflow Orchestrator
+            </h2>
+            <button
+              onClick={handleStartDemo}
+              className="px-8 py-3 bg-[#FF5484] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+            >
+              START DEMO
+            </button>
+          </div>
+        );
     }
   };
 
   return (
     <div className="workflow-page bg-[#FFFDEE] min-h-screen">
       <Navbar />
+
+      {/* Test Controls */}
+      <div className="p-4 bg-gray-100 border-b">
+        <div className="max-w-7xl mx-auto flex gap-4 items-center">
+          <button
+            onClick={handleLoadAgents}
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isLoading ? "Loading..." : "Load Agents"}
+          </button>
+          <button
+            onClick={handleCreateWorkflowTest}
+            disabled={isLoading}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+          >
+            Create Test Workflow
+          </button>
+          <span className="text-sm text-gray-600">
+            Available Agents: {availableAgents.length}
+          </span>
+          {error && (
+            <span className="text-sm text-red-600">Error: {error}</span>
+          )}
+        </div>
+      </div>
+
       {renderCurrentStep()}
-      
+
       {/* Step Indicator */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -217,22 +284,36 @@ const WorkflowPage = () => {
       >
         <div className="bg-white border-4 border-black shadow-neo-lg p-4 flex items-center space-x-3">
           <div className="flex space-x-2">
-            {['GENERATING_WORKFLOW', 'SHOW_WORKFLOW', 'SELECTING_MODELS', 'COST_ESTIMATION', 'SHOW_INTERACTION', 'SHOW_RESULT'].map((step, index) => (
+            {[
+              "GENERATING_WORKFLOW",
+              "SHOW_WORKFLOW",
+              "SELECTING_MODELS",
+              "COST_ESTIMATION",
+              "SHOW_INTERACTION",
+              "SHOW_RESULT",
+            ].map((step, index) => (
               <div
                 key={step}
                 className={`w-3 h-3 border-2 border-black ${
-                  step === currentStep ? 'bg-[#FF5484]' : 'bg-gray-300'
+                  step === currentStep ? "bg-[#FF5484]" : "bg-gray-300"
                 }`}
               />
             ))}
           </div>
           <span className="text-sm font-black uppercase text-black">
-            Step {['GENERATING_WORKFLOW', 'SHOW_WORKFLOW', 'SELECTING_MODELS', 'COST_ESTIMATION', 'SHOW_INTERACTION', 'SHOW_RESULT'].indexOf(currentStep) + 1} of 6
+            Step{" "}
+            {[
+              "GENERATING_WORKFLOW",
+              "SHOW_WORKFLOW",
+              "SELECTING_MODELS",
+              "COST_ESTIMATION",
+              "SHOW_INTERACTION",
+              "SHOW_RESULT",
+            ].indexOf(currentStep) + 1}{" "}
+            of 6
           </span>
         </div>
       </motion.div>
     </div>
   );
-};
-
-export default WorkflowPage; 
+}

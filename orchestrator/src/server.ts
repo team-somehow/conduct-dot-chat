@@ -23,6 +23,12 @@ app.get("/health", async (req: Request, res: Response) => {
         name: agent.name,
         url: agent.url,
         description: agent.description,
+        vendor: agent.vendor,
+        category: agent.category,
+        tags: agent.tags,
+        pricing: agent.pricing,
+        rating: agent.rating,
+        performance: agent.performance,
       })),
     });
   } catch (error: any) {
@@ -35,11 +41,31 @@ app.get("/health", async (req: Request, res: Response) => {
 });
 
 // Discover available agents
-app.get("/agents", (req: Request, res: Response) => {
-  res.json({
-    agents: AGENTS,
-    count: AGENTS.length,
-  });
+app.get("/agents", async (req: Request, res: Response) => {
+  try {
+    const agents = await jobRunner.discoverAgents();
+    res.json({
+      agents: agents.map((agent) => ({
+        name: agent.name,
+        url: agent.url,
+        description: agent.description,
+        vendor: agent.vendor,
+        category: agent.category,
+        tags: agent.tags,
+        pricing: agent.pricing,
+        rating: agent.rating,
+        performance: agent.performance,
+        wallet: agent.wallet,
+        previewURI: agent.previewURI,
+      })),
+      count: agents.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to discover agents",
+      details: error.message,
+    });
+  }
 });
 
 // Create workflow based on user intent

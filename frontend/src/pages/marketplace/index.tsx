@@ -9,6 +9,7 @@ import ModelCard from "../../components/ModelCard";
 import Navbar from "../../components/Navbar";
 import SearchBar from "../../components/SearchBar";
 import SortDropdown from "../../components/SortDropdown";
+import orchestratorAPI, { Agent } from "../../api/orchestrator";
 
 interface Model {
   id: string;
@@ -21,6 +22,85 @@ interface Model {
   priceLabel: string;
   accent: string;
 }
+
+// Helper function to convert agents to marketplace models
+const convertAgentToModel = (agent: Agent): Model => {
+  // Use agent's category if available, otherwise determine from name/description
+  let category = agent.category || "AI";
+  let tags = agent.tags || [];
+  let accent = "#BFEFFF";
+
+  // Set accent color based on category
+  switch (category.toLowerCase()) {
+    case "image":
+      accent = "#FFE37B";
+      break;
+    case "text":
+      accent = "#FF5484";
+      break;
+    case "blockchain":
+      accent = "#A8E6CF";
+      break;
+    case "code":
+      accent = "#FEEF5D";
+      break;
+    case "audio":
+      accent = "#A8E6CF";
+      break;
+    case "video":
+      accent = "#FFB3BA";
+      break;
+    default:
+      accent = "#BFEFFF";
+  }
+
+  // Fallback category detection if not provided
+  if (!agent.category) {
+    if (
+      agent.name.toLowerCase().includes("image") ||
+      agent.name.toLowerCase().includes("dall")
+    ) {
+      category = "Image";
+      tags = ["image", "generation", "art"];
+      accent = "#FFE37B";
+    } else if (
+      agent.name.toLowerCase().includes("nft") ||
+      agent.name.toLowerCase().includes("blockchain")
+    ) {
+      category = "Blockchain";
+      tags = ["nft", "blockchain", "crypto"];
+      accent = "#A8E6CF";
+    } else if (
+      agent.name.toLowerCase().includes("hello") ||
+      agent.name.toLowerCase().includes("greeting")
+    ) {
+      category = "Text";
+      tags = ["text", "greeting", "personalization"];
+      accent = "#FF5484";
+    }
+  }
+
+  // Format pricing
+  let priceLabel = "Contact for pricing";
+  if (agent.pricing) {
+    const { amount, currency, unit } = agent.pricing;
+    priceLabel = `${currency === "USD" ? "$" : currency}${amount.toFixed(
+      2
+    )}/${unit}`;
+  }
+
+  return {
+    id: agent.name.toLowerCase().replace(/\s+/g, "-"),
+    name: agent.name,
+    vendor: agent.vendor || "Unknown",
+    category,
+    description: agent.description,
+    tags,
+    rating: agent.rating?.score || 4.5,
+    priceLabel,
+    accent,
+  };
+};
 
 const MOCK_MODELS: Model[] = [
   {
@@ -58,18 +138,6 @@ const MOCK_MODELS: Model[] = [
     rating: 4.7,
     priceLabel: "$0.08/query",
     accent: "#FF5484",
-  },
-  {
-    id: "image-creator",
-    name: "ImageCreator",
-    vendor: "Stability AI",
-    category: "Image",
-    description:
-      "High-quality image generation model capable of creating stunning visuals from text descriptions.",
-    tags: ["image", "generation", "art"],
-    rating: 4.6,
-    priceLabel: "$0.25/image",
-    accent: "#FFE37B",
   },
   {
     id: "audio-processor",
@@ -113,14 +181,43 @@ const MarketplacePage = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("rating");
-
-  const [models, setModels] = useState(MOCK_MODELS);
+  const [models, setModels] = useState<Model[]>(MOCK_MODELS);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  const [agentsError, setAgentsError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useReadContract({
     abi,
     address: "0x205530e2551aA810c48d317ba0406BbA919b36b2",
     functionName: "greet",
   });
+
+  // Load agents from orchestrator
+  useEffect(() => {
+    const loadAgents = async () => {
+      setIsLoadingAgents(true);
+      setAgentsError(null);
+
+      try {
+        const { agents } = await orchestratorAPI.getAgents();
+
+        // Convert agents to models and combine with mock models
+        const agentModels = agents.map(convertAgentToModel);
+        const allModels = [...agentModels, ...MOCK_MODELS];
+
+        setModels(allModels);
+        console.log("✅ Loaded agents for marketplace:", agents);
+      } catch (error: any) {
+        console.error("❌ Failed to load agents:", error);
+        setAgentsError(error.message || "Failed to load agents");
+        // Keep mock models if API fails
+        setModels(MOCK_MODELS);
+      } finally {
+        setIsLoadingAgents(false);
+      }
+    };
+
+    loadAgents();
+  }, []);
 
   const filteredModels = useMemo(() => {
     let filtered = models;
@@ -165,7 +262,7 @@ const MarketplacePage = () => {
     });
 
     return filtered;
-  }, [search, category, sort]);
+  }, [models, search, category, sort]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -187,6 +284,27 @@ const MarketplacePage = () => {
           <p className="max-w-xl mx-auto text-lg font-medium text-black/70">
             Discover and integrate specialized AI models for your workflows.
           </p>
+
+          {/* Loading/Error States */}
+          {isLoadingAgents && (
+            <div className="bg-blue-100 border-4 border-blue-500 text-blue-700 font-bold p-4 inline-block">
+              Loading live agents from orchestrator...
+            </div>
+          )}
+
+          {agentsError && (
+            <div className="bg-red-100 border-4 border-red-500 text-red-700 font-bold p-4 inline-block">
+              <div className="flex items-center gap-2">
+                <span>⚠️ {agentsError}</span>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-red-500 hover:text-red-700 underline"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Search and Filters */}
@@ -201,6 +319,9 @@ const MarketplacePage = () => {
           <p className="text-sm font-bold text-black/60 uppercase">
             {filteredModels.length}{" "}
             {filteredModels.length === 1 ? "Model" : "Models"} Found
+            {!isLoadingAgents && !agentsError && (
+              <span className="ml-2 text-green-600">• Live agents loaded</span>
+            )}
           </p>
         </div>
 
@@ -212,7 +333,7 @@ const MarketplacePage = () => {
         </div>
 
         {/* Empty State */}
-        {filteredModels.length === 0 && (
+        {filteredModels.length === 0 && !isLoadingAgents && (
           <div className="text-center py-12">
             <div className="bg-white border-4 border-black shadow-neo p-8 max-w-md mx-auto">
               <h3 className="text-xl font-black uppercase tracking-tight text-black mb-4">

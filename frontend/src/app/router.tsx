@@ -1,9 +1,9 @@
-import { createBrowserRouter } from 'react-router-dom';
-import LandingPage from '../pages/Landing';
-import WorkflowPage from '../pages/Workflow';
-import MarketplacePage from '../pages/Marketplace';
-import HistoryPage from '../pages/History';
-import SettingsPage from '../pages/Settings';
+import { createBrowserRouter } from "react-router-dom";
+import LandingPage from "../pages/landing";
+import WorkflowPage from "../pages/workflow";
+import MarketplacePage from "../pages/marketplace";
+import HistoryPage from "../pages/History";
+import SettingsPage from "../pages/Settings";
 
 // TODO(Router):
 // 1. Add route guards for authenticated routes
@@ -13,23 +13,23 @@ import SettingsPage from '../pages/Settings';
 
 export const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <LandingPage />,
   },
   {
-    path: '/run',
+    path: "/run",
     element: <WorkflowPage />,
   },
   {
-    path: '/marketplace',
+    path: "/marketplace",
     element: <MarketplacePage />,
   },
   {
-    path: '/history',
+    path: "/history",
     element: <HistoryPage />,
   },
   {
-    path: '/settings',
+    path: "/settings",
     element: <SettingsPage />,
   },
-]); 
+]);

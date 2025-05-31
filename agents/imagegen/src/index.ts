@@ -18,6 +18,25 @@ const AGENT_META = {
   name: "DALL-E 3 Image Generator",
   description: "AI-powered image generation using OpenAI's DALL-E 3 model",
   wallet: "0x1234567890123456789012345678901234567890", // Replace with actual wallet
+  vendor: "OpenAI",
+  category: "Image",
+  tags: ["image", "generation", "art", "ai", "creative"],
+  pricing: {
+    model: "per_image",
+    amount: 0.25,
+    currency: "USD",
+    unit: "image",
+  },
+  rating: {
+    score: 4.9,
+    reviews: 3421,
+    lastUpdated: "2024-01-20T00:00:00Z",
+  },
+  performance: {
+    avgResponseTime: 8500,
+    uptime: 99.7,
+    successRate: 98.9,
+  },
   inputSchema: {
     type: "object",
     properties: {
