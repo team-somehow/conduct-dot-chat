@@ -9,10 +9,12 @@ import Navbar from "../../components/Navbar";
 import StepLoader from "../../components/StepLoader";
 import WorkflowSteps from "../../components/WorkflowSteps";
 import CostEstimation from "../../components/CostEstimation";
+import WorkflowStepFlow from "../../components/WorkflowStepFlow";
 import WorkflowCanvas from "../../components/WorkflowCanvas";
 import InteractionTerminal from "../../components/InteractionTerminal";
 import ResultPanel from "../../components/ResultPanel";
 import FinishConfetti from "../../components/FinishConfetti";
+import GeneratedStage from "../../components/GeneratedStage";
 
 const STEP_DURATION = 3000; // 3 seconds per step
 
@@ -47,6 +49,8 @@ export default function WorkflowPage() {
     workflow,
     executionId,
     addLog,
+    activeNodeId,
+    interactionStep,
   } = useWorkflowStore();
 
   // Load available agents when component mounts
@@ -139,6 +143,68 @@ export default function WorkflowPage() {
     setHasCreatedWorkflow(false);
   };
 
+  // Transform nodes data to workflow steps format
+  const transformNodesToSteps = () => {
+    if (!nodes || nodes.length === 0) {
+      // Default demo steps
+      return [
+        {
+          id: 'orchestrator',
+          name: 'AI Orchestrator',
+          type: 'COORDINATOR',
+          description: 'Analyzes your request and coordinates the workflow execution',
+          status: 'idle' as const,
+          color: 'bg-[#FEEF5D]'
+        },
+        {
+          id: 'dalle-3',
+          name: 'DALL-E 3 Image Generator',
+          type: 'AI MODEL',
+          description: 'Generates high-quality images based on text descriptions',
+          status: 'idle' as const,
+          color: 'bg-[#FF5484]'
+        },
+        {
+          id: 'nft-deployer',
+          name: 'NFT Deployer Agent',
+          type: 'AI MODEL',
+          description: 'Deploys NFTs to the blockchain with smart contract integration',
+          status: 'idle' as const,
+          color: 'bg-[#7C82FF]'
+        }
+      ];
+    }
+
+    return nodes.map(node => {
+      let status = 'idle';
+      
+      // Determine status based on interaction progress
+      if (node.id === activeNodeId) {
+        status = 'active';
+      } else if (
+        (node.id === 'orchestrator' && interactionStep > 0) ||
+        (node.id === 'gpt4' && interactionStep > 1) ||
+        (node.id === 'stable-diffusion' && interactionStep > 3)
+      ) {
+        status = 'completed';
+      } else if (
+        (node.id === 'gpt4' && interactionStep < 1) ||
+        (node.id === 'stable-diffusion' && interactionStep < 3)
+      ) {
+        status = 'pending';
+      }
+
+      return {
+        id: node.id,
+        name: node.data?.label || node.data?.name || 'AI Agent',
+        type: node.data?.type || 'AI MODEL',
+        description: node.data?.description || 'Processes data using advanced AI capabilities',
+        status: status as 'idle' | 'active' | 'completed' | 'pending',
+        color: node.data?.color || 'bg-[#FEEF5D]'
+      };
+    });
+  };
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case "GENERATING_WORKFLOW":
@@ -152,23 +218,7 @@ export default function WorkflowPage() {
 
       case "SHOW_WORKFLOW":
         return (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold mb-4">Generated Workflow</h2>
-              <p className="text-gray-600">
-                Review the AI-generated workflow below
-              </p>
-            </div>
-            <WorkflowCanvas nodes={nodes} edges={edges} />
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleNextStep}
-                className="px-8 py-3 bg-[#FF5484] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
-              >
-                APPROVE WORKFLOW
-              </button>
-            </div>
-          </div>
+          <GeneratedStage onApprove={handleNextStep} />
         );
 
       case "SELECTING_MODELS":

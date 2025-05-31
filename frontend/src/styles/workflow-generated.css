@@ -1,0 +1,176 @@
+/* Neo-Brutalist Workflow Generated Styles */
+
+/* Shadow utilities */
+.shadow-neo {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.shadow-neo-lg {
+  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Hover motion */
+.hover-wiggle {
+  transition: transform 0.15s ease;
+}
+
+.hover-wiggle:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Pulse animation for active nodes */
+@keyframes pulse-brutal {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+  }
+}
+
+.pulse-brutal {
+  animation: pulse-brutal 2s infinite;
+}
+
+/* Dashed edge animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.edge-animated {
+  stroke-dasharray: 8, 4;
+  animation: dash 2s linear infinite;
+}
+
+/* Status pill colors */
+.status-idle {
+  background-color: #FEEF5D;
+  color: #000;
+}
+
+.status-ready {
+  background-color: #7C82FF;
+  color: #fff;
+}
+
+.status-running {
+  background-color: #FF5484;
+  color: #fff;
+}
+
+.status-complete {
+  background-color: #00D4AA;
+  color: #000;
+}
+
+.status-error {
+  background-color: #FF4444;
+  color: #fff;
+}
+
+/* React Flow custom styles */
+.react-flow__node-brutal {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.react-flow__node-brutal.selected {
+  box-shadow: 6px 6px 0 #000;
+}
+
+.react-flow__node-brutal:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 #000;
+}
+
+.react-flow__edge-brutal {
+  stroke: #000 !important;
+  stroke-width: 4px !important;
+  z-index: 10 !important;
+}
+
+.react-flow__edge-brutal:hover {
+  stroke-width: 6px !important;
+}
+
+.react-flow__handle {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 1px !important;
+  height: 1px !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.react-flow__edge {
+  z-index: 10 !important;
+}
+
+.react-flow__edge path {
+  stroke: #000 !important;
+  stroke-width: 4px !important;
+}
+
+/* Timeline rail */
+.timeline-rail {
+  position: relative;
+}
+
+.timeline-rail::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #000;
+  transform: translateX(-50%);
+}
+
+.timeline-step {
+  position: relative;
+  z-index: 1;
+}
+
+/* Focus styles for accessibility */
+.node-card:focus {
+  outline: 4px solid #7C82FF;
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .react-flow__node-brutal {
+    width: 180px;
+    height: 80px;
+  }
+  
+  .shadow-neo {
+    box-shadow: 2px 2px 0 #000;
+  }
+  
+  .shadow-neo-lg {
+    box-shadow: 3px 3px 0 #000;
+  }
+}
+
+/* Text truncation utilities */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+} 
