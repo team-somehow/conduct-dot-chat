@@ -1,26 +1,27 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import { CHAIN_CONFIG } from "../constants";
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
   networks: {
     hardhat: {
-      chainId: 1337,
+      chainId: CHAIN_CONFIG.hardhat.chainId,
     },
     flowEvmTestnet: {
-      url: "https://testnet.evm.nodes.onflow.org",
+      url: CHAIN_CONFIG.flowEvmTestnet.url,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 545,
+      chainId: CHAIN_CONFIG.flowEvmTestnet.chainId,
     },
     flowEvmMainnet: {
-      url: "https://mainnet.evm.nodes.onflow.org",
+      url: CHAIN_CONFIG.flowEvmMainnet.url,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 747,
+      chainId: CHAIN_CONFIG.flowEvmMainnet.chainId,
     },
     sepolia: {
-      url: "https://eth-sepolia.public.blastapi.io",
+      url: CHAIN_CONFIG.sepolia.url,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 11155111,
+      chainId: CHAIN_CONFIG.sepolia.chainId,
     },
   },
 };
