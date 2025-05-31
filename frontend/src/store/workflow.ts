@@ -91,12 +91,8 @@ interface WorkflowState {
   setSelectedModel: (model: Model) => void;
 
   // Workflow execution
-  createWorkflow: (
-    description: string,
-    context?: any,
-    preferences?: any
-  ) => Promise<void>;
-  executeWorkflow: (workflowId: string, input: any) => Promise<void>;
+  createWorkflow: (description: string) => Promise<void>;
+  executeWorkflow: (workflowId: string) => Promise<void>;
   pollExecutionStatus: (executionId: string) => Promise<void>;
 
   // Agent discovery
@@ -315,16 +311,14 @@ export const useWorkflowStore = create<WorkflowState>()(
       },
 
       // Workflow creation
-      createWorkflow: async (description, context = {}, preferences = {}) => {
+      createWorkflow: async (description) => {
         try {
           set({ isLoading: true, error: null });
           get().addLog(`Creating workflow: ${description}`, "info");
 
-          const { workflow } = await orchestratorAPI.createWorkflow({
-            description,
-            context,
-            preferences,
-          });
+          const { workflow } = await orchestratorAPI.createWorkflow(
+            description
+          );
 
           // Convert workflow steps to nodes and edges
           const nodes: Node[] = workflow.steps.map(
@@ -371,14 +365,13 @@ export const useWorkflowStore = create<WorkflowState>()(
       },
 
       // Workflow execution
-      executeWorkflow: async (workflowId, input) => {
+      executeWorkflow: async (workflowId) => {
         try {
           set({ isExecuting: true, error: null });
           get().addLog(`Executing workflow: ${workflowId}`, "info");
 
           const { execution } = await orchestratorAPI.executeWorkflow(
-            workflowId,
-            input
+            workflowId
           );
 
           set({

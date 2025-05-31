@@ -71,21 +71,29 @@ app.get("/agents", async (req: Request, res: Response) => {
 // Create workflow based on user intent
 app.post("/workflows/create", async (req: Request, res: Response) => {
   try {
-    const { description, context, preferences } = req.body;
+    const { prompt } = req.body;
 
-    if (!description || typeof description !== "string") {
+    if (!prompt || typeof prompt !== "string") {
       return res.status(400).json({
-        error: "Missing required field: description (string)",
+        error: "Missing required field: prompt (string)",
       });
     }
 
-    const userIntent: UserIntent = {
-      description,
-      context: context || {},
-      preferences: preferences || {},
-    };
+    console.log(`🔍 Creating workflow for prompt: "${prompt}"`);
 
-    console.log(`🔍 Creating workflow for intent: "${description}"`);
+    // Create a simplified UserIntent from the prompt
+    const userIntent: UserIntent = {
+      description: prompt,
+      context: {
+        source: "api",
+        timestamp: new Date().toISOString(),
+      },
+      preferences: {
+        speed: "balanced",
+        quality: "standard",
+        cost: "medium",
+      },
+    };
 
     const workflow = await workflowManager.createWorkflow(userIntent);
 
@@ -116,17 +124,31 @@ app.post("/workflows/create", async (req: Request, res: Response) => {
 // Execute a workflow
 app.post("/workflows/execute", async (req: Request, res: Response) => {
   try {
-    const { workflowId, input } = req.body;
+    const { workflowId } = req.body;
 
-    if (!workflowId || !input) {
+    if (!workflowId) {
       return res.status(400).json({
-        error: "Missing required fields: workflowId, input",
+        error: "Missing required field: workflowId",
       });
     }
 
     console.log(`🚀 Executing workflow: ${workflowId}`);
 
-    const execution = await workflowManager.executeWorkflow(workflowId, input);
+    // Get the workflow to determine what input it needs
+    const workflow = workflowManager.getWorkflow(workflowId);
+    if (!workflow) {
+      return res.status(404).json({
+        error: "Workflow not found",
+      });
+    }
+
+    // Generate default input based on the workflow's first step requirements
+    const defaultInput = workflowManager.generateDefaultInput(workflow);
+
+    const execution = await workflowManager.executeWorkflow(
+      workflowId,
+      defaultInput
+    );
 
     res.json({
       success: true,

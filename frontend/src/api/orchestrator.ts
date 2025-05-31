@@ -110,19 +110,17 @@ export const orchestratorAPI = {
 
   // Workflow management
   async createWorkflow(
-    userIntent: UserIntent
+    prompt: string
   ): Promise<{ workflow: WorkflowDefinition }> {
-    const response = await api.post("/workflows/create", userIntent);
+    const response = await api.post("/workflows/create", { prompt });
     return response.data;
   },
 
   async executeWorkflow(
-    workflowId: string,
-    input: any
+    workflowId: string
   ): Promise<{ execution: WorkflowExecution }> {
     const response = await api.post("/workflows/execute", {
       workflowId,
-      input,
     });
     return response.data;
   },
@@ -186,14 +184,11 @@ export const orchestratorAPI = {
     onExecutionUpdate?: (execution: WorkflowExecution) => void
   ): Promise<{ workflow: WorkflowDefinition; execution: WorkflowExecution }> {
     // Create workflow
-    const { workflow } = await this.createWorkflow(userIntent);
+    const { workflow } = await this.createWorkflow(userIntent.description);
     onWorkflowCreated?.(workflow);
 
     // Execute workflow
-    const { execution } = await this.executeWorkflow(
-      workflow.workflowId,
-      input
-    );
+    const { execution } = await this.executeWorkflow(workflow.workflowId);
 
     // Poll for completion if callback provided
     if (onExecutionUpdate) {

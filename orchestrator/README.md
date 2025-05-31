@@ -1,251 +1,259 @@
-# MAHA HTTP Orchestrator
+# MAHA Orchestrator
 
-A drop-in replacement for file-based AI agent orchestration that treats every AI agent as a REST microservice. The on-chain flow (stake → escrow → slice → rate) stays exactly the same; only the TypeScript orchestrator changes.
+A simplified multi-agent orchestration system that creates and executes AI workflows from natural language prompts.
 
-## Architecture
+## 🚀 Quick Start
 
-### Agent HTTP Contract
+### Prerequisites
 
-Every agent exposes two JSON endpoints:
+- Node.js 18+
+- OpenAI API key (for workflow planning)
+- Running MAHA agents (Hello World, DALL-E 3, NFT Deployer)
 
-| Verb | Path    | Body                      | Response                                                                                                                          | Note                                                  |
-| ---- | ------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| GET  | `/meta` | –                         | `{ "name": "...", "description": "...", "wallet": "0x…", "inputSchema": {...}, "outputSchema": {...}, "previewURI": "ipfs://…" }` | Static data for on-chain AgentStore.upsert            |
-| POST | `/run`  | JSON matching inputSchema | JSON matching outputSchema                                                                                                        | Long-running agents should stream or queue internally |
-
-The agent's on-chain wallet must be the same address that posted the stake bond.
-
-## Quick Start
-
-### 1. Installation
+### Installation
 
 ```bash
-cd orchestrator
 npm install
 ```
 
-### 2. Environment Setup
+### Configuration
+
+Copy `.env.example` to `.env` and configure:
 
 ```bash
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your OpenAI API key
 ```
 
-Required environment variables:
-
-- `RPC_URL`: Ethereum RPC endpoint
-- `ORCH_PRIV_KEY`: Orchestrator private key
-- `AGENT_STORE_ADDRESS`: Deployed AgentStore contract address
-- `TASK_HUB_ADDRESS`: Deployed TaskHub contract address
-
-### 3. Configure Agent Endpoints
-
-Edit `src/config.ts` to add your agent endpoints:
-
-```typescript
-export const AGENT_ENDPOINTS = [
-  "https://dalle3.my-agent.net",
-  "https://watermarker.ai",
-  "https://your-custom-agent.com",
-];
-```
-
-### 4. Run the Orchestrator
+### Start the Orchestrator
 
 ```bash
-# Development mode
-npm run dev
-
-# Build and run
 npm run build
 npm start
-
-# Available commands:
-npm run dev sync      # Sync agents with on-chain registry
-npm run dev demo      # Run basic demo job
-npm run dev advanced  # Run advanced demo with JobRunner
-npm run dev health    # Check agent health
 ```
 
-## Project Structure
+The orchestrator will start on `http://localhost:8080`
 
-```
-orchestrator/
-├─ src/
-│  ├─ agents.http.ts   # HTTP agent discovery & execution
-│  ├─ JobRunner.ts     # Job orchestration logic
-│  ├─ Contract.ts      # Blockchain interaction (viem)
-│  ├─ config.ts       # Configuration & endpoints
-│  └─ server.ts       # Main CLI application
-├─ package.json
-├─ tsconfig.json
-├─ .env.example
-└─ README.md
-```
+## 📡 Simplified API
 
-## Core Components
+### Create Workflow
 
-### HttpAgent Interface
+Create a workflow from a natural language prompt.
 
-```typescript
-interface HttpAgent {
-  url: string; // base URL
-  name: string;
-  description: string;
-  wallet: `0x${string}`; // on-chain key
-  inputValidate: ValidateFunction;
-  outputValidate: ValidateFunction;
-  previewURI: string;
+```bash
+POST /workflows/create
+Content-Type: application/json
+
+{
+  "prompt": "Create a personalized greeting for Alice and generate a sunset image"
 }
 ```
 
-### Agent Discovery
-
-```typescript
-import { loadAgent } from "./agents.http";
-
-const agent = await loadAgent("https://my-agent.com");
-// Automatically fetches /meta, compiles JSON schemas
-```
-
-### Job Execution
-
-```typescript
-import { runAgent } from "./agents.http";
-
-const result = await runAgent(agent, {
-  prompt: "cyberpunk corgi astronaut",
-});
-// Validates input/output against schemas
-```
-
-### JobRunner Class
-
-The `JobRunner` provides high-level orchestration:
-
-```typescript
-const jobRunner = new JobRunner();
-
-// Load agents
-const dalle = await jobRunner.loadAgent("https://dalle3.my-agent.net");
-const watermarker = await jobRunner.loadAgent("https://watermarker.ai");
-
-// Create and run job
-const jobId = await jobRunner.createJob(
-  userAddress,
-  { prompt: "futuristic city" },
-  parseEther("0.1")
-);
-
-const result = await jobRunner.runJob({
-  jobId,
-  totalBudget: parseEther("0.1"),
-  jobData: { prompt: "futuristic city" },
-  agents: [dalle, watermarker],
-});
-```
-
-## Agent Implementation Example
-
-Here's how to implement a compliant agent:
-
-### Agent Metadata (`GET /meta`)
+**Response:**
 
 ```json
 {
-  "name": "DALL-E 3 Generator",
-  "description": "AI image generation using DALL-E 3",
-  "wallet": "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "prompt": { "type": "string", "maxLength": 1000 }
-    },
-    "required": ["prompt"]
+  "success": true,
+  "workflow": {
+    "workflowId": "workflow_1234567890_abc123",
+    "name": "Create A Greeting Workflow",
+    "description": "Workflow for: Create a personalized greeting for Alice and generate a sunset image",
+    "userIntent": "Create a personalized greeting for Alice and generate a sunset image",
+    "steps": [
+      {
+        "stepId": "step_1",
+        "agentUrl": "http://localhost:3001",
+        "agentName": "Hello World Agent",
+        "description": "Generate a personalized greeting message.",
+        "inputMapping": { "name": "name", "language": "language" },
+        "outputMapping": { "greeting": "personalizedGreeting" }
+      },
+      {
+        "stepId": "step_2",
+        "agentUrl": "http://localhost:3002",
+        "agentName": "DALL-E 3 Image Generator",
+        "description": "Generate a sunset image.",
+        "inputMapping": { "prompt": "A beautiful sunset" },
+        "outputMapping": { "imageUrl": "generatedImageUrl" }
+      }
+    ],
+    "executionMode": "sequential",
+    "estimatedDuration": 10000,
+    "createdAt": 1234567890123
   },
-  "outputSchema": {
-    "type": "object",
-    "properties": {
-      "imageUrl": { "type": "string", "format": "uri" },
-      "prompt": { "type": "string" }
-    },
-    "required": ["imageUrl", "prompt"]
-  },
-  "previewURI": "ipfs://QmYourPreviewHash"
+  "message": "Workflow created with 2 steps"
 }
 ```
 
-### Agent Execution (`POST /run`)
+### Execute Workflow
 
-```javascript
-app.post("/run", async (req, res) => {
-  const { prompt } = req.body;
-
-  // Your AI logic here
-  const imageUrl = await generateImage(prompt);
-
-  res.json({
-    imageUrl,
-    prompt,
-  });
-});
-```
-
-## Deployment
-
-### Agent Deployment
-
-Deploy your agents to any platform that supports HTTPS:
-
-- Vercel
-- Fly.io
-- Railway
-- AWS Lambda
-- Google Cloud Functions
-
-### Orchestrator Deployment
+Execute a workflow using only its ID. The orchestrator automatically generates appropriate input.
 
 ```bash
-# Build
-npm run build
+POST /workflows/execute
+Content-Type: application/json
 
-# Deploy to your preferred platform
-# Make sure to set environment variables
+{
+  "workflowId": "workflow_1234567890_abc123"
+}
 ```
 
-## Benefits
+**Response:**
 
-✅ **No file I/O** – agents just need HTTPS servers  
-✅ **Schema-safe** – each call validated by AJV in/out  
-✅ **Hot-swappable** – add/remove endpoints by editing config  
-✅ **Still modular** – on-chain reputation, stake, escrow unchanged  
-✅ **Hackathon-friendly** – quick deployment on free platforms
+```json
+{
+  "success": true,
+  "execution": {
+    "executionId": "exec_1234567890_xyz789",
+    "workflowId": "workflow_1234567890_abc123",
+    "status": "completed",
+    "startedAt": 1234567890123,
+    "completedAt": 1234567890456,
+    "input": {
+      "name": "Alice",
+      "language": "english"
+    },
+    "output": {
+      "imageUrl": "https://oaidalleapiprodscus.blob.core.windows.net/...",
+      "prompt": "A beautiful sunset",
+      "size": "1024x1024"
+    },
+    "stepResults": [
+      {
+        "stepId": "step_1",
+        "status": "completed",
+        "input": { "name": "Alice", "language": "english" },
+        "output": {
+          "greeting": "Hello, Alice! How are you doing today?",
+          "language": "english",
+          "timestamp": "2024-01-01T00:00:00.000Z"
+        }
+      },
+      {
+        "stepId": "step_2",
+        "status": "completed",
+        "input": { "prompt": "A beautiful sunset" },
+        "output": {
+          "imageUrl": "https://oaidalleapiprodscus.blob.core.windows.net/...",
+          "prompt": "A beautiful sunset",
+          "size": "1024x1024",
+          "quality": "standard",
+          "style": "vivid"
+        }
+      }
+    ]
+  }
+}
+```
 
-## Error Handling
+### Other Endpoints
 
-The orchestrator includes comprehensive error handling:
+- `GET /health` - Health check with agent status
+- `GET /agents` - List all discovered agents
+- `GET /workflows` - List all created workflows
+- `GET /workflows/:workflowId` - Get specific workflow
+- `GET /executions` - List all executions
+- `GET /executions/:executionId` - Get specific execution
 
-- **Network failures**: Automatic retries and fallbacks
-- **Schema validation**: Input/output validation with clear error messages
-- **Blockchain errors**: Transaction failure handling and gas estimation
-- **Agent timeouts**: Configurable timeout handling
+## 🧪 Testing
 
-## Monitoring
-
-Built-in health checks and monitoring:
+### Test All Agents
 
 ```bash
-npm run dev health  # Check all agent endpoints
+node test-agents.js
 ```
 
-## Contributing
+### Test Simplified Workflow API
+
+```bash
+node test-simplified-workflow.js
+```
+
+### Test Individual Agent
+
+```bash
+node test-hello-agent.js
+```
+
+## 🏗️ Architecture
+
+### Workflow Creation Process
+
+1. **Prompt Analysis**: LLM analyzes the natural language prompt
+2. **Agent Selection**: Determines which agents are needed
+3. **Step Planning**: Creates sequential workflow steps
+4. **Input/Output Mapping**: Maps data flow between agents
+
+### Workflow Execution Process
+
+1. **Input Generation**: Automatically generates appropriate input from the prompt
+2. **Sequential Execution**: Runs agents in order, passing outputs to next step
+3. **Result Aggregation**: Combines all step results into final output
+
+### Smart Input Generation
+
+The orchestrator automatically extracts information from prompts:
+
+- **Names**: "for Alice" → `name: "Alice"`
+- **Languages**: "in Spanish" → `language: "spanish"`
+- **Image descriptions**: "sunset image" → `prompt: "A beautiful sunset"`
+- **Collections**: "collection called Dreams" → `collectionName: "Dreams"`
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+PORT=8080
+NODE_ENV=development
+```
+
+### Agent Endpoints
+
+Configure in `src/config.ts`:
+
+```typescript
+export const AGENTS = [
+  "http://localhost:3001", // Hello World Agent
+  "http://localhost:3002", // DALL-E 3 Image Generator
+  "http://localhost:3003", // NFT Deployer Agent
+];
+```
+
+## 📝 Example Prompts
+
+The orchestrator can handle various types of requests:
+
+- **Simple Greeting**: `"Generate a greeting for Bob"`
+- **Multi-step**: `"Create a personalized hello and generate an image"`
+- **Specific Instructions**: `"Make a Spanish greeting for Maria and create a landscape photo"`
+- **NFT Creation**: `"Create an NFT collection called 'Digital Dreams' with AI artwork"`
+
+## 🚨 Error Handling
+
+The API returns structured error responses:
+
+```json
+{
+  "error": "Workflow creation failed",
+  "details": "Agent not available: http://localhost:3001"
+}
+```
+
+## 🔍 Monitoring
+
+- Check `/health` for system status
+- Monitor execution status via `/executions/:executionId`
+- View all workflows and executions via list endpoints
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+3. Add tests for new functionality
+4. Submit a pull request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details
+MIT License - see LICENSE file for details.

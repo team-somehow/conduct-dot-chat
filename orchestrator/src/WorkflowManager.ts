@@ -132,6 +132,159 @@ export class WorkflowManager {
     return Array.from(this.executions.values());
   }
 
+  // Generate default input for a workflow based on its first step requirements
+  generateDefaultInput(workflow: WorkflowDefinition): any {
+    if (workflow.steps.length === 0) {
+      return {};
+    }
+
+    const firstStep = workflow.steps[0];
+    const defaultInput: any = {};
+
+    // Extract common input patterns from the user intent
+    const intent = workflow.userIntent.toLowerCase();
+
+    // Common default values based on agent types and user intent
+    if (
+      firstStep.agentName.toLowerCase().includes("hello") ||
+      firstStep.agentName.toLowerCase().includes("greet")
+    ) {
+      defaultInput.name = this.extractNameFromIntent(intent) || "User";
+      defaultInput.language =
+        this.extractLanguageFromIntent(intent) || "english";
+    }
+
+    if (
+      firstStep.agentName.toLowerCase().includes("image") ||
+      firstStep.agentName.toLowerCase().includes("dall")
+    ) {
+      defaultInput.prompt =
+        this.extractImagePromptFromIntent(intent) ||
+        "A beautiful and creative illustration";
+      defaultInput.size = "1024x1024";
+      defaultInput.quality = "standard";
+      defaultInput.style = "vivid";
+    }
+
+    if (firstStep.agentName.toLowerCase().includes("nft")) {
+      defaultInput.collectionName =
+        this.extractCollectionNameFromIntent(intent) ||
+        "AI Generated Collection";
+      defaultInput.recipientAddress =
+        "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e";
+      defaultInput.tokenName =
+        this.extractTokenNameFromIntent(intent) || "AI NFT";
+      defaultInput.description = workflow.description;
+    }
+
+    // If no specific defaults were set, try to extract from input mapping
+    if (Object.keys(defaultInput).length === 0 && firstStep.inputMapping) {
+      for (const [agentField, workflowField] of Object.entries(
+        firstStep.inputMapping
+      )) {
+        if (workflowField === "name") {
+          defaultInput[agentField] = "User";
+        } else if (workflowField === "prompt") {
+          defaultInput[agentField] =
+            this.extractImagePromptFromIntent(intent) ||
+            "A creative illustration";
+        } else if (workflowField.toLowerCase().includes("language")) {
+          defaultInput[agentField] = "english";
+        }
+      }
+    }
+
+    console.log(
+      `🎯 Generated default input for workflow ${workflow.workflowId}:`,
+      defaultInput
+    );
+    return defaultInput;
+  }
+
+  // Helper methods for extracting information from user intent
+  private extractNameFromIntent(intent: string): string | null {
+    // Look for patterns like "for Alice", "named Bob", etc.
+    const namePatterns = [
+      /for\s+([A-Za-z]+)/i,
+      /named?\s+([A-Za-z]+)/i,
+      /called\s+([A-Za-z]+)/i,
+    ];
+
+    for (const pattern of namePatterns) {
+      const match = intent.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return null;
+  }
+
+  private extractLanguageFromIntent(intent: string): string | null {
+    const languages = ["spanish", "french", "german", "english"];
+    for (const lang of languages) {
+      if (intent.includes(lang)) {
+        return lang;
+      }
+    }
+    return null;
+  }
+
+  private extractImagePromptFromIntent(intent: string): string | null {
+    // Extract image-related descriptions
+    const imagePatterns = [
+      /image of (.+?)(?:\s+and|\s+with|\.|$)/i,
+      /picture of (.+?)(?:\s+and|\s+with|\.|$)/i,
+      /generate (.+?)(?:\s+image|\s+picture|\.|$)/i,
+      /create (.+?)(?:\s+image|\s+picture|\.|$)/i,
+    ];
+
+    for (const pattern of imagePatterns) {
+      const match = intent.match(pattern);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+
+    // Fallback: if intent mentions specific themes
+    if (intent.includes("sunset")) return "A beautiful sunset";
+    if (intent.includes("landscape")) return "A scenic landscape";
+    if (intent.includes("portrait")) return "A professional portrait";
+    if (intent.includes("abstract")) return "An abstract art piece";
+
+    return null;
+  }
+
+  private extractCollectionNameFromIntent(intent: string): string | null {
+    const collectionPatterns = [
+      /collection called (.+?)(?:\s+with|\s+and|\.|$)/i,
+      /collection named (.+?)(?:\s+with|\s+and|\.|$)/i,
+      /(.+?)\s+collection/i,
+    ];
+
+    for (const pattern of collectionPatterns) {
+      const match = intent.match(pattern);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  }
+
+  private extractTokenNameFromIntent(intent: string): string | null {
+    const tokenPatterns = [
+      /nft called (.+?)(?:\s+with|\s+and|\.|$)/i,
+      /token named (.+?)(?:\s+with|\s+and|\.|$)/i,
+    ];
+
+    for (const pattern of tokenPatterns) {
+      const match = intent.match(pattern);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  }
+
   // Private helper methods
   private determineExecutionMode(
     userIntent: UserIntent,
