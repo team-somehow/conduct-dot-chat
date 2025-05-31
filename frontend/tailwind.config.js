@@ -11,7 +11,8 @@ module.exports = {
       borderWidth: { 
         '3': '3px',
         '4': '4px', 
-        '5': '5px' 
+        '5': '5px',
+        '6': '6px'
       },
       keyframes: {
         "slide-up": {

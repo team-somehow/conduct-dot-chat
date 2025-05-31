@@ -1,20 +1,18 @@
 // Workflow visualization page with step-by-step animated demo
-// Features: Auto-cycling through 6 stages with Neo-Brutalist styling
+// Features: Auto-cycling through 5 stages with Neo-Brutalist styling
 
 import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
+import { ReactFlowProvider } from 'reactflow';
 import { useWorkflowStore } from "../../store/workflow";
 import Navbar from "../../components/Navbar";
 import StepLoader from "../../components/StepLoader";
-import WorkflowSteps from "../../components/WorkflowSteps";
-import CostEstimation from "../../components/CostEstimation";
-import WorkflowStepFlow from "../../components/WorkflowStepFlow";
-import WorkflowCanvas from "../../components/WorkflowCanvas";
-import InteractionTerminal from "../../components/InteractionTerminal";
+import ExecutionCanvas from "../../components/ExecutionCanvas";
+import LiveLogPanel from "../../components/LiveLogPanel";
 import ResultPanel from "../../components/ResultPanel";
-import FinishConfetti from "../../components/FinishConfetti";
 import GeneratedStage from "../../components/GeneratedStage";
+import "../../styles/execution.css";
 
 const STEP_DURATION = 3000; // 3 seconds per step
 
@@ -104,12 +102,13 @@ export default function WorkflowPage() {
         await executeWorkflow(workflowId);
       } else {
         // Fallback to demo simulation if no workflow ID
-        nextStep();
+        console.log("No workflow ID, starting demo simulation");
+        startDemo();
       }
     } catch (error) {
       console.error("Failed to execute workflow:", error);
     }
-  }, [workflowId, executeWorkflow, nextStep, setCurrentStep]);
+  }, [workflowId, executeWorkflow, startDemo, setCurrentStep]);
 
   const handlePromptSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,23 +239,17 @@ export default function WorkflowPage() {
 
       case "SHOW_INTERACTION":
         return (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold mb-4">Workflow Execution</h2>
-              <p className="text-gray-600">
+          <ReactFlowProvider>
+            <div className="space-y-4">
+              <header className="text-center py-4 text-xs uppercase font-bold text-black/70">
                 Watch your workflow execute in real-time
-              </p>
+              </header>
+              
+              <ExecutionCanvas nodes={nodes} edges={edges} />
+              
+              <LiveLogPanel />
             </div>
-            <WorkflowCanvas nodes={nodes} edges={edges} />
-            <div className="bg-black text-green-400 p-4 rounded font-mono text-sm max-h-64 overflow-y-auto">
-              {logs.map((log) => (
-                <div key={log.id} className="mb-1">
-                  <span className="text-gray-500">[{log.timestamp}]</span>{" "}
-                  {log.message}
-                </div>
-              ))}
-            </div>
-          </div>
+          </ReactFlowProvider>
         );
 
       case "SHOW_RESULT":
@@ -345,7 +338,10 @@ export default function WorkflowPage() {
             <div className="text-center">
               <p className="text-gray-600 mb-4">Or try our interactive demo:</p>
               <button
-                onClick={startDemo}
+                onClick={() => {
+                  console.log("Starting demo");
+                  startDemo();
+                }}
                 className="px-8 py-3 bg-blue-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
               >
                 START DEMO
@@ -394,7 +390,6 @@ export default function WorkflowPage() {
             {[
               "GENERATING_WORKFLOW",
               "SHOW_WORKFLOW",
-              "SELECTING_MODELS",
               "COST_ESTIMATION",
               "SHOW_INTERACTION",
               "SHOW_RESULT",
@@ -412,12 +407,11 @@ export default function WorkflowPage() {
             {[
               "GENERATING_WORKFLOW",
               "SHOW_WORKFLOW",
-              "SELECTING_MODELS",
               "COST_ESTIMATION",
               "SHOW_INTERACTION",
               "SHOW_RESULT",
             ].indexOf(currentStep) + 1}{" "}
-            of 6
+            of 5
           </span>
         </div>
       </motion.div>

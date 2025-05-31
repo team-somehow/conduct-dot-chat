@@ -1,11 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "./components/workflow-animations.css";
-@import "./styles/result.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import "./components/workflow-animations.css";
+@import "./styles/result.css";
+@import "./styles/execution.css";
 
 @custom-variant dark (&:is(.dark *));
 

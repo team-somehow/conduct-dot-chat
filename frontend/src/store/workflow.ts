@@ -118,7 +118,7 @@ interface WorkflowState {
   setInteractionStep: (step: number) => void;
   togglePause: () => void;
   advanceNode: () => void;
-  startInteractionSimulation: () => void;
+  startExecutionSimulation: () => void;
 
   // Utility
   addLog: (message: string, type?: "info" | "success" | "error") => void;
@@ -135,7 +135,7 @@ const convertWorkflowToGraph = (
   nodes.push({
     id: "orchestrator",
     type: "brutalNode",
-    position: { x: 250, y: 50 },
+    position: { x: 400, y: 50 },
     data: {
       label: "AI Orchestrator",
       color: "#FEEF5D",
@@ -145,8 +145,9 @@ const convertWorkflowToGraph = (
 
   // Create nodes for each step
   workflow.steps.forEach((step, index) => {
-    const x = 100 + (index % 3) * 200;
-    const y = 200 + Math.floor(index / 3) * 150;
+    // Better spacing: arrange in a more spread out pattern
+    const x = 150 + (index % 2) * 500; // Alternate between left and right
+    const y = 250 + Math.floor(index / 2) * 200; // Stack vertically every 2 nodes
 
     nodes.push({
       id: step.stepId,
@@ -167,7 +168,7 @@ const convertWorkflowToGraph = (
       id: `edge-${sourceId}-${step.stepId}`,
       source: sourceId,
       target: step.stepId,
-      type: "smoothstep",
+      type: "brutal",
       data: { status: "idle" },
     });
   });
@@ -212,7 +213,7 @@ const DEMO_NODES: Node[] = [
   {
     id: "orchestrator",
     type: "brutalNode",
-    position: { x: 250, y: 50 },
+    position: { x: 400, y: 50 },
     data: {
       label: "AI Orchestrator",
       color: "#FEEF5D",
@@ -220,40 +221,42 @@ const DEMO_NODES: Node[] = [
     },
   },
   {
-    id: "hello-agent",
+    id: "dalle-agent",
     type: "brutalNode",
-    position: { x: 100, y: 200 },
+    position: { x: 150, y: 250 },
     data: {
-      label: "Hello World Agent",
+      label: "DALL-E 3 Image Generator",
       color: "#FF5484",
       status: "idle",
+      description: "Generates high-quality images using DALL-E 3",
     },
   },
   {
-    id: "dalle-agent",
+    id: "nft-deployer",
     type: "brutalNode",
-    position: { x: 400, y: 200 },
+    position: { x: 650, y: 250 },
     data: {
-      label: "DALL-E 3",
+      label: "NFT Deployer Agent",
       color: "#7C82FF",
       status: "idle",
+      description: "Deploys NFTs to blockchain with smart contracts",
     },
   },
 ];
 
 const DEMO_EDGES: Edge[] = [
   {
-    id: "edge-orchestrator-hello",
+    id: "edge-orchestrator-dalle",
     source: "orchestrator",
-    target: "hello-agent",
-    type: "smoothstep",
+    target: "dalle-agent",
+    type: "brutal",
     data: { status: "idle" },
   },
   {
-    id: "edge-hello-dalle",
-    source: "hello-agent",
-    target: "dalle-agent",
-    type: "smoothstep",
+    id: "edge-dalle-nft",
+    source: "dalle-agent",
+    target: "nft-deployer",
+    type: "brutal",
     data: { status: "idle" },
   },
 ];
@@ -377,6 +380,9 @@ export const useWorkflowStore = create<WorkflowState>()(
           set({ isExecuting: true, error: null });
           get().addLog(`Executing workflow: ${workflowId}`, "info");
 
+          // Start the execution simulation immediately
+          get().startExecutionSimulation();
+
           const response = await orchestratorAPI.executeWorkflow(workflowId);
           const { execution } = response;
 
@@ -401,6 +407,10 @@ export const useWorkflowStore = create<WorkflowState>()(
         } catch (error: any) {
           set({ error: error.message, isExecuting: false });
           get().addLog(`Execution failed: ${error.message}`, "error");
+          
+          // If real execution fails, fall back to demo simulation
+          get().addLog("Falling back to demo simulation...", "info");
+          get().startExecutionSimulation();
         }
       },
 
@@ -486,30 +496,7 @@ export const useWorkflowStore = create<WorkflowState>()(
             }, 1500);
           } else if (nextStep === "SHOW_INTERACTION") {
             set({ isExecuting: true });
-            get().addLog("Starting workflow execution...", "info");
-            setTimeout(() => {
-              get().addLog("Agent 1: Processing input...", "info");
-              setTimeout(() => {
-                get().addLog("Agent 2: Generating image...", "info");
-                setTimeout(() => {
-                  get().addLog("Agent 3: Deploying NFT...", "info");
-                  setTimeout(() => {
-                    set({
-                      isExecuting: false,
-                      currentStep: "SHOW_RESULT",
-                      executionResults: {
-                        nftAddress:
-                          "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
-                        tokenId: "1",
-                        imageUrl: "https://example.com/generated-image.png",
-                        transactionHash: "0xabc123...",
-                      },
-                    });
-                    get().addLog("Workflow execution completed!", "success");
-                  }, 2000);
-                }, 1500);
-              }, 2000);
-            }, 1000);
+            get().startExecutionSimulation();
           }
         }
       },
@@ -544,33 +531,112 @@ export const useWorkflowStore = create<WorkflowState>()(
           set({ currentStep: nextStep });
         }
       },
-      startInteractionSimulation: () => {
-        set({
-          currentStep: "GENERATING_WORKFLOW",
-          isLoading: true,
-          error: null,
-          logs: [],
-        });
-
-        // Simulate workflow generation
+      startExecutionSimulation: () => {
+        const { nodes } = get();
+        
+        get().addLog("🚀 Starting workflow execution...", "info");
+        
+        // Simulate orchestrator activity
         setTimeout(() => {
-          get().addLog("Analyzing user intent...", "info");
+          set({ activeNodeId: "orchestrator" });
+          get().addLog("🧠 Orchestrator: Analyzing workflow and coordinating agents...", "info");
+          
           setTimeout(() => {
-            get().addLog("Selecting optimal agents...", "info");
-            setTimeout(() => {
-              get().addLog("Building workflow graph...", "info");
+            // Find and activate first agent (DALL-E)
+            const dalleAgent = nodes.find(n => 
+              n.data?.label?.toLowerCase().includes('dall') || 
+              n.data?.label?.toLowerCase().includes('image')
+            );
+            
+            if (dalleAgent) {
+              set({ activeNodeId: dalleAgent.id });
+              get().addLog("🎨 DALL-E 3: Generating thank you NFT image...", "info");
+              
               setTimeout(() => {
-                set({
-                  currentStep: "SHOW_WORKFLOW",
-                  isLoading: false,
-                  nodes: DEMO_NODES,
-                  edges: DEMO_EDGES,
-                });
-                get().addLog("Workflow generated successfully!", "success");
-              }, 1000);
-            }, 800);
-          }, 600);
-        }, 1000);
+                get().addLog("🎨 DALL-E 3: Processing image generation request...", "info");
+                
+                setTimeout(() => {
+                  get().addLog("✨ DALL-E 3: Image generation completed successfully!", "success");
+                  
+                  setTimeout(() => {
+                    // Find and activate NFT deployer
+                    const nftAgent = nodes.find(n => 
+                      n.data?.label?.toLowerCase().includes('nft') || 
+                      n.data?.label?.toLowerCase().includes('deploy')
+                    );
+                    
+                    if (nftAgent) {
+                      set({ activeNodeId: nftAgent.id });
+                      get().addLog("🔗 NFT Deployer: Preparing blockchain transaction...", "info");
+                      
+                      setTimeout(() => {
+                        get().addLog("🔗 NFT Deployer: Minting NFT with generated image...", "info");
+                        
+                        setTimeout(() => {
+                          get().addLog("🔗 NFT Deployer: Deploying to blockchain...", "info");
+                          
+                          setTimeout(() => {
+                            get().addLog("💎 NFT Deployer: NFT successfully minted and sent!", "success");
+                            get().addLog("🎉 Transaction hash: 0xdemo123...abcdef", "success");
+                            
+                            // Keep the node active for a bit longer to show completion
+                            setTimeout(() => {
+                              get().addLog("✅ All agents completed successfully!", "success");
+                              
+                              // Final delay before moving to results
+                              setTimeout(() => {
+                                set({ 
+                                  activeNodeId: null,
+                                  isExecuting: false,
+                                  currentStep: "SHOW_RESULT",
+                                  executionResults: {
+                                    nftAddress: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e",
+                                    tokenId: "1",
+                                    imageUrl: "https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image",
+                                    transactionHash: "0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                                    collectionName: "ETH Global Prague Thank You",
+                                    tokenName: "Thank You NFT #1",
+                                    metadataUri: "https://demo.metadata.uri/1",
+                                    explorerUrl: "https://etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                                  }
+                                });
+                                get().addLog("✅ Workflow execution completed successfully!", "success");
+                              }, 2000); // Wait 2 seconds before showing results
+                            }, 1500); // Keep final node active for 1.5 seconds
+                          }, 2000); // Deploying phase
+                        }, 2000); // Minting phase
+                      }, 1500); // Preparation phase
+                    }
+                  }, 1500); // Transition delay between agents
+                }, 2500); // Image processing time
+              }, 2000); // Initial DALL-E processing
+            } else {
+              // Generic agent simulation fallback
+              const firstAgent = nodes.find(n => n.id !== "orchestrator");
+              if (firstAgent) {
+                set({ activeNodeId: firstAgent.id });
+                get().addLog(`🤖 ${firstAgent.data?.label}: Processing request...`, "info");
+                
+                setTimeout(() => {
+                  get().addLog(`✅ ${firstAgent.data?.label}: Task completed successfully!`, "success");
+                  
+                  setTimeout(() => {
+                    set({ 
+                      activeNodeId: null,
+                      isExecuting: false,
+                      currentStep: "SHOW_RESULT",
+                      executionResults: {
+                        message: "Demo workflow completed successfully!",
+                        timestamp: Date.now()
+                      }
+                    });
+                    get().addLog("✅ Workflow execution completed!", "success");
+                  }, 2000);
+                }, 3000);
+              }
+            }
+          }, 2000); // Orchestrator analysis time
+        }, 1000); // Initial delay
       },
 
       // Utility
