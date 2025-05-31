@@ -63,17 +63,28 @@ interface WorkflowState {
   edges: Edge[];
   selectedModel: Model | null;
   estimatedCost: number;
+  workflow: any | null; // Store the full workflow definition
 
   // Execution state
   isExecuting: boolean;
   executionId: string | null;
   executionResults: any | null;
+  workflowId: string | null; // Store the created workflow ID
+
+  // Edge state for CustomEdge component
+  edgeState: Record<string, 'IDLE' | 'RUNNING' | 'DONE'>;
 
   // Log data
   logs: LogLine[];
+  logLines: LogLine[]; // Alias for logs for backward compatibility
 
   // Available agents from orchestrator
   availableAgents: any[];
+
+  // Demo/interaction state
+  activeNodeId: string | null;
+  interactionStep: number;
+  isPaused: boolean;
 
   // Actions
   setCurrentStep: (step: string) => void;
@@ -98,10 +109,16 @@ interface WorkflowState {
   // Agent discovery
   loadAvailableAgents: () => Promise<void>;
 
-  // Demo actions (kept for backward compatibility)
+  // Demo/interaction state
   startDemo: () => void;
   nextStep: () => void;
   resetWorkflow: () => void;
+
+  // Interaction simulation actions
+  setInteractionStep: (step: number) => void;
+  togglePause: () => void;
+  advanceNode: () => void;
+  startInteractionSimulation: () => void;
 
   // Utility
   addLog: (message: string, type?: "info" | "success" | "error") => void;
@@ -255,8 +272,15 @@ export const useWorkflowStore = create<WorkflowState>()(
       isExecuting: false,
       executionId: null,
       executionResults: null,
+      workflowId: null,
+      edgeState: {},
       logs: [],
+      logLines: [],
       availableAgents: [],
+      activeNodeId: null,
+      interactionStep: 0,
+      isPaused: false,
+      workflow: null,
 
       // Basic state management
       setCurrentStep: (step) => set({ currentStep: step }),
@@ -320,38 +344,20 @@ export const useWorkflowStore = create<WorkflowState>()(
             description
           );
 
-          // Convert workflow steps to nodes and edges
-          const nodes: Node[] = workflow.steps.map(
-            (step: any, index: number) => ({
-              id: step.stepId,
-              type: "agent",
-              position: { x: index * 300, y: 100 },
-              data: {
-                label: step.agentName,
-                description: step.description,
-                agentUrl: step.agentUrl,
-                inputSchema: step.inputMapping,
-                outputSchema: step.outputMapping,
-              },
-            })
-          );
+          // Store the workflow ID for later execution
+          set({ workflowId: workflow.workflowId, workflow: workflow });
 
-          const edges: Edge[] = [];
-          for (let i = 0; i < nodes.length - 1; i++) {
-            edges.push({
-              id: `edge-${i}`,
-              source: nodes[i].id,
-              target: nodes[i + 1].id,
-              type: "smoothstep",
-            });
-          }
+          // Convert workflow steps to nodes and edges
+          const { nodes, edges } = convertWorkflowToGraph(workflow);
+
+          // Calculate estimated cost based on number of steps
+          const estimatedCost = workflow.steps.length * 0.25; // $0.25 per step
 
           set({
             nodes,
             edges,
-            currentStep: "SHOW_WORKFLOW",
             isLoading: false,
-            estimatedCost: workflow.estimatedDuration || 0,
+            estimatedCost,
           });
 
           get().addLog(
@@ -376,7 +382,6 @@ export const useWorkflowStore = create<WorkflowState>()(
 
           set({
             executionId: execution.executionId,
-            currentStep: "EXECUTING",
           });
 
           get().addLog(
@@ -401,7 +406,7 @@ export const useWorkflowStore = create<WorkflowState>()(
             set({
               executionResults: execution.output,
               isExecuting: false,
-              currentStep: "SHOW_RESULTS",
+              currentStep: "SHOW_RESULT",
             });
             get().addLog(
               "Workflow execution completed successfully",
@@ -411,7 +416,7 @@ export const useWorkflowStore = create<WorkflowState>()(
             set({
               error: execution.error || "Execution failed",
               isExecuting: false,
-              currentStep: "SHOW_RESULTS",
+              currentStep: "SHOW_RESULT",
             });
             get().addLog(`Execution failed: ${execution.error}`, "error");
           } else {
@@ -511,25 +516,68 @@ export const useWorkflowStore = create<WorkflowState>()(
           edges: [],
           selectedModel: null,
           estimatedCost: 0,
+          workflow: null,
           isExecuting: false,
           executionId: null,
           executionResults: null,
+          workflowId: null,
+          edgeState: {},
           logs: [],
+          logLines: [],
         }),
 
+      // Interaction simulation actions
+      setInteractionStep: (step) => set({ interactionStep: step }),
+      togglePause: () => set({ isPaused: !get().isPaused }),
+      advanceNode: () => {
+        const currentIndex = STEPS.indexOf(get().currentStep as Step);
+        if (currentIndex < STEPS.length - 1) {
+          const nextStep = STEPS[currentIndex + 1];
+          set({ currentStep: nextStep });
+        }
+      },
+      startInteractionSimulation: () => {
+        set({
+          currentStep: "GENERATING_WORKFLOW",
+          isLoading: true,
+          error: null,
+          logs: [],
+        });
+
+        // Simulate workflow generation
+        setTimeout(() => {
+          get().addLog("Analyzing user intent...", "info");
+          setTimeout(() => {
+            get().addLog("Selecting optimal agents...", "info");
+            setTimeout(() => {
+              get().addLog("Building workflow graph...", "info");
+              setTimeout(() => {
+                set({
+                  currentStep: "SHOW_WORKFLOW",
+                  isLoading: false,
+                  nodes: DEMO_NODES,
+                  edges: DEMO_EDGES,
+                });
+                get().addLog("Workflow generated successfully!", "success");
+              }, 1000);
+            }, 800);
+          }, 600);
+        }, 1000);
+      },
+
       // Utility
-      addLog: (message, type = "info") =>
+      addLog: (message, type = "info") => {
+        const newLog: LogLine = {
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          message,
+          type,
+        };
         set((state) => ({
-          logs: [
-            ...state.logs,
-            {
-              id: Date.now().toString(),
-              message,
-              type: type as "info" | "success" | "error",
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        })),
+          logs: [...state.logs, newLog],
+          logLines: [...state.logs, newLog], // Keep both in sync
+        }));
+      },
     }),
     {
       name: "workflow-store",

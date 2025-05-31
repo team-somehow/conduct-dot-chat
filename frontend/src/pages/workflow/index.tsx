@@ -1,7 +1,7 @@
 // Workflow visualization page with step-by-step animated demo
 // Features: Auto-cycling through 6 stages with Neo-Brutalist styling
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { useWorkflowStore } from "../../store/workflow";
@@ -20,7 +20,8 @@ export default function WorkflowPage() {
   const [searchParams] = useSearchParams();
   const initialPrompt = searchParams.get("prompt") || "";
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
-  const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
+  const [promptInput, setPromptInput] = useState("");
+  const [hasCreatedWorkflow, setHasCreatedWorkflow] = useState(false);
 
   const {
     currentStep,
@@ -34,96 +35,107 @@ export default function WorkflowPage() {
     executionResults,
     logs,
     availableAgents,
+    workflowId,
+    setCurrentStep,
     startDemo,
     nextStep,
     resetWorkflow,
     loadAvailableAgents,
     createWorkflow,
+    executeWorkflow,
+    workflow,
+    executionId,
+    addLog,
   } = useWorkflowStore();
 
+  // Load available agents when component mounts
   useEffect(() => {
-    // Initialize demo data when component mounts
-    // initializeDemoData();
-  }, []);
+    loadAvailableAgents();
+  }, []); // Empty dependency array - only run once
 
-  useEffect(() => {
-    // Auto-advance demo when not on workflow creation step
-    if (currentStep !== "GENERATING_WORKFLOW" && !isLoading) {
-      // Auto-advance logic can be added here if needed
-    }
-  }, [currentStep, isLoading]);
-
-  useEffect(() => {
-    // Handle workflow creation from URL prompt
-    if (initialPrompt && !isLoading) {
-      // createWorkflowFromPrompt(initialPrompt);
-    }
-  }, [initialPrompt, isLoading]);
-
-  useEffect(() => {
-    // Set up interaction completion callback
-    // setInteractionCompleteCallback(() => {
-    //   console.log("Interaction simulation completed");
-    // });
-  }, []);
-
-  const handleStartDemo = () => {
-    startDemo();
-  };
-
-  const handleStartInteraction = () => {
-    // startInteractionSimulation();
-  };
-
-  const handleApprove = () => {
-    // approveWorkflow();
-  };
-
-  const handleCreateWorkflow = async (prompt: string) => {
+  const handleCreateWorkflow = useCallback(async (prompt: string) => {
     if (!prompt.trim()) return;
-
-    setIsCreatingWorkflow(true);
+    
     try {
-      await createWorkflowFromPrompt(prompt);
-      // After successful creation, advance to show workflow
-      setTimeout(() => {
-        nextStep();
-        setIsCreatingWorkflow(false);
-      }, 1000);
+      console.log("Creating workflow with prompt:", prompt);
+      setCurrentStep("GENERATING_WORKFLOW");
+      await createWorkflow(prompt);
+      // After successful creation, move to show workflow
+      setCurrentStep("SHOW_WORKFLOW");
     } catch (error) {
-      setIsCreatingWorkflow(false);
       console.error("Failed to create workflow:", error);
     }
-  };
+  }, [createWorkflow, setCurrentStep]);
 
-  const handleExecuteWorkflow = async () => {
-    if (!currentWorkflow) return;
+  // Handle workflow creation from URL prompt - only once
+  useEffect(() => {
+    if (initialPrompt && !hasCreatedWorkflow && !isLoading && !workflowId) {
+      console.log("Creating workflow from URL prompt:", initialPrompt);
+      setHasCreatedWorkflow(true);
+      handleCreateWorkflow(initialPrompt);
+    }
+  }, [initialPrompt, hasCreatedWorkflow, isLoading, workflowId, handleCreateWorkflow]);
 
+  // Auto-proceed through cost estimation for real workflows
+  useEffect(() => {
+    if (currentStep === "COST_ESTIMATION" && estimatedCost > 0 && workflowId && !isExecuting) {
+      console.log("Auto-proceeding from cost estimation to execution");
+      // For real workflows, automatically proceed after showing cost for 2 seconds
+      const timer = setTimeout(() => {
+        setCurrentStep("SHOW_INTERACTION");
+        executeWorkflow(workflowId);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, estimatedCost, workflowId, isExecuting]);
+
+  const handleExecuteWorkflow = useCallback(async () => {
     try {
-      await executeCurrentWorkflow();
+      console.log("Executing workflow with ID:", workflowId);
+      setCurrentStep("SHOW_INTERACTION");
+      if (workflowId) {
+        // Use the real workflow ID for execution
+        await executeWorkflow(workflowId);
+      } else {
+        // Fallback to demo simulation if no workflow ID
+        nextStep();
+      }
     } catch (error) {
       console.error("Failed to execute workflow:", error);
     }
-  };
+  }, [workflowId, executeWorkflow, nextStep, setCurrentStep]);
 
-  // Test function to load agents
-  const handleLoadAgents = async () => {
-    await loadAvailableAgents();
-  };
-
-  // Test function to create a workflow
-  const handleCreateWorkflowTest = async () => {
-    await createWorkflow(
-      "Create a personalized greeting and generate an image of a sunset"
-    );
+  const handlePromptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (promptInput.trim()) {
+      setHasCreatedWorkflow(true);
+      handleCreateWorkflow(promptInput);
+      setPromptInput("");
+    }
   };
 
   const handleNextStep = () => {
-    nextStep();
+    console.log("Next step from:", currentStep);
+    if (currentStep === "SHOW_WORKFLOW") {
+      // Move to model selection
+      setCurrentStep("SELECTING_MODELS");
+    } else if (currentStep === "SELECTING_MODELS") {
+      // Move to cost estimation
+      setCurrentStep("COST_ESTIMATION");
+    } else if (currentStep === "COST_ESTIMATION") {
+      // Execute the workflow
+      handleExecuteWorkflow();
+    } else {
+      nextStep();
+    }
   };
 
   const handleReset = () => {
+    console.log("Resetting workflow");
     resetWorkflow();
+    setPromptInput("");
+    setHasCreatedWorkflow(false);
   };
 
   const renderCurrentStep = () => {
@@ -132,9 +144,7 @@ export default function WorkflowPage() {
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <StepLoader
-              title="Generating Workflow"
-              subtitle="AI is analyzing your request and selecting optimal agents..."
-              isLoading={isLoading}
+              text="Generating Workflow - AI is analyzing your request and selecting optimal agents..."
             />
           </div>
         );
@@ -160,27 +170,68 @@ export default function WorkflowPage() {
           </div>
         );
 
+      case "SELECTING_MODELS":
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold mb-4">Select AI Models</h2>
+              <p className="text-gray-600">
+                Choose the AI models for your workflow execution
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {availableAgents.map((agent, index) => (
+                <div
+                  key={agent.name}
+                  className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150 cursor-pointer"
+                  onClick={() => {
+                    // Auto-select and proceed for demo purposes
+                    setCurrentStep("COST_ESTIMATION");
+                  }}
+                >
+                  <h3 className="font-bold text-lg mb-2">{agent.name}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{agent.description}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                      {agent.category || "AI Agent"}
+                    </span>
+                    <span className="text-sm font-bold text-green-600">
+                      Available
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleNextStep}
+                className="px-8 py-3 bg-[#7C82FF] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+              >
+                CONTINUE WITH SELECTED MODELS
+              </button>
+            </div>
+          </div>
+        );
+
       case "COST_ESTIMATION":
         return (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <StepLoader
-              title="Cost Estimation"
-              subtitle="Calculating execution costs..."
-              isLoading={isLoading}
+              text="Cost Estimation - Calculating execution costs..."
             />
-            {estimatedCost > 0 && (
-              <div className="mt-8 text-center">
-                <p className="text-2xl font-bold">
-                  Estimated Cost: ${estimatedCost}
-                </p>
-                <button
-                  onClick={handleNextStep}
-                  className="mt-4 px-8 py-3 bg-green-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
-                >
-                  PROCEED
-                </button>
-              </div>
-            )}
+            <div className="mt-8 text-center">
+              <p className="text-2xl font-bold">
+                Estimated Cost: ${estimatedCost.toFixed(2)}
+              </p>
+              <button
+                onClick={handleNextStep}
+                className="mt-4 px-8 py-3 bg-green-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+              >
+                PROCEED WITH EXECUTION
+              </button>
+            </div>
           </div>
         );
 
@@ -214,7 +265,18 @@ export default function WorkflowPage() {
                 Your workflow has been executed successfully
               </p>
             </div>
-            {executionResults && <ResultPanel results={executionResults} />}
+            {executionResults && (
+              <ResultPanel 
+                result={executionResults}
+                workflow={workflow}
+                executionId={executionId || undefined}
+                onFeedback={(feedback) => {
+                  console.log('Feedback received:', feedback);
+                  addLog(`User feedback: ${feedback}`, "info");
+                }}
+                onRunAgain={handleReset}
+              />
+            )}
             <div className="flex justify-center">
               <button
                 onClick={handleReset}
@@ -228,16 +290,67 @@ export default function WorkflowPage() {
 
       default:
         return (
-          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
             <h2 className="text-3xl font-bold mb-8">
               AI Workflow Orchestrator
             </h2>
-            <button
-              onClick={handleStartDemo}
-              className="px-8 py-3 bg-[#FF5484] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
-            >
-              START DEMO
-            </button>
+            
+            {/* Prompt Input Form */}
+            <form onSubmit={handlePromptSubmit} className="w-full max-w-2xl">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="prompt" className="block text-sm font-bold text-gray-700 mb-2">
+                    Describe what you want to accomplish:
+                  </label>
+                  <textarea
+                    id="prompt"
+                    value={promptInput}
+                    onChange={(e) => setPromptInput(e.target.value)}
+                    placeholder="e.g., Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+                    className="w-full p-4 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[2px] focus:translate-y-[2px] transition-all duration-150 resize-none"
+                    rows={4}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!promptInput.trim() || isLoading}
+                  className="w-full px-8 py-3 bg-[#FF5484] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "CREATING WORKFLOW..." : "CREATE WORKFLOW"}
+                </button>
+              </div>
+            </form>
+
+            {/* Example prompts */}
+            <div className="w-full max-w-2xl">
+              <h3 className="text-lg font-bold mb-4">Try these examples:</h3>
+              <div className="space-y-2">
+                {[
+                  "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague",
+                  "Generate an image of a sunset and create a greeting message",
+                  "Create a personalized NFT for my friend's birthday"
+                ].map((example, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setPromptInput(example)}
+                    className="w-full text-left p-3 bg-gray-100 border-2 border-gray-300 hover:border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-150 text-sm"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Or try the demo */}
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">Or try our interactive demo:</p>
+              <button
+                onClick={startDemo}
+                className="px-8 py-3 bg-blue-500 text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
+              >
+                START DEMO
+              </button>
+            </div>
           </div>
         );
     }
@@ -247,33 +360,27 @@ export default function WorkflowPage() {
     <div className="workflow-page bg-[#FFFDEE] min-h-screen">
       <Navbar />
 
-      {/* Test Controls */}
+      {/* Debug/Status Bar */}
       <div className="p-4 bg-gray-100 border-b">
-        <div className="max-w-7xl mx-auto flex gap-4 items-center">
-          <button
-            onClick={handleLoadAgents}
-            disabled={isLoading}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isLoading ? "Loading..." : "Load Agents"}
-          </button>
-          <button
-            onClick={handleCreateWorkflowTest}
-            disabled={isLoading}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
-          >
-            Create Test Workflow
-          </button>
-          <span className="text-sm text-gray-600">
-            Available Agents: {availableAgents.length}
+        <div className="max-w-7xl mx-auto flex gap-4 items-center text-sm">
+          <span className="font-bold">Status:</span>
+          <span className={`px-2 py-1 rounded ${
+            error ? "bg-red-200 text-red-800" :
+            isLoading || isExecuting ? "bg-yellow-200 text-yellow-800" :
+            "bg-green-200 text-green-800"
+          }`}>
+            {error ? "Error" : isLoading || isExecuting ? "Processing" : "Ready"}
           </span>
+          <span>Available Agents: {availableAgents.length}</span>
           {error && (
-            <span className="text-sm text-red-600">Error: {error}</span>
+            <span className="text-red-600 ml-4">Error: {error}</span>
           )}
         </div>
       </div>
 
-      {renderCurrentStep()}
+      <div className="max-w-7xl mx-auto p-8">
+        {renderCurrentStep()}
+      </div>
 
       {/* Step Indicator */}
       <motion.div
