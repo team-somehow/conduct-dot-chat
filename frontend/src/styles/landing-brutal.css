@@ -39,6 +39,260 @@
   transform: translate(-4px, -4px);
 }
 
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Conductor Animation System */
+.conductor-animation {
+  position: absolute;
+  top: 15%;
+  right: 8%;
+  width: 120px;
+  height: 150px;
+  z-index: 1;
+  opacity: 0.15;
+}
+
+.conductor-figure {
+  position: absolute;
+  width: 60px;
+  height: 80px;
+  background: linear-gradient(145deg, #2c3e50, #34495e);
+  border: 3px solid #000;
+  border-radius: 50% 50% 0 0;
+  animation: conductor-conducting 4s ease-in-out infinite;
+}
+
+.conductor-figure::before {
+  content: '🎩';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  animation: hat-tip 8s ease-in-out infinite;
+}
+
+.conductor-figure::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 30px;
+  background: #2c3e50;
+  border: 2px solid #000;
+  border-radius: 0 0 20px 20px;
+}
+
+.conductor-baton {
+  position: absolute;
+  top: 30px;
+  right: -10px;
+  width: 30px;
+  height: 3px;
+  background: linear-gradient(90deg, #8B4513, #D2691E);
+  border: 1px solid #000;
+  transform-origin: left center;
+  animation: baton-wave 2s ease-in-out infinite;
+}
+
+.conductor-baton::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 50%;
+}
+
+/* AI Agents Orchestra */
+.ai-agents-orchestra {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.2;
+}
+
+.ai-agent-bot {
+  position: absolute;
+  font-size: 24px;
+  animation: agent-dance 3s ease-in-out infinite;
+  filter: grayscale(0.3);
+}
+
+.agent-1 { top: 20%; left: 15%; animation-duration: 2.5s; }
+.agent-2 { top: 35%; left: 25%; animation-duration: 3.2s; }
+.agent-3 { top: 50%; left: 10%; animation-duration: 2.8s; }
+.agent-4 { top: 65%; left: 20%; animation-duration: 3.5s; }
+.agent-5 { top: 25%; left: 75%; animation-duration: 2.7s; }
+.agent-6 { top: 45%; left: 85%; animation-duration: 3.1s; }
+.agent-7 { top: 60%; left: 70%; animation-duration: 2.9s; }
+.agent-8 { top: 75%; left: 80%; animation-duration: 3.3s; }
+
+/* Musical Staff Lines */
+.musical-staff {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 100px;
+  z-index: 0;
+  opacity: 0.1;
+}
+
+.staff-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #000;
+  animation: staff-glow 6s ease-in-out infinite;
+}
+
+.line-1 { top: 0%; animation-delay: 0s; }
+.line-2 { top: 25%; animation-delay: 1.2s; }
+.line-3 { top: 50%; animation-delay: 2.4s; }
+.line-4 { top: 75%; animation-delay: 3.6s; }
+.line-5 { top: 100%; animation-delay: 4.8s; }
+
+/* Floating Musical Notes */
+.floating-notes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.15;
+}
+
+.floating-note {
+  position: absolute;
+  font-size: 18px;
+  font-weight: 900;
+  color: #FF5484;
+  animation: note-float 8s ease-in-out infinite;
+}
+
+.note-1 { top: 10%; left: 20%; animation-delay: 0s; color: #FF5484; }
+.note-2 { top: 15%; left: 60%; animation-delay: 1s; color: #7C82FF; }
+.note-3 { top: 25%; left: 40%; animation-delay: 2s; color: #FEEF5D; }
+.note-4 { top: 35%; left: 80%; animation-delay: 3s; color: #FF5484; }
+.note-5 { top: 45%; left: 15%; animation-delay: 4s; color: #7C82FF; }
+.note-6 { top: 55%; left: 70%; animation-delay: 5s; color: #FEEF5D; }
+.note-7 { top: 65%; left: 30%; animation-delay: 6s; color: #FF5484; }
+.note-8 { top: 75%; left: 85%; animation-delay: 7s; color: #7C82FF; }
+.note-9 { top: 20%; left: 90%; animation-delay: 1.5s; color: #FEEF5D; }
+.note-10 { top: 40%; left: 5%; animation-delay: 2.5s; color: #FF5484; }
+.note-11 { top: 60%; left: 50%; animation-delay: 3.5s; color: #7C82FF; }
+.note-12 { top: 80%; left: 65%; animation-delay: 4.5s; color: #FEEF5D; }
+
+/* Keyframe Animations */
+@keyframes conductor-conducting {
+  0%, 100% { 
+    transform: rotate(-5deg) translateY(0px); 
+  }
+  25% { 
+    transform: rotate(8deg) translateY(-5px); 
+  }
+  50% { 
+    transform: rotate(-3deg) translateY(-8px); 
+  }
+  75% { 
+    transform: rotate(10deg) translateY(-3px); 
+  }
+}
+
+@keyframes hat-tip {
+  0%, 90%, 100% { 
+    transform: translateX(-50%) rotate(0deg); 
+  }
+  95% { 
+    transform: translateX(-50%) rotate(15deg); 
+  }
+}
+
+@keyframes baton-wave {
+  0%, 100% { 
+    transform: rotate(-20deg); 
+  }
+  25% { 
+    transform: rotate(45deg); 
+  }
+  50% { 
+    transform: rotate(-10deg); 
+  }
+  75% { 
+    transform: rotate(30deg); 
+  }
+}
+
+@keyframes agent-dance {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg) scale(1); 
+  }
+  25% { 
+    transform: translateY(-8px) rotate(5deg) scale(1.1); 
+  }
+  50% { 
+    transform: translateY(-12px) rotate(-3deg) scale(1.05); 
+  }
+  75% { 
+    transform: translateY(-6px) rotate(8deg) scale(1.08); 
+  }
+}
+
+@keyframes staff-glow {
+  0%, 100% { 
+    opacity: 0.1; 
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); 
+  }
+  50% { 
+    opacity: 0.3; 
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2); 
+  }
+}
+
+@keyframes note-float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg) scale(1); 
+    opacity: 0.15; 
+  }
+  25% { 
+    transform: translateY(-15px) rotate(10deg) scale(1.2); 
+    opacity: 0.25; 
+  }
+  50% { 
+    transform: translateY(-25px) rotate(-5deg) scale(1.1); 
+    opacity: 0.3; 
+  }
+  75% { 
+    transform: translateY(-10px) rotate(15deg) scale(1.15); 
+    opacity: 0.2; 
+  }
+}
+
 /* Neumorphism styles for conductor theme */
 .neumorph-card {
   background: linear-gradient(145deg, #f0f0f0, #cacaca);
@@ -129,6 +383,15 @@
   }
 }
 
+@keyframes gentle-bounce {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-5px); 
+  }
+}
+
 .conductor-wave {
   animation: conductor-wave 3s ease-in-out infinite;
 }
@@ -139,6 +402,10 @@
 
 .symphony-pulse {
   animation: symphony-pulse 2s ease-in-out infinite;
+}
+
+.gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
 }
 
 /* Enhanced shadow variations */
@@ -160,13 +427,42 @@
     -15px -15px 30px rgba(255, 255, 255, 1);
 }
 
+/* Interactive button effects */
+.btn-conductor {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.btn-conductor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-conductor:hover::before {
+  left: 100%;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .wiggle-slow,
   .marquee,
   .conductor-wave,
   .musical-float,
-  .symphony-pulse {
+  .symphony-pulse,
+  .gentle-bounce,
+  .conductor-conducting,
+  .baton-wave,
+  .agent-dance,
+  .staff-glow,
+  .note-float,
+  .hat-tip {
     animation: none;
   }
   
@@ -174,6 +470,10 @@
   .neumorph-card:hover,
   .neumorph-button:hover {
     transform: none;
+  }
+  
+  .btn-conductor::before {
+    display: none;
   }
 }
 
