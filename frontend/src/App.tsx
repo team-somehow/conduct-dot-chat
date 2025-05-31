@@ -34,14 +34,14 @@ const queryClient = new QueryClient();
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <DynamicContextProvider
-        settings={{
-          environmentId: "98669622-de8f-4b3b-8aaf-e61ec95f5e23",
-          walletConnectors: [EthereumWalletConnectors],
-        }}
-      >
-        <WagmiProvider config={config}>
+    <DynamicContextProvider
+      settings={{
+        environmentId: "98669622-de8f-4b3b-8aaf-e61ec95f5e23",
+        walletConnectors: [EthereumWalletConnectors],
+      }}
+    >
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
           <DynamicWagmiConnector>
             <NotificationProvider>
               <TransactionPopupProvider>
@@ -52,9 +52,9 @@ const App = () => {
               </TransactionPopupProvider>
             </NotificationProvider>
           </DynamicWagmiConnector>
-        </WagmiProvider>
-      </DynamicContextProvider>
-    </QueryClientProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </DynamicContextProvider>
   );
 };
 
