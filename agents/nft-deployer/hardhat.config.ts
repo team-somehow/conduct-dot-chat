@@ -12,6 +12,11 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 545,
     },
+    flowEvmMainnet: {
+      url: "https://mainnet.evm.nodes.onflow.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 747,
+    },
   },
 };
 

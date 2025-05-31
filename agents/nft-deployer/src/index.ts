@@ -15,11 +15,13 @@ app.use(express.json());
 // Chain explorer URLs mapping
 const CHAIN_EXPLORERS: { [chainId: number]: string } = {
   545: "https://evm-testnet.flowscan.io", // Flow EVM Testnet (correct explorer)
+  747: "https://www.flowscan.io", // Flow EVM Mainnet
 };
 
 // Helper to map chainId to Hardhat network name
 function getNetworkName(chainId: number): string {
   if (chainId === 545) return "flowEvmTestnet";
+  if (chainId === 747) return "flowEvmMainnet";
   if (chainId === 1337) return "hardhat";
   throw new Error(`Unsupported chainId: ${chainId}`);
 }
@@ -46,7 +48,7 @@ const AGENT_META = {
       chainId: {
         type: "number",
         description: "Chain ID where the NFT will be deployed",
-        enum: [545],
+        enum: [545, 747],
       },
       mints: {
         type: "array",
@@ -60,12 +62,14 @@ const AGENT_META = {
             },
             metadataUrl: {
               type: "string",
-              description: "Metadata URL (e.g., IPFS or HTTPS) for the NFT to mint",
+              description:
+                "Metadata URL (e.g., IPFS or HTTPS) for the NFT to mint",
             },
           },
           required: ["to", "metadataUrl"],
         },
-        description: "Array of NFTs to mint with their recipients and metadata URLs",
+        description:
+          "Array of NFTs to mint with their recipients and metadata URLs",
         minItems: 1,
       },
     },
@@ -149,14 +153,9 @@ app.get("/meta", (req: Request, res: Response) => {
 
 // POST /run - Execute the agent logic (MAHA contract requirement)
 // Set to /run1 for testing, so that master agent doesn't call it accidentally
-app.post("/run1", async (req: Request, res: Response) => {
+app.post("/run", async (req: Request, res: Response) => {
   try {
-    const {
-      name,
-      symbol,
-      mints,
-      chainId,
-    } = req.body;
+    const { name, symbol, mints, chainId } = req.body;
 
     // Validate required inputs
     if (!name || typeof name !== "string") {
@@ -198,7 +197,8 @@ app.post("/run1", async (req: Request, res: Response) => {
       }
       if (!mint.metadataUrl || typeof mint.metadataUrl !== "string") {
         return res.status(400).json({
-          error: "Invalid input: each mint must have a 'metadataUrl' (the NFT metadata URL)",
+          error:
+            "Invalid input: each mint must have a 'metadataUrl' (the NFT metadata URL)",
         });
       }
       // Validate Ethereum address format
@@ -219,12 +219,14 @@ app.post("/run1", async (req: Request, res: Response) => {
     const { deployNFT } = require("../scripts/deploy");
     const { mintNFT } = require("../scripts/mint");
 
-    console.log(`🎨 Deploying NFT contract: ${name} (${symbol}) on chain ${chainId}`);
-    
+    console.log(
+      `🎨 Deploying NFT contract: ${name} (${symbol}) on chain ${chainId}`
+    );
+
     // Deploy NFT contract
     const nftContract = await deployNFT(name, symbol, ethers);
     const contractAddress = await nftContract.getAddress();
-    
+
     console.log(`📋 Contract deployed to: ${contractAddress}`);
     console.log(`🎯 Minting ${mints.length} NFTs...`);
 
@@ -232,9 +234,16 @@ app.post("/run1", async (req: Request, res: Response) => {
     const results = [];
     for (const mint of mints) {
       try {
-        console.log(`Minting to ${mint.to} with metadataUrl (NFT metadata): ${mint.metadataUrl}`);
-        const txHash = await mintNFT(nftContract, mint.to, mint.metadataUrl, ethers);
-        
+        console.log(
+          `Minting to ${mint.to} with metadataUrl (NFT metadata): ${mint.metadataUrl}`
+        );
+        const txHash = await mintNFT(
+          nftContract,
+          mint.to,
+          mint.metadataUrl,
+          ethers
+        );
+
         if (!txHash) {
           throw new Error(`Failed to mint NFT to ${mint.to}`);
         }
@@ -244,23 +253,27 @@ app.post("/run1", async (req: Request, res: Response) => {
         if (!tx) {
           throw new Error("Failed to get transaction details");
         }
-        
+
         const receipt = await tx.wait();
         if (!receipt) {
           throw new Error("Failed to get transaction receipt");
         }
-        
+
         // Get token ID from event logs
         const event = receipt.logs.find((log: any) => {
           try {
             const parsedLog = log as unknown as { fragment?: { name: string } };
-            return parsedLog.fragment?.name === 'Transfer';
+            return parsedLog.fragment?.name === "Transfer";
           } catch {
             return false;
           }
         });
-        
-        const tokenId = event ? (event as unknown as { args: [string, string, string] }).args[2].toString() : '0';
+
+        const tokenId = event
+          ? (
+              event as unknown as { args: [string, string, string] }
+            ).args[2].toString()
+          : "0";
 
         results.push({
           transactionHash: txHash,
@@ -281,19 +294,26 @@ app.post("/run1", async (req: Request, res: Response) => {
           tokenURI: mint.metadataUrl,
           explorerUrl: null,
           timestamp: new Date().toISOString(),
-          error: mintError?.message || 'Unknown error during minting',
+          error: mintError?.message || "Unknown error during minting",
         });
       }
     }
 
-    console.log(`✅ Successfully minted ${results.length} NFTs!`);
+    if (
+      results.filter((result: any) => result.transactionHash !== null).length >
+      0
+    ) {
+      console.log(`✅ Successfully minted ${results.length} NFTs!`);
+    } else {
+      console.log(`❌ Failed to mint any NFTs`);
+    }
 
     res.json({
       contractAddress,
       name,
       symbol,
       chainId,
-      mints: results
+      mints: results,
     });
   } catch (error: any) {
     console.error("NFT deployment error:", error);
