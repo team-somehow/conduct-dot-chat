@@ -123,10 +123,7 @@ export default function WorkflowPage() {
   const handleNextStep = () => {
     console.log("Next step from:", currentStep);
     if (currentStep === "SHOW_WORKFLOW") {
-      // Move to model selection
-      setCurrentStep("SELECTING_MODELS");
-    } else if (currentStep === "SELECTING_MODELS") {
-      // Move to cost estimation
+      // Move directly to cost estimation (skip model selection)
       setCurrentStep("COST_ESTIMATION");
     } else if (currentStep === "COST_ESTIMATION") {
       // Execute the workflow
@@ -219,51 +216,6 @@ export default function WorkflowPage() {
       case "SHOW_WORKFLOW":
         return (
           <GeneratedStage onApprove={handleNextStep} />
-        );
-
-      case "SELECTING_MODELS":
-        return (
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold mb-4">Select AI Models</h2>
-              <p className="text-gray-600">
-                Choose the AI models for your workflow execution
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {availableAgents.map((agent, index) => (
-                <div
-                  key={agent.name}
-                  className="bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150 cursor-pointer"
-                  onClick={() => {
-                    // Auto-select and proceed for demo purposes
-                    setCurrentStep("COST_ESTIMATION");
-                  }}
-                >
-                  <h3 className="font-bold text-lg mb-2">{agent.name}</h3>
-                  <p className="text-sm text-gray-600 mb-4">{agent.description}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs bg-gray-200 px-2 py-1 rounded">
-                      {agent.category || "AI Agent"}
-                    </span>
-                    <span className="text-sm font-bold text-green-600">
-                      Available
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleNextStep}
-                className="px-8 py-3 bg-[#7C82FF] text-white font-bold border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-150"
-              >
-                CONTINUE WITH SELECTED MODELS
-              </button>
-            </div>
-          </div>
         );
 
       case "COST_ESTIMATION":
