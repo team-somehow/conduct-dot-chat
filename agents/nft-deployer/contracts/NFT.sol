@@ -9,8 +9,9 @@ contract NFT is ERC721URIStorage, Ownable {
 
     constructor(
         string memory name,
-        string memory symbol
-    ) ERC721(name, symbol) Ownable(msg.sender) {}
+        string memory symbol,
+        address owner
+    ) ERC721(name, symbol) Ownable(owner) {}
 
     function mint(address to, string memory tokenURI) public onlyOwner {
         uint256 tokenId = _nextTokenId++;

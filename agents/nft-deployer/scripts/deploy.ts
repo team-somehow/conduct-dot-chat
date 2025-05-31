@@ -12,9 +12,20 @@ async function main() {
   console.log("NFT contract deployed to:", await nft.getAddress());
 }
 
+export async function deployNFT(name: string, symbol: string) {
+  const [deployer] = await ethers.getSigners();
+  const NFT = await ethers.getContractFactory("NFT");
+  const nft = await NFT.deploy(name, symbol, deployer.address);
+  await nft.waitForDeployment();
+
+  console.log("NFT contract deployed to:", await nft.getAddress());
+
+  return nft;
+}
+
 main()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
     process.exit(1);
-  }); 
+  });
