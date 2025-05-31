@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@lighthouse-web3/sdk": "^0.3.7",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
     "openai": "^5.0.1",

@@ -58,14 +58,14 @@ const AGENT_META = {
               pattern: "^0x[a-fA-F0-9]{40}$",
               description: "Ethereum address of the NFT recipient",
             },
-            tokenURI: {
+            metadataUrl: {
               type: "string",
-              description: "Image URL for the NFT we want to mint",
+              description: "Metadata URL (e.g., IPFS or HTTPS) for the NFT to mint",
             },
           },
-          required: ["to", "tokenURI"],
+          required: ["to", "metadataUrl"],
         },
-        description: "Array of NFTs to mint with their recipients and metadata URIs",
+        description: "Array of NFTs to mint with their recipients and metadata URLs",
         minItems: 1,
       },
     },
@@ -196,9 +196,9 @@ app.post("/run1", async (req: Request, res: Response) => {
           error: "Invalid input: each mint must have a 'to' address",
         });
       }
-      if (!mint.tokenURI || typeof mint.tokenURI !== "string") {
+      if (!mint.metadataUrl || typeof mint.metadataUrl !== "string") {
         return res.status(400).json({
-          error: "Invalid input: each mint must have a 'tokenURI'",
+          error: "Invalid input: each mint must have a 'metadataUrl' (the NFT metadata URL)",
         });
       }
       // Validate Ethereum address format
@@ -232,8 +232,8 @@ app.post("/run1", async (req: Request, res: Response) => {
     const results = [];
     for (const mint of mints) {
       try {
-        console.log(`Minting to ${mint.to} with URI ${mint.tokenURI}`);
-        const txHash = await mintNFT(nftContract, mint.to, mint.tokenURI, ethers);
+        console.log(`Minting to ${mint.to} with metadataUrl (NFT metadata): ${mint.metadataUrl}`);
+        const txHash = await mintNFT(nftContract, mint.to, mint.metadataUrl, ethers);
         
         if (!txHash) {
           throw new Error(`Failed to mint NFT to ${mint.to}`);
@@ -267,7 +267,7 @@ app.post("/run1", async (req: Request, res: Response) => {
           tokenId: tokenId,
           contractAddress: contractAddress,
           recipientAddress: mint.to,
-          tokenURI: mint.tokenURI,
+          tokenURI: mint.metadataUrl,
           explorerUrl: `${CHAIN_EXPLORERS[chainId]}/tx/${txHash}`,
           timestamp: new Date().toISOString(),
         });
@@ -278,7 +278,7 @@ app.post("/run1", async (req: Request, res: Response) => {
           tokenId: null,
           contractAddress: contractAddress,
           recipientAddress: mint.to,
-          tokenURI: mint.tokenURI,
+          tokenURI: mint.metadataUrl,
           explorerUrl: null,
           timestamp: new Date().toISOString(),
           error: mintError?.message || 'Unknown error during minting',

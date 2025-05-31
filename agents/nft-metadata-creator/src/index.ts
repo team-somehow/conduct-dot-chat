@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import OpenAI from "openai";
+import lighthouse from "@lighthouse-web3/sdk";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -11,6 +12,9 @@ app.use(express.json());
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const LIGHTHOUSE_API_KEY = process.env.LIGHTHOUSE_API_KEY || "";
+const LIGHTHOUSE_GATEWAY_URL = "https://gateway.lighthouse.storage/ipfs";
 
 // Agent metadata - static information for MAHA protocol
 const AGENT_META = {
@@ -68,8 +72,16 @@ const AGENT_META = {
     properties: {
       name: { type: "string", description: "Name of the NFT" },
       description: { type: "string", description: "Description of the NFT" },
-      image: { type: "string", format: "uri", description: "URL to the NFT image" },
-      external_url: { type: "string", format: "uri", description: "External URL for the NFT (optional)" },
+      image: {
+        type: "string",
+        format: "uri",
+        description: "URL to the NFT image",
+      },
+      external_url: {
+        type: "string",
+        format: "uri",
+        description: "External URL for the NFT (optional)",
+      },
       attributes: {
         type: "array",
         description: "Array of attribute objects for OpenSea traits",
@@ -83,8 +95,13 @@ const AGENT_META = {
           required: ["trait_type", "value"],
         },
       },
+      metadataUrl: {
+        type: "string",
+        format: "uri",
+        description: "Publicly accessible URL to the uploaded NFT metadata JSON on IPFS via Lighthouse gateway."
+      },
     },
-    required: ["name", "description", "image", "attributes"],
+    required: ["name", "description", "image", "attributes", "metadataUrl"],
   },
   previewURI: "ipfs://QmNFTMetadataPreview123",
 };
@@ -161,6 +178,7 @@ app.post("/run", async (req: Request, res: Response) => {
       });
       finalDescription = descResp.choices[0]?.message?.content?.trim() || name;
     }
+
     // Generate attributes using OpenAI
     const attrPrompt = `Suggest 3-5 interesting OpenSea NFT attributes (as an array of objects with 'trait_type' and 'value') for an NFT named '${name}'. If the image is a known type (e.g. animal, robot, etc.), infer traits. Output only a JSON array.`;
     const attrResp = await openai.chat.completions.create({
@@ -191,7 +209,29 @@ app.post("/run", async (req: Request, res: Response) => {
     );
 
     console.log(`Generated OpenSea NFT metadata for '${name}':`, metadata);
-    res.json(metadata);
+
+    const lighthouseResponse: {
+      data: {
+        Name: string;
+        Hash: string;
+        Size: string;
+      };
+    } = await lighthouse.uploadText(
+      JSON.stringify(metadata),
+      LIGHTHOUSE_API_KEY,
+      name
+    );
+    console.log("Lighthouse response:", lighthouseResponse);
+
+    const metadataUrl = `${LIGHTHOUSE_GATEWAY_URL}/${lighthouseResponse.data.Hash}`;
+
+    console.log("🌐 Metadata URL:", metadataUrl);
+
+    res.json({
+      metadata,
+      metadataUrl,
+      lighthouseResponse,
+    });
   } catch (error: any) {
     console.error("Processing error:", error);
     res.status(500).json({
