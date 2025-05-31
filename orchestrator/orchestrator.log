@@ -1,0 +1,864 @@
+(node:86091) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+🚀 MAHA Orchestrator running on port 8080
+📋 Health: http://localhost:8080/health
+🤖 Agents: http://localhost:8080/agents
+⚡ Execute: POST http://localhost:8080/execute
+🔄 Jobs: POST http://localhost:8080/jobs
+🔧 Create Workflow: POST http://localhost:8080/workflows/create
+🚀 Execute Workflow: POST http://localhost:8080/workflows/execute
+📋 List Workflows: GET http://localhost:8080/workflows
+📊 List Executions: GET http://localhost:8080/executions
+unknown format "date-time" ignored in schema at path "#/properties/timestamp"
+unknown format "date-time" ignored in schema at path "#/properties/timestamp"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+unknown format "uri" ignored in schema at path "#/properties/imageUrl"
+unknown format "uri" ignored in schema at path "#/properties/imageUrl"
+unknown format "date-time" ignored in schema at path "#/properties/timestamp"
+unknown format "date-time" ignored in schema at path "#/properties/timestamp"
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+unknown format "uri" ignored in schema at path "#/properties/imageUrl"
+unknown format "uri" ignored in schema at path "#/properties/imageUrl"
+unknown format "date-time" ignored in schema at path "#/properties/timestamp"
+unknown format "date-time" ignored in schema at path "#/properties/timestamp"
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '94844e2f59550a1b-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:09:57 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=jJrS_tlrh4Q3mlw2YR3nym5I.v__3mgj1_kDBuT3oWk-1748671797-1.0.1.1-vlgqEA9bHdRes8NFTZI1nJhB7wh5_YE4ICllqukd5H5PNwwMsZE7ELhDIhC4QrGk3V.P0ftHhRzQjz3MK33JZaqstYpVZDIIz3iVgAh8Smk; path=/; expires=Sat, 31-May-25 06:39:57 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=Rm27Ckce4ggtBPN8D6Eyf6KG.g7FzXG2P1vUYcLT1J8-1748671797936-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_cee0291dbe836b8ae95b5b1b0f02d5d4'
+  },
+  request_id: 'req_cee0291dbe836b8ae95b5b1b0f02d5d4',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748671795467_je7p1qnaq with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '94844e301bfd34f8-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:09:57 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=icDr7WN_VJqgkSryeh6ZfMW6j7uJdwehDp3XhvUTTqo-1748671797-1.0.1.1-fguysW1ydn6qdPbugzEz_dFfPGJvt3nnx8___gGFNXclyPIoI2wyMDHPepe7BaPO3IlvGYRLXUpDqtu8RchW31mdqcYzR9tsij4caMpD_uI; path=/; expires=Sat, 31-May-25 06:39:57 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=9njOvRaG7hKD0ay8W_r.a6ojXvIleYZwSTno2D33if0-1748671797969-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_e62cb4c1658e016af9b4d5b8d491395e'
+  },
+  request_id: 'req_e62cb4c1658e016af9b4d5b8d491395e',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748671795470_3bcsn0iqq with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+🚀 Executing workflow: workflow_1748671795470_3bcsn0iqq
+🎯 Generated default input for workflow workflow_1748671795470_3bcsn0iqq: {
+  prompt: 'A beautiful and creative illustration',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+📝 Using literal value 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme' for input key 'prompt'
+📝 Using literal value '1024x1024' for input key 'size'
+📝 Using literal value 'standard' for input key 'quality'
+📝 Using literal value 'vivid' for input key 'style'
+📤 Step input mapping result: {
+  prompt: 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+❌ Task execution failed for http://localhost:3002: Error: run failed for DALL-E 3 Image Generator
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:44:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:28)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_1 failed: run failed for DALL-E 3 Image Generator
+🔄 Using fallback image for step_1
+✅ Step step_1 completed with fallback
+🔗 Mapping imageUrl from workflow variable 'generatedImageUrl': https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image
+📝 Using literal value 'ETH Global Prague 2025 Thank You NFTs' for input key 'collectionName'
+📝 Using literal value '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e' for input key 'recipientAddress'
+📝 Using literal value 'Thank You for Attending ETH Global Prague' for input key 'tokenName'
+📝 Using literal value 'A special NFT to thank you for attending ETH Global Prague 2025.' for input key 'description'
+📝 Using literal value '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]' for input key 'attributes'
+📤 Step input mapping result: {
+  imageUrl: 'https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image',
+  collectionName: 'ETH Global Prague 2025 Thank You NFTs',
+  recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e',
+  tokenName: 'Thank You for Attending ETH Global Prague',
+  description: 'A special NFT to thank you for attending ETH Global Prague 2025.',
+  attributes: '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]'
+}
+❌ Task execution failed for http://localhost:3003: Error: input schema mismatch for NFT Deployer Agent
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:37:15)
+    at JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:61)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_2 failed: input schema mismatch for NFT Deployer Agent
+🔄 Using fallback NFT deployment for step_2
+✅ Step step_2 completed with fallback
+Failed to generate AI summary: OpenAI API error: 429
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '9484523c9e29b379-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:12:43 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=Zo2mOUN9Mgy.BWHl0vqXoELFgRx72XFYMbKd.G_RF4s-1748671963-1.0.1.1-y1RIe9shU_gTWwPMYGyIMbx.IlChlmCovf2ltcziHl.bxfcTwBaw7lxEa2WGBbd21Af1Slnw9SQgEV2SqqZbhwvn2tFh8Dma4qhJyxBCPgQ; path=/; expires=Sat, 31-May-25 06:42:43 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=Vpchm2Ea2cewGPdALQB6vjcDWd8e74J2vCHLJY9J_cc-1748671963813-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_ee929f7cffe1788d1cfa11296ff62026'
+  },
+  request_id: 'req_ee929f7cffe1788d1cfa11296ff62026',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748671961628_d7c1ihu6d with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '9484523c8c2cf96e-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:12:43 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=_qEyHUmvWdI0RVla7Esb9jNP0GvXQQuc4pcP6NwooRc-1748671963-1.0.1.1-U6e_1gavF7IJwl5JhHO2opseChsnGtdHzAx7_EIWO59VFIOV55HasSJWoH_b9NKnOM4XZYz6RFIYwXbK0F.6_OZH0F_GIrfsDALzysSuo8E; path=/; expires=Sat, 31-May-25 06:42:43 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=_52.o1KZwuqUR13Rsi6D8rvWgVTjWTWhRYUj50X3kTk-1748671963824-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_1c7fa09b0870248ae05c93545e61b2f2'
+  },
+  request_id: 'req_1c7fa09b0870248ae05c93545e61b2f2',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748671961617_ahaulix5k with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+🚀 Executing workflow: workflow_1748671961617_ahaulix5k
+🎯 Generated default input for workflow workflow_1748671961617_ahaulix5k: {
+  prompt: 'A beautiful and creative illustration',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+📝 Using literal value 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme' for input key 'prompt'
+📝 Using literal value '1024x1024' for input key 'size'
+📝 Using literal value 'standard' for input key 'quality'
+📝 Using literal value 'vivid' for input key 'style'
+📤 Step input mapping result: {
+  prompt: 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+❌ Task execution failed for http://localhost:3002: Error: run failed for DALL-E 3 Image Generator
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:44:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:28)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_1 failed: run failed for DALL-E 3 Image Generator
+🔄 Using fallback image for step_1
+✅ Step step_1 completed with fallback
+🔗 Mapping imageUrl from workflow variable 'generatedImageUrl': https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image
+📝 Using literal value 'ETH Global Prague 2025 Thank You NFTs' for input key 'collectionName'
+📝 Using literal value '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e' for input key 'recipientAddress'
+📝 Using literal value 'Thank You for Attending ETH Global Prague' for input key 'tokenName'
+📝 Using literal value 'A special NFT to thank you for attending ETH Global Prague 2025.' for input key 'description'
+📝 Using literal value '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]' for input key 'attributes'
+📤 Step input mapping result: {
+  imageUrl: 'https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image',
+  collectionName: 'ETH Global Prague 2025 Thank You NFTs',
+  recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e',
+  tokenName: 'Thank You for Attending ETH Global Prague',
+  description: 'A special NFT to thank you for attending ETH Global Prague 2025.',
+  attributes: '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]'
+}
+❌ Task execution failed for http://localhost:3003: Error: input schema mismatch for NFT Deployer Agent
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:37:15)
+    at JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:61)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_2 failed: input schema mismatch for NFT Deployer Agent
+🔄 Using fallback NFT deployment for step_2
+✅ Step step_2 completed with fallback
+Failed to generate AI summary: OpenAI API error: 429
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '948452ee583e269b-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:13:12 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=7U6H4hF6aDY7FlqiC0i6eZ7yz0f.v9mx3W6_ZC1JTHs-1748671992-1.0.1.1-dy34yLHCBDMEy7W1ZswN0oUWnm.JVR07ltiRqdCgCYJLKp0tkClpucozlmgas8ROb2HUl4G1gI7JpC9Kj1M5uMD82xNT4_7C01LZHjDxOcw; path=/; expires=Sat, 31-May-25 06:43:12 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=2eUgijwD2vBxcTw4SWHE3pHLW6clY_jDYLXeBPND1jI-1748671992245-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_1c3d638e35d18da0d2d668f4cf77a53b'
+  },
+  request_id: 'req_1c3d638e35d18da0d2d668f4cf77a53b',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748671990306_pdb3o8138 with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '948452ef9ee6f97a-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:13:12 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=9reFTsWZavhNLgSmASkalBFvEPwiful5KAegsZi4xW8-1748671992-1.0.1.1-HjEx8bAO_ljWfVWeKB4_JYdJ7aix44IRFBGqBU.yyt3SxkL4WJYv5XVB1kbyJaBur9BtvejBLCc15Cnn_urOGB9jHACai6tkRekEAzRHAJQ; path=/; expires=Sat, 31-May-25 06:43:12 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=jPEJ..zibbcnTQSxJaCArPs04z5GQzkyXJCNP.RxByU-1748671992454-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_560dd196b93bddac2be1ea06d21b2a92'
+  },
+  request_id: 'req_560dd196b93bddac2be1ea06d21b2a92',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748671990302_6puyvfr7f with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+🚀 Executing workflow: workflow_1748671990302_6puyvfr7f
+🎯 Generated default input for workflow workflow_1748671990302_6puyvfr7f: {
+  prompt: 'A beautiful and creative illustration',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+📝 Using literal value 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme' for input key 'prompt'
+📝 Using literal value '1024x1024' for input key 'size'
+📝 Using literal value 'standard' for input key 'quality'
+📝 Using literal value 'vivid' for input key 'style'
+📤 Step input mapping result: {
+  prompt: 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+❌ Task execution failed for http://localhost:3002: Error: run failed for DALL-E 3 Image Generator
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:44:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:28)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_1 failed: run failed for DALL-E 3 Image Generator
+🔄 Using fallback image for step_1
+✅ Step step_1 completed with fallback
+🔗 Mapping imageUrl from workflow variable 'generatedImageUrl': https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image
+📝 Using literal value 'ETH Global Prague 2025 Thank You NFTs' for input key 'collectionName'
+📝 Using literal value '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e' for input key 'recipientAddress'
+📝 Using literal value 'Thank You for Attending ETH Global Prague' for input key 'tokenName'
+📝 Using literal value 'A special NFT to thank you for attending ETH Global Prague 2025.' for input key 'description'
+📝 Using literal value '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]' for input key 'attributes'
+📤 Step input mapping result: {
+  imageUrl: 'https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image',
+  collectionName: 'ETH Global Prague 2025 Thank You NFTs',
+  recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e',
+  tokenName: 'Thank You for Attending ETH Global Prague',
+  description: 'A special NFT to thank you for attending ETH Global Prague 2025.',
+  attributes: '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]'
+}
+❌ Task execution failed for http://localhost:3003: Error: input schema mismatch for NFT Deployer Agent
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:37:15)
+    at JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:61)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_2 failed: input schema mismatch for NFT Deployer Agent
+🔄 Using fallback NFT deployment for step_2
+✅ Step step_2 completed with fallback
+Failed to generate AI summary: OpenAI API error: 429
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '948453a60ed3f96e-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:13:41 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=GZ0c0UqvSIaM7zH14dXkC3ORsgmllGtLF_q5XzT9e_E-1748672021-1.0.1.1-pOk4sDDKQ2PhuvCWEwC_4wf2v7wWRXN.EozPgks0T1BR_kB5uXiqdFiTJ8m1swozWpD.o7EJBdZk5lc2hVNEOSrAWA_C0CVAsI.6w.SzPlE; path=/; expires=Sat, 31-May-25 06:43:41 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=ho0Nwpy3yAC.cu_6I7YM8m_LVP2fhD0uvY1f9AY2BZ4-1748672021647-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_5d538a892d33f8afebc017c45b81b4c6'
+  },
+  request_id: 'req_5d538a892d33f8afebc017c45b81b4c6',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748672019821_j9hirl7vf with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+🚀 Executing workflow: workflow_1748672019821_j9hirl7vf
+🎯 Generated default input for workflow workflow_1748672019821_j9hirl7vf: {
+  prompt: 'A beautiful and creative illustration',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+📝 Using literal value 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme' for input key 'prompt'
+📝 Using literal value '1024x1024' for input key 'size'
+📝 Using literal value 'standard' for input key 'quality'
+📝 Using literal value 'vivid' for input key 'style'
+📤 Step input mapping result: {
+  prompt: 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+❌ Task execution failed for http://localhost:3002: Error: run failed for DALL-E 3 Image Generator
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:44:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:28)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_1 failed: run failed for DALL-E 3 Image Generator
+🔄 Using fallback image for step_1
+✅ Step step_1 completed with fallback
+🔗 Mapping imageUrl from workflow variable 'generatedImageUrl': https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image
+📝 Using literal value 'ETH Global Prague 2025 Thank You NFTs' for input key 'collectionName'
+📝 Using literal value '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e' for input key 'recipientAddress'
+📝 Using literal value 'Thank You for Attending ETH Global Prague' for input key 'tokenName'
+📝 Using literal value 'A special NFT to thank you for attending ETH Global Prague 2025.' for input key 'description'
+📝 Using literal value '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]' for input key 'attributes'
+📤 Step input mapping result: {
+  imageUrl: 'https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image',
+  collectionName: 'ETH Global Prague 2025 Thank You NFTs',
+  recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e',
+  tokenName: 'Thank You for Attending ETH Global Prague',
+  description: 'A special NFT to thank you for attending ETH Global Prague 2025.',
+  attributes: '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]'
+}
+❌ Task execution failed for http://localhost:3003: Error: input schema mismatch for NFT Deployer Agent
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:37:15)
+    at JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:61)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_2 failed: input schema mismatch for NFT Deployer Agent
+🔄 Using fallback NFT deployment for step_2
+✅ Step step_2 completed with fallback
+Failed to generate AI summary: OpenAI API error: 429
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '948454172de9b605-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:13:59 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=nnEl.pVG3AUoA76kZWo2kddl2uNQnbh_fStlGAYMtJw-1748672039-1.0.1.1-pWGGJeD9v7oQwnvHiG3oVHHngTaZBoXCFySxgroQPyWfirsMFpz8n72i_4tofvY1FJvjx9ovUoAGErIL9KfM6lrVYPMLxElI3EcDqNegDMw; path=/; expires=Sat, 31-May-25 06:43:59 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=3r19GPaPoaW017mpDLeHuPaJVl2qUrKL7Q.PhDchUZQ-1748672039745-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_01bad8d071a68dc7bb86431150a32579'
+  },
+  request_id: 'req_01bad8d071a68dc7bb86431150a32579',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748672037622_7i5pqb5nf with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🔍 Creating workflow for prompt: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+✅ Discovered agent: Hello World Agent (http://localhost:3001)
+✅ Discovered agent: DALL-E 3 Image Generator (http://localhost:3002)
+✅ Discovered agent: NFT Deployer Agent (http://localhost:3003)
+🤖 Planning workflow with 3 available agents
+📝 User request: "Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague"
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '9484591ea92fdeac-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:17:25 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=6aJWH5KxEarUA7FYGJJEcBcT_riKjZsxUWlSrtEODTA-1748672245-1.0.1.1-Epag5WchCUR0p83LqZ8Ix2n.L2fmWu6GG9YlapjX4_zxqLjmLpmBgv3PcNs8C9X_UxG.hwRXFQrhM41RPQbr9sa3yK_xCxfsxJDFSOuErvo; path=/; expires=Sat, 31-May-25 06:47:25 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=2sp30YNxbt9bMMfVf0GHzR5_FLS8R7FN6Ia3bAhtd7w-1748672245742-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_70a2e473cc81bd404b010f24322615e9'
+  },
+  request_id: 'req_70a2e473cc81bd404b010f24322615e9',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748672243608_d13qx3c2k with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+❌ LLM workflow planning failed: RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/error.js:63:20)
+    at OpenAI.makeStatusError (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:302:33)
+    at OpenAI.makeRequest (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/node_modules/openai/core.js:346:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowPlanner.planWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowPlanner.js:35:30)
+    at async WorkflowManager.createWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:20:23)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:214:26 {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '9484591ef82ff97a-PRG',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Sat, 31 May 2025 06:17:25 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=.tGmnXb.PWHlKr94gEycFIQL6LTiXBsehs7abSsKLvE-1748672245-1.0.1.1-H6hXV2pKX2N32pbNBnqRWwUy6JUsOaHHWjoxcDRA0fIJoWvMN9EiO_YgyR9QO8JWfcm6iCQNp24lO8vaNWzra4bVQ4xscWoSFFoiy5Sl97s; path=/; expires=Sat, 31-May-25 06:47:25 GMT; domain=.api.openai.com; HttpOnly; Secure; SameSite=None, _cfuvid=8eFwsKP2uz0w_NH7mShqtJhMBPydnYs1lnM5oir92RM-1748672245775-0.0.1.1-604800000; path=/; domain=.api.openai.com; HttpOnly; Secure; SameSite=None',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-request-id': 'req_4ce2b97198109d1b4db049377400e9ee'
+  },
+  request_id: 'req_4ce2b97198109d1b4db049377400e9ee',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+🔄 Falling back to rule-based planning
+🔄 Using fallback planning for: can you send a thank you nft to 0x742d35cc6634c0532925a3b8d4c9db96590b5c8e for attending eth global prague
+🔍 Found agents: {
+  greeting: 'Hello World Agent',
+  image: 'DALL-E 3 Image Generator',
+  nft: 'NFT Deployer Agent'
+}
+🎨 Creating NFT workflow: Image + NFT
+✅ Created 2 steps in fallback planning
+✅ Created workflow workflow_1748672243616_q8hqinqzu with 2 steps
+🔗 Workflow steps: [
+  'DALL-E 3 Image Generator: Generate a thank you NFT image themed around ETH Global Prague attendance.',
+  'NFT Deployer Agent: Mint and send the thank you NFT to the recipient address with event-specific metadata.'
+]
+🚀 Executing workflow: workflow_1748672243616_q8hqinqzu
+🎯 Generated default input for workflow workflow_1748672243616_q8hqinqzu: {
+  prompt: 'A beautiful and creative illustration',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+📝 Using literal value 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme' for input key 'prompt'
+📝 Using literal value '1024x1024' for input key 'size'
+📝 Using literal value 'standard' for input key 'quality'
+📝 Using literal value 'vivid' for input key 'style'
+📤 Step input mapping result: {
+  prompt: 'Thank you NFT for attending ETH Global Prague, digital art, celebratory, Ethereum theme',
+  size: '1024x1024',
+  quality: 'standard',
+  style: 'vivid'
+}
+❌ Task execution failed for http://localhost:3002: Error: run failed for DALL-E 3 Image Generator
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:44:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:28)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_1 failed: run failed for DALL-E 3 Image Generator
+🔄 Using fallback image for step_1
+✅ Step step_1 completed with fallback
+🔗 Mapping imageUrl from workflow variable 'generatedImageUrl': https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image
+📝 Using literal value 'ETH Global Prague 2025 Thank You NFTs' for input key 'collectionName'
+📝 Using literal value '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e' for input key 'recipientAddress'
+📝 Using literal value 'Thank You for Attending ETH Global Prague' for input key 'tokenName'
+📝 Using literal value 'A special NFT to thank you for attending ETH Global Prague 2025.' for input key 'description'
+📝 Using literal value '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]' for input key 'attributes'
+📤 Step input mapping result: {
+  imageUrl: 'https://via.placeholder.com/1024x1024/FF5484/FFFFFF?text=Demo+NFT+Image',
+  collectionName: 'ETH Global Prague 2025 Thank You NFTs',
+  recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e',
+  tokenName: 'Thank You for Attending ETH Global Prague',
+  description: 'A special NFT to thank you for attending ETH Global Prague 2025.',
+  attributes: '[{"trait_type":"Event","value":"ETH Global Prague 2025"},{"trait_type":"Type","value":"Thank You"}]'
+}
+❌ Task execution failed for http://localhost:3003: Error: input schema mismatch for NFT Deployer Agent
+    at runAgent (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/agents.http.js:37:15)
+    at JobRunner.executeAgentTask (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/JobRunner.js:38:61)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async WorkflowManager.executeSequentialWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:251:32)
+    at async WorkflowManager.executeWorkflow (/Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/WorkflowManager.js:61:17)
+    at async /Users/gaurishbaliga/Desktop/maha-wrapper/orchestrator/dist/server.js:258:27
+❌ Step step_2 failed: input schema mismatch for NFT Deployer Agent
+🔄 Using fallback NFT deployment for step_2
+✅ Step step_2 completed with fallback
+Failed to generate AI summary: OpenAI API error: 429

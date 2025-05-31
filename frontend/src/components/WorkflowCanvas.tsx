@@ -91,14 +91,14 @@ const WorkflowCanvasInner: React.FC<WorkflowCanvasProps> = ({
   }, [initialEdges, setEdges]);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds: Edge[]) => addEdge(params, eds)),
     [setEdges]
   );
 
   // Auto-fit view when active node changes
   useEffect(() => {
     if (activeNodeId && isAnimating) {
-      const activeNode = nodes.find(n => n.id === activeNodeId);
+      const activeNode = nodes.find((n: Node) => n.id === activeNodeId);
       if (activeNode) {
         setTimeout(() => {
           fitView({ 

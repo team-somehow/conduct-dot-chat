@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Test</title>
+</head>
+<body>
+    <h1>Workflow Creation Test</h1>
+    <button onclick="testWorkflow()">Test Workflow Creation</button>
+    <div id="result"></div>
+
+    <script>
+        async function testWorkflow() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing workflow creation...';
+            
+            try {
+                const response = await fetch('http://localhost:8080/workflows/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: 'Can you send a thank you nft to 0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e for attending eth global prague'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h3>Success!</h3>
+                    <p>Workflow ID: ${data.workflow.workflowId}</p>
+                    <p>Steps: ${data.workflow.steps.length}</p>
+                    <p>Message: ${data.message}</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

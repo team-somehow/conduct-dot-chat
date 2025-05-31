@@ -267,7 +267,7 @@ const HistoryPage = () => {
                         Started:
                       </span>
                       <p className="font-mono">
-                        {new Date(item.execution.startTime).toLocaleString()}
+                        {new Date(item.execution.startedAt).toLocaleString()}
                       </p>
                     </div>
                     <div>
@@ -276,8 +276,8 @@ const HistoryPage = () => {
                       </span>
                       <p className="font-mono">
                         {formatDuration(
-                          item.execution.startTime,
-                          item.execution.endTime
+                          new Date(item.execution.startedAt).toISOString(),
+                          item.execution.completedAt ? new Date(item.execution.completedAt).toISOString() : undefined
                         )}
                       </p>
                     </div>

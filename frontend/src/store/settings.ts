@@ -46,8 +46,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set((state) => ({
       preferences: { ...state.preferences, ...newPreferences },
     })),
-  exportSettings: () => {
-    const state = useSettingsStore.getState();
+  exportSettings: (): string => {
+    const state: SettingsState = useSettingsStore.getState();
     return JSON.stringify({
       apiKeys: state.apiKeys,
       preferences: state.preferences,
