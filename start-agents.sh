@@ -158,6 +158,13 @@ show_status() {
         echo -e "  🚀 NFT Deployer     │ ${GREEN}RUNNING${NC} │ Port 3003 │ http://localhost:3003"
     fi
     
+    # Check 1inch Wallet Balance Agent (Port 3004)
+    if check_port 3004; then
+        echo -e "  💰 1inch Agent      │ ${RED}STOPPED${NC} │ Port 3004"
+    else
+        echo -e "  💰 1inch Agent      │ ${GREEN}RUNNING${NC} │ Port 3004 │ http://localhost:3004"
+    fi
+    
     echo ""
 }
 
@@ -175,6 +182,9 @@ case "$1" in
         
         # Start NFT Deployer Agent
         start_agent "nft-deployer" "NFT Deployer Agent" 3003 "npm run dev"
+        
+        # Start 1inch Wallet Balance Agent
+        start_agent "1inch" "1inch Wallet Balance Agent" 3004 "npm start"
         
         echo ""
         print_success "All agents startup initiated!"
