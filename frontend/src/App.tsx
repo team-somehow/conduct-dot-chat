@@ -47,7 +47,7 @@ const App = () => {
               <TransactionPopupProvider>
                 <ThemeProvider>
                   <RouterProvider router={router} />
-                  <Toaster position="top-right" richColors closeButton />
+                  <Toaster position="bottom-right" richColors closeButton />
                 </ThemeProvider>
               </TransactionPopupProvider>
             </NotificationProvider>
