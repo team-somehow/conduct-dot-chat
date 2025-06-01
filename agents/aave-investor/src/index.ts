@@ -12,6 +12,7 @@ app.use(express.json());
 // Agent metadata - static information for MAHA protocol
 const AGENT_META = {
   name: "Aave Investor Agent",
+  wallet: "0x83e54934b7773880A25f826DF521Ab50FCEBA5a7",
   description:
     "Accepts an amount for Aave investment and returns the amount, chainId, and contract address.",
   inputSchema: {

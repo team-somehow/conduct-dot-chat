@@ -9,7 +9,7 @@ app.use(express.json());
 const AGENT_META = {
   name: "Hello World Agent",
   description: "A simple greeting agent that personalizes hello messages",
-  wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual wallet
+  wallet: "0xAafc05f526199376998D2F16e6c275f8019cc72f", // Replace with actual wallet
   vendor: "MAHA Labs",
   category: "Text",
   tags: ["text", "greeting", "personalization", "multilingual"],

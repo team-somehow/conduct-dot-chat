@@ -52,3 +52,12 @@ export default tseslint.config({
   },
 });
 ```
+
+## Results from explorer
+
+![Flow Explorer](https://evm-testnet.flowscan.io/tx/0x592974fbde2fcaa9416b23334121a712db1db5c9d9c274c3ebe7cbf01ce0bceb) - Agent Registration
+Agent Registry Deployed: [Flow Explorer](https://evm-testnet.flowscan.io/address/0x0dcCe2649be92E4457d9d381D8173f3fD7FcAA68?tab=txs)
+Reputation Registry Deployed: [Flow Explorer](https://evm-testnet.flowscan.io/address/0xDE36662dD44343a65a60FB6c1927A2FCB042936e?tab=index)
+
+Agent Registry Deployed: [Hedera Explorer](https://evm-testnet.flowscan.io/address/0xDE36662dD44343a65a60FB6c1927A2FCB042936e?tab=index)
+Transaction Hash: [Hedera Explorer](https://hashscan.io/testnet/transaction/1748754958.315498000)

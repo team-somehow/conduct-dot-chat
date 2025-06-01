@@ -9,7 +9,7 @@ app.use(express.json());
 const AGENT_META = {
   name: "1inch Wallet Balance Agent",
   description: "An agent to fetch wallet balances using 1inch API.",
-  wallet: "QGNg6DB1HUWhOmqO0GMq5F5QYkZxXGTZ",
+  wallet: "0xbF806F8c7d5922CCfC6501ba5E04Baba8ED0C1e4",
   vendor: "MAHA Labs",
   category: "DeFi",
   tags: ["1inch", "wallet", "balance", "defi"],

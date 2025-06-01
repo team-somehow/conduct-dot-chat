@@ -34,7 +34,7 @@ const AGENT_META = {
   name: "NFT Metadata Creator Agent",
   description:
     "Generates OpenSea-compliant NFT metadata JSON from image URL, name, and description, using AI to suggest attributes.",
-  wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual wallet
+  wallet: "0x0Dd7D7Ad21d15A999dcc7218E7Df3F25700e696f", // Replace with actual wallet
   vendor: "MAHA Labs",
   category: "NFT",
   tags: ["nft", "metadata", "json", "image", "web3", "opensea"],

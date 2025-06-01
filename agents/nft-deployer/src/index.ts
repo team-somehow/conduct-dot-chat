@@ -1,5 +1,5 @@
-import express, { Request, Response } from "express";
 import dotenv from "dotenv";
+import express, { Request, Response } from "express";
 import { CHAIN_EXPLORERS, getNetworkName } from "../../constants";
 
 dotenv.config();
@@ -14,7 +14,7 @@ const AGENT_META = {
   name: "NFT Deployer Agent",
   description:
     "Deploy and mint NFTs with custom metadata, collection names, and recipient addresses",
-  wallet: "0x742d35Cc6634C0532925a3b8D4C9db96590b5c8e", // Replace with actual wallet
+  wallet: "0x0Dd7D7Ad21d15A999dcc7218E7Df3F25700e696f", // Replace with actual wallet
   inputSchema: {
     type: "object",
     properties: {
