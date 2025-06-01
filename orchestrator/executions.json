@@ -92,5 +92,18 @@
         "status": "pending"
       }
     ]
+  },
+  {
+    "executionId": "exec_1748739656993_c8bwzxe25",
+    "workflowId": "workflow_1748739642065_quxo6mhfs",
+    "status": "pending",
+    "startedAt": 1748739656993,
+    "input": {},
+    "stepResults": [
+      {
+        "stepId": "step_1",
+        "status": "pending"
+      }
+    ]
   }
 ]
