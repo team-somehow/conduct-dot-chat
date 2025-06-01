@@ -58,5 +58,39 @@
         "status": "pending"
       }
     ]
+  },
+  {
+    "executionId": "exec_1748737658486_b4ez4shsi",
+    "workflowId": "workflow_1748737631189_qlrj8c7sw",
+    "status": "pending",
+    "startedAt": 1748737658486,
+    "input": {
+      "prompt": "A beautiful and creative illustration",
+      "size": "1024x1024",
+      "quality": "standard",
+      "style": "vivid"
+    },
+    "stepResults": [
+      {
+        "stepId": "step_1",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_2",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_3",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_4",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_5",
+        "status": "pending"
+      }
+    ]
   }
 ]

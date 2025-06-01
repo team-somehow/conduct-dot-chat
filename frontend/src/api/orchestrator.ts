@@ -6,7 +6,7 @@ const ORCHESTRATOR_BASE_URL =
 
 const api = axios.create({
   baseURL: ORCHESTRATOR_BASE_URL,
-  timeout: 30000, // 30 seconds timeout for workflow operations
+  timeout: 1800000, // 30 minutes timeout for workflow operations
   headers: {
     "Content-Type": "application/json",
   },
