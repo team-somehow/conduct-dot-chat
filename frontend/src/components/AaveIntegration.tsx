@@ -498,9 +498,9 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
             {/* Grayed out Deposit button when not connected */}
             <button
               disabled
-              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-gray-400 text-black font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo opacity-50 cursor-not-allowed"
+              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-gray-400 text-black font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo opacity-50 cursor-not-allowed md:col-span-2"
             >
-              <ArrowDownToLine className="h-5 w-5" />
+              <ArrowUpFromLine className="h-5 w-5" />
               <span>Deposit</span>
             </button>
 
@@ -518,7 +518,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
               disabled
               className="btn-brutalist inline-flex items-center justify-center gap-3 bg-gray-400 text-black font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo opacity-50 cursor-not-allowed"
             >
-              <ArrowUpFromLine className="h-5 w-5" />
+              <ArrowDownToLine className="h-5 w-5" />
               <span>Withdraw</span>
             </button>
           </>
@@ -527,18 +527,18 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
             {/* Active Deposit button when connected */}
             <button
               onClick={handleDeposit}
-              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#13C27B] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150"
+              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#13C27B] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150 md:col-span-2"
             >
-              <ArrowDownToLine className="h-5 w-5" />
+              <ArrowUpFromLine className="h-5 w-5" />
               <span>Deposit</span>
             </button>
 
             {/* Active Withdraw button when connected */}
             <button
               onClick={handleWithdraw}
-              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#FF9500] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150 md:col-span-2"
+              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#FF9500] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150"
             >
-              <ArrowUpFromLine className="h-5 w-5" />
+              <ArrowDownToLine className="h-5 w-5" />
               <span>Withdraw</span>
             </button>
           </>
