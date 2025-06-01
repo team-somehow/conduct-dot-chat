@@ -135,27 +135,6 @@ export const orchestratorAPI = {
     return response.data;
   },
 
-  // Execute a single agent task
-  async executeAgent(
-    agentUrl: string,
-    input: any
-  ): Promise<{ result: any }> {
-    console.log('🔍 executeAgent called with:', { agentUrl, input });
-    try {
-      const response = await api.post("/execute", {
-        agentUrl,
-        input,
-      });
-      console.log('✅ executeAgent response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ executeAgent error:', error);
-      console.error('❌ Error response:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
-      throw error;
-    }
-  },
-
   async executeWorkflow(
     workflowId: string
   ): Promise<{ execution: WorkflowExecution }> {
@@ -385,7 +364,6 @@ export const safeOrchestratorAPI = {
   getHealth: withErrorHandling(orchestratorAPI.getHealth),
   getAgents: withErrorHandling(orchestratorAPI.getAgents),
   createWorkflow: withErrorHandling(orchestratorAPI.createWorkflow),
-  executeAgent: withErrorHandling(orchestratorAPI.executeAgent),
   executeWorkflow: withErrorHandling(orchestratorAPI.executeWorkflow),
   getWorkflow: withErrorHandling(orchestratorAPI.getWorkflow),
   getExecution: withErrorHandling(orchestratorAPI.getExecution),

@@ -10,11 +10,15 @@ import { WorkflowPlanner } from "./WorkflowPlanner";
 import { loadAgent } from "./agents.http";
 import { AGENTS } from "./config";
 import OpenAI from "openai";
+import fs from "fs/promises";
+import path from "path";
+
+const EXECUTIONS_FILE = "executions.json";
 
 export class WorkflowManager {
+  public readonly jobRunner: JobRunner;
   private workflows: Map<string, WorkflowDefinition> = new Map();
   private executions: Map<string, WorkflowExecution> = new Map();
-  private jobRunner: JobRunner;
   private workflowPlanner: WorkflowPlanner;
   private openai: OpenAI;
 
@@ -24,6 +28,35 @@ export class WorkflowManager {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+    // Load executions from disk if available
+    this.loadExecutionsFromDisk();
+  }
+
+  private async loadExecutionsFromDisk() {
+    try {
+      const data = await fs.readFile(EXECUTIONS_FILE, "utf-8");
+      const arr = JSON.parse(data);
+      if (Array.isArray(arr)) {
+        for (const ex of arr) {
+          this.executions.set(ex.executionId, ex);
+        }
+        console.log(`[WorkflowManager] Loaded ${arr.length} executions from disk.`);
+      }
+    } catch (e) {
+      console.log("[WorkflowManager] No executions file found, starting fresh.");
+    }
+  }
+
+  private async persistExecutionsToDisk() {
+    try {
+      const arr = Array.from(this.executions.values());
+      const filePath = path.resolve(EXECUTIONS_FILE);
+      await fs.writeFile(filePath, JSON.stringify(arr, null, 2), "utf-8");
+      console.log(`[WorkflowManager] Persisted ${arr.length} executions to disk at ${filePath}.`);
+    } catch (e) {
+      console.error("[WorkflowManager] Failed to persist executions:", e);
+      console.error("[WorkflowManager] Current working directory:", process.cwd());
+    }
   }
 
   // Analyze user intent and create a workflow
@@ -62,6 +95,7 @@ export class WorkflowManager {
 
     // Store the workflow
     this.workflows.set(workflowId, workflow);
+    console.log("[WorkflowManager] Stored workflow:", workflowId);
 
     console.log(`✅ Created workflow ${workflowId} with ${steps.length} steps`);
     console.log(
@@ -97,6 +131,8 @@ export class WorkflowManager {
 
     // Store the execution
     this.executions.set(executionId, execution);
+    await this.persistExecutionsToDisk();
+    console.log("[WorkflowManager] Stored execution:", executionId);
 
     try {
       execution.status = "running";
@@ -123,12 +159,16 @@ export class WorkflowManager {
 
   // Get workflow by ID
   getWorkflow(workflowId: string): WorkflowDefinition | undefined {
-    return this.workflows.get(workflowId);
+    const wf = this.workflows.get(workflowId);
+    if (!wf) console.warn(`[WorkflowManager] Workflow not found: ${workflowId}`);
+    return wf;
   }
 
   // Get execution by ID
   getExecution(executionId: string): WorkflowExecution | undefined {
-    return this.executions.get(executionId);
+    const ex = this.executions.get(executionId);
+    if (!ex) console.warn(`[WorkflowManager] Execution not found: ${executionId}`);
+    return ex;
   }
 
   // List all workflows

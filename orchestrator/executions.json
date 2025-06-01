@@ -1,0 +1,62 @@
+[
+  {
+    "executionId": "exec_1748736919834_lbi22vnsl",
+    "workflowId": "workflow_1748736898823_sywnrxw9i",
+    "status": "pending",
+    "startedAt": 1748736919834,
+    "input": {
+      "prompt": "A beautiful and creative illustration",
+      "size": "1024x1024",
+      "quality": "standard",
+      "style": "vivid"
+    },
+    "stepResults": [
+      {
+        "stepId": "step_1",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_2",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_3",
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "executionId": "exec_1748737213072_qifggx44o",
+    "workflowId": "workflow_1748737186162_yv56vuve3",
+    "status": "pending",
+    "startedAt": 1748737213072,
+    "input": {
+      "prompt": "A beautiful and creative illustration",
+      "size": "1024x1024",
+      "quality": "standard",
+      "style": "vivid"
+    },
+    "stepResults": [
+      {
+        "stepId": "step_1_image_generation_1",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_2_image_generation_2",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_3_metadata_creation_1",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_4_metadata_creation_2",
+        "status": "pending"
+      },
+      {
+        "stepId": "step_5_nft_deployment_and_minting",
+        "status": "pending"
+      }
+    ]
+  }
+]
