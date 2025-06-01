@@ -558,7 +558,7 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
             {/* Enhanced container for the widget */}
             <div className="bg-gradient-to-br from-[#FEEF5D] to-[#FFE37B] border-4 border-black shadow-neo p-2">
               <div className="bg-white border-2 border-black p-6 shadow-inner">
-                <BlockscoutTransactionWidget txHash={aaveTransactionHash} />
+                <BlockscoutTransactionWidget  />
               </div>
             </div>
 

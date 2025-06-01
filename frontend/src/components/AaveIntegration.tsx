@@ -14,6 +14,9 @@ import { parseUnits } from "viem";
 import { sepolia } from "viem/chains";
 import { useAccount, useConfig, useSwitchChain, useWriteContract } from "wagmi";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
+import { atom } from "jotai";
+
+export const transactionHashAtom = atom<string>("");
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
@@ -85,6 +88,8 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
   const [storageWarning, setStorageWarning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completedTxHash, setCompletedTxHash] = useState<string>("");
+
+  const setTransactionHash = useSetAtom(transactionHashAtom);
 
   // Check storage availability on component mount
   useEffect(() => {
@@ -234,6 +239,8 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
           "Approval transaction sent. Please wait for it to be confirmed before the deposit..."
         );
 
+        setTransactionHash(approvalHash);
+
         // Wait for approval transaction
         await waitForTransactionReceipt(config, {
           hash: approvalHash,
@@ -257,6 +264,8 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
         openTxToast(sepolia.id.toString(), depositHash);
       }
 
+      setTransactionHash(depositHash);
+      
       // Wait for deposit transaction to be confirmed
       await waitForTransactionReceipt(config, {
         hash: depositHash,

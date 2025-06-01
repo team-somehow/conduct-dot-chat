@@ -3,14 +3,15 @@ import useBlockscoutTransaction from "@/hooks/useBlockscoutTransaction";
 import { useEffect, useState } from "react";
 
 type Props = {
-  txHash: string;
 };
 
-const BlockscoutTransactionWidget = ({ txHash }: Props) => {
+const BlockscoutTransactionWidget = ({  }: Props) => {
   const { fetchTransactionDetails } = useBlockscoutTransaction();
   const [transaction, setTransaction] = useState<TransactionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [txHash] = useAtom(transactionHashAtom);
 
   useEffect(() => {
     const fetchTransaction = async () => {
