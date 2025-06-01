@@ -14,6 +14,9 @@ import { parseUnits } from "viem";
 import { sepolia } from "viem/chains";
 import { useAccount, useConfig, useSwitchChain, useWriteContract } from "wagmi";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
+import { atom } from "jotai";
+
+export const transactionHashAtom = atom<string>("");
 
 // ERC20 ABI for approve function
 const ERC20_ABI = [
@@ -85,6 +88,8 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
   const [storageWarning, setStorageWarning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completedTxHash, setCompletedTxHash] = useState<string>("");
+
+  const setTransactionHash = useSetAtom(transactionHashAtom);
 
   // Check storage availability on component mount
   useEffect(() => {
@@ -234,6 +239,8 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
           "Approval transaction sent. Please wait for it to be confirmed before the deposit..."
         );
 
+        setTransactionHash(approvalHash);
+
         // Wait for approval transaction
         await waitForTransactionReceipt(config, {
           hash: approvalHash,
@@ -257,6 +264,8 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
         openTxToast(sepolia.id.toString(), depositHash);
       }
 
+      setTransactionHash(depositHash);
+      
       // Wait for deposit transaction to be confirmed
       await waitForTransactionReceipt(config, {
         hash: depositHash,
@@ -489,9 +498,9 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
             {/* Grayed out Deposit button when not connected */}
             <button
               disabled
-              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-gray-400 text-black font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo opacity-50 cursor-not-allowed"
+              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-gray-400 text-black font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo opacity-50 cursor-not-allowed md:col-span-2"
             >
-              <ArrowDownToLine className="h-5 w-5" />
+              <ArrowUpFromLine className="h-5 w-5" />
               <span>Deposit</span>
             </button>
 
@@ -509,7 +518,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
               disabled
               className="btn-brutalist inline-flex items-center justify-center gap-3 bg-gray-400 text-black font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo opacity-50 cursor-not-allowed"
             >
-              <ArrowUpFromLine className="h-5 w-5" />
+              <ArrowDownToLine className="h-5 w-5" />
               <span>Withdraw</span>
             </button>
           </>
@@ -518,18 +527,18 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
             {/* Active Deposit button when connected */}
             <button
               onClick={handleDeposit}
-              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#13C27B] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150"
+              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#13C27B] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150 md:col-span-2"
             >
-              <ArrowDownToLine className="h-5 w-5" />
+              <ArrowUpFromLine className="h-5 w-5" />
               <span>Deposit</span>
             </button>
 
             {/* Active Withdraw button when connected */}
             <button
               onClick={handleWithdraw}
-              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#FF9500] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150 md:col-span-2"
+              className="btn-brutalist inline-flex items-center justify-center gap-3 bg-[#FF9500] text-white font-black uppercase text-sm px-6 py-4 border-4 border-black shadow-neo transition-all duration-150"
             >
-              <ArrowUpFromLine className="h-5 w-5" />
+              <ArrowDownToLine className="h-5 w-5" />
               <span>Withdraw</span>
             </button>
           </>
