@@ -1386,7 +1386,7 @@ Your Naruto-themed NFT collection has been successfully created with authentic a
               if (realStepResult) {
                 if (realStepResult.status === "completed") {
                   get().addLog(`${emoji} ${currentStep.agentName}: ${completionMessage} (Real execution)`, "success");
-                  get().addLog(`📊 Real output: ${JSON.stringify(realStepResult.output).substring(0, 100)}...`, "info");
+                  get().addLog(`📊 Real output: ${JSON.stringify(realStepResult?.output)?.substring(0, 100)}...`, "info");
                 } else {
                   const { isDemoMode } = get();
                   if (isDemoMode) {
@@ -1417,57 +1417,46 @@ Your Naruto-themed NFT collection has been successfully created with authentic a
               if (currentStep.agentName === 'NFT Deployer Agent') {
                 console.log('🚀 DEMO: NFT Deployer completed, forcing transition to results page');
                 
-                // Create a simple execution result for demo
-                const demoExecution = {
-                  executionId: `demo_${Date.now()}`,
-                  workflowId: get().currentWorkflow?.id || 'demo_workflow',
-                  status: 'completed' as const,
-                  stepResults: get().steps.map(step => ({
-                    stepId: step.id,
-                    status: 'completed' as const,
-                    output: step.agentName === 'NFT Deployer Agent' ? {
-                      transactionHash: '0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-                      tokenId: '1',
-                      contractAddress: '0xDemo1234567890123456789012345678901234567890',
-                      collectionName: 'Naruto NFT Collection',
-                      tokenName: 'Naruto Character NFT',
-                      explorerUrl: 'https://sepolia.etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
-                    } : { message: 'Demo completed' }
-                  }))
-                };
+                // Create demo results using the existing generateRealisticOutput function
+                const demoResults = generateRealisticOutput(workflow);
                 
-                // Generate demo summary
-                const demoSummary = `# Naruto NFT Collection - Workflow Complete! 🎉
+                // Create a simple demo summary
+                const demoSummary = `# 🍥 Naruto NFT Collection - Complete! 🎉
 
-## Workflow Summary
-Your Naruto-themed NFT collection has been successfully created and deployed!
+## ✅ Workflow Successfully Executed
 
-### Steps Completed:
-✅ **DALL-E 3 Image Generator**: Created stunning Naruto-themed artwork
-✅ **NFT Metadata Creator**: Generated comprehensive metadata with attributes
-✅ **NFT Deployer Agent**: Successfully deployed NFT to blockchain
+Your Naruto-themed NFT collection has been created and deployed to the blockchain!
 
-### Results:
+### 🎨 Steps Completed:
+✅ **DALL-E 3 Image Generator**: Created stunning Naruto-themed artwork  
+✅ **NFT Metadata Creator**: Generated comprehensive metadata with attributes  
+✅ **NFT Deployer Agent**: Successfully deployed NFT to blockchain  
+
+### 🚀 Results:
 - **Collection**: Naruto NFT Collection
-- **Token ID**: #1
+- **Token ID**: #1  
 - **Blockchain**: Ethereum Sepolia Testnet
-- **Transaction**: [View on Etherscan](https://sepolia.etherscan.io/tx/0xdemo123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef)
+- **Status**: Successfully Deployed
 
-### Collection Features:
+### 🎯 Collection Features:
 - High-quality AI-generated Naruto artwork
-- Rich metadata with character attributes
+- Rich metadata with character attributes  
 - Deployed on Ethereum blockchain
 - Ready for trading and collection
 
 🎭 *Demo Mode: This is a simulated deployment for demonstration purposes*`;
 
-                // Set the execution and summary directly
+                // Force transition to results page using correct property names
                 set({
-                  currentExecution: demoExecution,
-                  currentSummary: demoSummary,
-                  currentPage: 'results'
+                  activeNodeId: null,
+                  isExecuting: false,
+                  currentStep: "SHOW_RESULT",
+                  executionResults: demoResults,
+                  executionSummary: demoSummary
                 });
                 
+                get().addLog("🎉 Demo complete! Redirecting to results...", "success");
+                console.log("✅ DEMO: Successfully forced transition to results page");
                 return; // Exit early, don't continue with normal flow
               }
               
