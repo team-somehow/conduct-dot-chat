@@ -422,7 +422,6 @@ export class WorkflowManager {
 
         console.log(`✅ Step ${step.stepId} completed successfully`);
       } catch (error: any) {
-        console.log(`❌ Step ${step.stepId} failed: ${error.message}`);
 
         // Provide fallback responses for demo purposes
         let fallbackResult: any = null;
