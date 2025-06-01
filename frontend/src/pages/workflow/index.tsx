@@ -192,6 +192,11 @@ export default function WorkflowPage() {
         try {
           addLog("Generating workflow...", "info");
           const { workflow } = await orchestratorAPI.createWorkflow(prompt);
+          console.log("🔍 Backend returned workflow:", {
+            workflowId: workflow?.workflowId,
+            name: workflow?.name,
+            steps: workflow?.steps?.length
+          });
 
           if (workflow) {
             // Convert workflow to nodes and edges
@@ -223,6 +228,8 @@ export default function WorkflowPage() {
               0
             );
 
+            console.log("🔍 Creating workflow options with ID:", workflow.workflowId);
+
             // Create both standard and optimized variants from the same workflow
             workflows.push({
               id: workflow.workflowId,
@@ -236,6 +243,8 @@ export default function WorkflowPage() {
               edges: edges,
               steps: transformedSteps,
             });
+
+            console.log("🔍 Added standard workflow with ID:", workflow.workflowId);
 
             // Create optimized variant (same workflow, different presentation)
             workflows.push({
@@ -256,6 +265,8 @@ export default function WorkflowPage() {
                 id: `opt-${step.id}`,
               })),
             });
+
+            console.log("🔍 Added optimized workflow with ID:", `${workflow.workflowId}-opt`);
 
             addLog("Workflow generated successfully", "success");
           }
@@ -295,6 +306,8 @@ export default function WorkflowPage() {
 
   // Auto-proceed from cost estimation to interaction if conditions are met
   useEffect(() => {
+    console.log("🎯 useEffect triggered - currentStep:", currentStep, "isExecuting:", isExecuting);
+    
     if (
       currentStep === "COST_ESTIMATION" &&
       estimatedCost > 0 &&
@@ -309,13 +322,30 @@ export default function WorkflowPage() {
       // }, 3000);
       // return () => clearTimeout(timer);
     }
+
+    // Auto-advance to results after 30 seconds if still on interaction screen
+    if (currentStep === "SHOW_INTERACTION" && isExecuting) {
+      console.log("🎯 Setting 30-second timeout for SHOW_INTERACTION");
+      const timeout = setTimeout(() => {
+        console.log("🎯 Timeout reached, checking execution status...");
+        if (executionId) {
+          addLog("Checking execution status after timeout...", "info");
+          // Force check execution status
+          setCurrentStep("SHOW_RESULT");
+        }
+      }, 30000); // 30 seconds
+
+      return () => clearTimeout(timeout);
+    }
   }, [
     currentStep,
     estimatedCost,
     workflowId,
     isExecuting,
+    executionId,
     setCurrentStep,
     startExecutionSimulation,
+    addLog,
   ]);
 
   const handleExecuteWorkflow = useCallback(async () => {
@@ -344,15 +374,31 @@ export default function WorkflowPage() {
     }
   };
 
-  const handleWorkflowConfirm = (workflowId: string) => {
+  const handleWorkflowConfirm = async (workflowId: string) => {
+    console.log("🎯 handleWorkflowConfirm called with workflowId:", workflowId);
+    console.log("🎯 Available workflows:", generatedWorkflows.map(w => ({
+      id: w.id,
+      variant: w.variant,
+      workflowId: w.workflow?.workflowId
+    })));
+    
     // Find the selected workflow from generated workflows
     const selectedWorkflow = generatedWorkflows.find(
       (w) => w.id === workflowId
     );
 
-    if (selectedWorkflow) {
-      console.log("Selected workflow:", selectedWorkflow);
+    console.log("🎯 Found selected workflow:", selectedWorkflow ? {
+      id: selectedWorkflow.id,
+      variant: selectedWorkflow.variant,
+      workflowId: selectedWorkflow.workflow?.workflowId,
+      endsWithOpt: selectedWorkflow.id.endsWith('-opt')
+    } : null);
+
+    // Only allow confirmation of the standard/original workflow
+    if (selectedWorkflow && !selectedWorkflow.id.endsWith('-opt')) {
+      console.log("✅ Confirming standard workflow:", selectedWorkflow);
       addLog(`Selected workflow: ${selectedWorkflow.workflow.name}`, "success");
+      addLog(`Confirmed workflowId: ${selectedWorkflow.workflow.workflowId}`, "info");
 
       // Store the selected workflow data in the store
       setNodes(selectedWorkflow.nodes);
@@ -366,27 +412,41 @@ export default function WorkflowPage() {
       });
 
       addLog(`Workflow data updated in store`, "info");
-      console.log("Updated store with workflow data:", selectedWorkflow);
-    }
+      console.log("🎯 Updated store with workflow data:", {
+        workflowId: selectedWorkflow.workflow.workflowId,
+        name: selectedWorkflow.workflow.name
+      });
 
-    // Move to cost estimation step instead of jumping to interaction
-    setCurrentStep("COST_ESTIMATION");
-
-    // Auto-advance to interaction after a brief delay to show cost estimation
-    setTimeout(() => {
+      // Move to interaction step
       setCurrentStep("SHOW_INTERACTION");
-      startExecutionSimulation();
-    }, 2000); // 2 second delay to show cost estimation
+      addLog(`About to execute workflowId: ${selectedWorkflow.workflow.workflowId}`, "info");
+      
+      // Execute the real workflow with proper error handling
+      try {
+        console.log("🚀 Calling executeWorkflow with:", selectedWorkflow.workflow.workflowId);
+        await executeWorkflow(selectedWorkflow.workflow.workflowId);
+      } catch (error) {
+        console.error("❌ Execution failed in handleWorkflowConfirm:", error);
+        addLog(`Execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`, "error");
+        setCurrentStep("SHOW_WORKFLOW"); // Go back to workflow selection
+      }
+    } else {
+      console.error("❌ Cannot confirm workflow:", {
+        found: !!selectedWorkflow,
+        workflowId,
+        endsWithOpt: selectedWorkflow?.id.endsWith('-opt')
+      });
+      addLog("Cannot confirm optimized or mock workflow. Please select the standard workflow.", "error");
+      console.error("Attempted to confirm a non-standard workflowId:", workflowId);
+      return;
+    }
   };
 
   const handleNextStep = () => {
-    console.log("Next step from:", currentStep);
     if (currentStep === "SHOW_WORKFLOW") {
-      // Move directly to cost estimation (skip model selection)
       setCurrentStep("COST_ESTIMATION");
     } else if (currentStep === "COST_ESTIMATION") {
-      // Execute the workflow
-      handleExecuteWorkflow();
+      setCurrentStep("SHOW_INTERACTION");
     } else {
       nextStep();
     }
@@ -510,6 +570,47 @@ export default function WorkflowPage() {
               <ExecutionCanvas nodes={nodes} edges={edges} />
 
               <LiveLogPanel />
+
+              {/* Debug button to check completed executions */}
+              <div className="text-center mt-4">
+                <button
+                  onClick={async () => {
+                    try {
+                      addLog("🔍 Checking for completed executions...", "info");
+                      const { executions } = await orchestratorAPI.listExecutions();
+                      console.log("🔍 Found executions:", executions);
+                      
+                      if (executions.length > 0) {
+                        const latestExecution = executions[executions.length - 1];
+                        console.log("🔍 Latest execution:", latestExecution);
+                        
+                        if (latestExecution.status === "completed") {
+                          addLog(`✅ Found completed execution: ${latestExecution.executionId}`, "success");
+                          
+                          // Force set the results and move to results page
+                          useWorkflowStore.setState({
+                            executionResults: latestExecution.output || latestExecution,
+                            executionId: latestExecution.executionId,
+                            isExecuting: false,
+                            currentStep: "SHOW_RESULT",
+                            executionSummary: "Execution completed successfully. Check the results below for details."
+                          });
+                        } else {
+                          addLog(`Execution status: ${latestExecution.status}`, "info");
+                        }
+                      } else {
+                        addLog("No executions found", "info");
+                      }
+                    } catch (error) {
+                      console.error("Error checking executions:", error);
+                      addLog("Failed to check executions", "error");
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-500 text-white font-bold border-2 border-black hover:bg-blue-600"
+                >
+                  🔍 Check Execution Status
+                </button>
+              </div>
             </div>
           </ReactFlowProvider>
         );

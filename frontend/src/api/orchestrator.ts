@@ -6,7 +6,7 @@ const ORCHESTRATOR_BASE_URL =
 
 const api = axios.create({
   baseURL: ORCHESTRATOR_BASE_URL,
-  timeout: 30000, // 30 seconds timeout for workflow operations
+  timeout: 1800000, // 30 minutes timeout for workflow operations
   headers: {
     "Content-Type": "application/json",
   },
@@ -133,27 +133,6 @@ export const orchestratorAPI = {
   ): Promise<{ workflow: WorkflowDefinition }> {
     const response = await api.post("/workflows/create", { prompt });
     return response.data;
-  },
-
-  // Execute a single agent task
-  async executeAgent(
-    agentUrl: string,
-    input: any
-  ): Promise<{ result: any }> {
-    console.log('🔍 executeAgent called with:', { agentUrl, input });
-    try {
-      const response = await api.post("/execute", {
-        agentUrl,
-        input,
-      });
-      console.log('✅ executeAgent response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ executeAgent error:', error);
-      console.error('❌ Error response:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
-      throw error;
-    }
   },
 
   async executeWorkflow(
@@ -385,7 +364,6 @@ export const safeOrchestratorAPI = {
   getHealth: withErrorHandling(orchestratorAPI.getHealth),
   getAgents: withErrorHandling(orchestratorAPI.getAgents),
   createWorkflow: withErrorHandling(orchestratorAPI.createWorkflow),
-  executeAgent: withErrorHandling(orchestratorAPI.executeAgent),
   executeWorkflow: withErrorHandling(orchestratorAPI.executeWorkflow),
   getWorkflow: withErrorHandling(orchestratorAPI.getWorkflow),
   getExecution: withErrorHandling(orchestratorAPI.getExecution),

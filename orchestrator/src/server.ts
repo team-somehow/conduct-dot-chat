@@ -13,6 +13,7 @@ import {
 import { UserIntent } from "./types";
 import { MCPManager } from "./MCPManager";
 import { MCPAgentService, MCPAgentAdapter } from "./MCPAgent";
+import { workflowManager } from "./workflowManagerSingleton";
 // import BlockchainService, {
 //   createBlockchainService,
 // } from "./BlockchainService";
@@ -38,9 +39,6 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-
-const jobRunner = new JobRunner();
-const workflowManager = new WorkflowManager(jobRunner);
 
 // Helper function to generate natural language summary using GPT-4.1-mini
 async function generateExecutionSummary(
@@ -220,8 +218,8 @@ Report exactly what happened based on the execution data above.`,
 // Health check endpoint
 app.get("/health", async (req: Request, res: Response) => {
   try {
-    const agents = await jobRunner.discoverAgents();
-    const mcpServerStatuses = jobRunner.getMCPServerStatuses();
+    const agents = await workflowManager.jobRunner.discoverAgents();
+    const mcpServerStatuses = workflowManager.jobRunner.getMCPServerStatuses();
 
     res.json({
       status: "healthy",
@@ -269,7 +267,7 @@ app.get("/health", async (req: Request, res: Response) => {
 // Discover available agents
 app.get("/agents", async (req: Request, res: Response) => {
   try {
-    const agents = await jobRunner.discoverAgents();
+    const agents = await workflowManager.jobRunner.discoverAgents();
     res.json({
       agents: agents.map((agent) => {
         const baseInfo = {
@@ -316,7 +314,7 @@ app.get("/agents", async (req: Request, res: Response) => {
 // Get MCP server statuses
 app.get("/mcp/servers", (req: Request, res: Response) => {
   try {
-    const statuses = jobRunner.getMCPServerStatuses();
+    const statuses = workflowManager.jobRunner.getMCPServerStatuses();
     res.json({
       success: true,
       servers: statuses,
@@ -333,8 +331,8 @@ app.get("/mcp/servers", (req: Request, res: Response) => {
 // Refresh MCP agents
 app.post("/mcp/refresh", async (req: Request, res: Response) => {
   try {
-    await jobRunner.refreshMCPAgents();
-    const agents = await jobRunner.discoverAgents();
+    await workflowManager.jobRunner.refreshMCPAgents();
+    const agents = await workflowManager.jobRunner.discoverAgents();
     const mcpAgents = agents.filter((agent) => agent.type === "mcp");
 
     res.json({
@@ -554,6 +552,23 @@ app.get("/workflows", (req: Request, res: Response) => {
   }
 });
 
+// List all executions (debugging endpoint)
+app.get("/executions", (req: Request, res: Response) => {
+  try {
+    const executions = workflowManager.listExecutions();
+    res.json({
+      success: true,
+      executions,
+      count: executions.length,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: "Failed to list executions",
+      details: error.message,
+    });
+  }
+});
+
 // Execute a single agent task
 app.post("/execute", async (req: Request, res: Response) => {
   try {
@@ -565,7 +580,7 @@ app.post("/execute", async (req: Request, res: Response) => {
       });
     }
 
-    const result = await jobRunner.executeAgentTask(agentUrl, input);
+    const result = await workflowManager.jobRunner.executeAgentTask(agentUrl, input);
 
     res.json({
       success: true,
@@ -591,7 +606,7 @@ app.post("/jobs", async (req: Request, res: Response) => {
       });
     }
 
-    const jobId = jobRunner.generateJobId();
+    const jobId = workflowManager.jobRunner.generateJobId();
 
     if (mode === "parallel") {
       const tasks = agentUrls.map((url: string) => ({
@@ -599,7 +614,7 @@ app.post("/jobs", async (req: Request, res: Response) => {
         input: jobData,
       }));
 
-      const results = await jobRunner.executeParallelTasks(jobId, tasks);
+      const results = await workflowManager.jobRunner.executeParallelTasks(jobId, tasks);
 
       res.json({
         jobId,
@@ -614,7 +629,7 @@ app.post("/jobs", async (req: Request, res: Response) => {
         input: jobData,
       }));
 
-      const results = await jobRunner.executeSequentialTasks(jobId, tasks);
+      const results = await workflowManager.jobRunner.executeSequentialTasks(jobId, tasks);
 
       res.json({
         jobId,
@@ -875,7 +890,7 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
 
           try {
             // First, try to get the agent from blockchain by URL
-            const blockchainAgent = await jobRunner
+            const blockchainAgent = await workflowManager.jobRunner
               .getBlockchainService()
               ?.getAgentByUrl(agentUrl);
             if (blockchainAgent) {
@@ -898,7 +913,7 @@ app.post("/feedback/submit", async (req: Request, res: Response) => {
           let errorMessage: string | null = null;
 
           try {
-            const blockchainService = jobRunner.getBlockchainService();
+            const blockchainService = workflowManager.jobRunner.getBlockchainService();
             if (blockchainService && blockchainService.isAvailable()) {
               txHash = await blockchainService.rateAgent(agentAddress, rating);
               success = !!txHash;

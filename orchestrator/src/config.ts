@@ -31,8 +31,39 @@ export const FLOW_EVM_CONFIG = {
   },
 
   // Private key for blockchain transactions (from .env)
-  PRIVATE_KEY: process.env.MY_METAMASK_PRIVATE_KEY_WITH_FLOW_TESTNET,
+  PRIVATE_KEY: process.env.MY_METAMASK_PRIVATE_KEY,
 };
+
+// Hedera Testnet Configuration - Deployed Contracts
+export const HEDERA_CONFIG = {
+  NETWORK_NAME: "Hedera Testnet",
+  CHAIN_ID: 296,
+  RPC_URL: "https://testnet.hashio.io/api",
+  BLOCK_EXPLORER: "https://hashscan.io/testnet/dashboard",
+  GAS_PRICE: "2000000000", // Example gas price, adjust based on Hedera recommendations
+
+  // Deployed Contract Addresses (replace with actual Hedera contract IDs/addresses if applicable)
+  // Hedera uses HAPI for smart contracts, often represented as 0.0.X or EVM addresses.
+  // This will depend on how your contracts are deployed on Hedera.
+  CONTRACTS: {
+    AgentRegistry: "0x84F4928AD2817dbBC83F354F1267cB7972C06D3b",
+    ReputationLayer: "0x58B94Cf65DA1F72B72CCD5871653F4c52C34E760",
+    OrchestrationContract: "0xCE47fF8fCC8aEC9e192Fc80127eA6f839F77bD20",
+  },
+
+  // Private key for blockchain transactions (from .env)
+  // PRIVATE_KEY: process.env.HEDERA_OPERATOR_KEY, // Assuming this is your Hedera private key
+
+  OPERATOR_ID: process.env.HEDERA_OPERATOR_ID,
+  PRIVATE_KEY: process.env.MY_METAMASK_PRIVATE_KEY,
+};
+
+// Determine the active blockchain configuration
+const ACTIVE_BLOCKCHAIN_NETWORK =
+  process.env.ACTIVE_BLOCKCHAIN_NETWORK || "flow";
+
+const ACTIVE_CHAIN_CONFIG =
+  ACTIVE_BLOCKCHAIN_NETWORK === "hedera" ? HEDERA_CONFIG : FLOW_EVM_CONFIG;
 
 // Configuration with blockchain integration
 export const config = {
@@ -42,12 +73,12 @@ export const config = {
   // Blockchain Configuration
   BLOCKCHAIN: {
     ENABLED: true,
-    RPC_URL: FLOW_EVM_CONFIG.RPC_URL,
-    CHAIN_ID: FLOW_EVM_CONFIG.CHAIN_ID,
-    PRIVATE_KEY: FLOW_EVM_CONFIG.PRIVATE_KEY,
-    CONTRACTS: FLOW_EVM_CONFIG.CONTRACTS,
+    RPC_URL: ACTIVE_CHAIN_CONFIG.RPC_URL,
+    CHAIN_ID: ACTIVE_CHAIN_CONFIG.CHAIN_ID,
+    PRIVATE_KEY: ACTIVE_CHAIN_CONFIG.PRIVATE_KEY,
+    CONTRACTS: ACTIVE_CHAIN_CONFIG.CONTRACTS,
     GAS_SETTINGS: {
-      gasPrice: FLOW_EVM_CONFIG.GAS_PRICE,
+      gasPrice: ACTIVE_CHAIN_CONFIG.GAS_PRICE,
       gasLimit: "500000", // Default gas limit
     },
   },
@@ -164,7 +195,7 @@ export function validateBlockchainConfig(): boolean {
     if (!config.BLOCKCHAIN.PRIVATE_KEY) {
       console.warn("⚠️ No private key configured for blockchain transactions");
       console.log(
-        "💡 Set MY_METAMASK_PRIVATE_KEY_WITH_FLOW_TESTNET in .env file"
+        `💡 Set PRIVATE_KEY in .env file for ${ACTIVE_CHAIN_CONFIG.NETWORK_NAME}`
       );
       return false;
     }
@@ -186,7 +217,7 @@ export function validateBlockchainConfig(): boolean {
 
     console.log("✅ Blockchain configuration validated");
     console.log(
-      `🌐 Network: ${FLOW_EVM_CONFIG.NETWORK_NAME} (Chain ID: ${FLOW_EVM_CONFIG.CHAIN_ID})`
+      `🌐 Network: ${ACTIVE_CHAIN_CONFIG.NETWORK_NAME} (Chain ID: ${ACTIVE_CHAIN_CONFIG.CHAIN_ID})`
     );
     console.log(`📍 RPC: ${config.BLOCKCHAIN.RPC_URL}`);
     console.log(

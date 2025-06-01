@@ -37,6 +37,11 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
   useEffect(() => {
     // If pre-generated workflows are provided, use them
     if (preGeneratedWorkflows && preGeneratedWorkflows.length > 0) {
+      console.log("🔍 Using pre-generated workflows:", preGeneratedWorkflows.map(w => ({
+        id: w.id,
+        workflowId: w.workflow?.workflowId,
+        name: w.workflow?.name
+      })));
       setWorkflows(preGeneratedWorkflows);
       setIsLoading(false);
       addLog(`Using ${preGeneratedWorkflows.length} pre-generated workflows`, 'success');
@@ -325,7 +330,23 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
   };
 
   const handleConfirmWorkflow = (workflowId: string) => {
+    console.log("🔍 MultiWorkflowComparison: handleConfirmWorkflow called with:", workflowId);
+    
+    // Find the workflow being confirmed
+    const confirmedWorkflow = workflows.find(w => w.id === workflowId);
+    console.log("🔍 Found workflow to confirm:", confirmedWorkflow);
+    
+    if (confirmedWorkflow) {
+      console.log("🔍 Workflow details:", {
+        id: confirmedWorkflow.id,
+        workflowId: confirmedWorkflow.workflow?.workflowId,
+        name: confirmedWorkflow.workflow?.name,
+        steps: confirmedWorkflow.workflow?.steps?.length
+      });
+    }
+    
     setSelectedWorkflow(workflowId);
+    console.log("🔍 About to call onConfirmWorkflow with:", workflowId);
     onConfirmWorkflow(workflowId);
   };
 
