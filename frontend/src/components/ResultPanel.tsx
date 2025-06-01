@@ -57,8 +57,8 @@ const ResultPanel: React.FC<ResultPanelProps> = ({
   const [modelRatings, setModelRatings] = useState<Record<string, number>>({});
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [aaveTransactionHash, setAaveTransactionHash] = useState<string>("");
-
+const [aaveTransactionHash, setAaveTransactionHash] = useState<string>("");
+  const [time, setTime] = useState<number>(0);
   const handleModelRating = (modelId: string, rating: number) => {
     console.log(`Model ${modelId} rated ${rating} stars`);
     setModelRatings((prev) => ({ ...prev, [modelId]: rating }));

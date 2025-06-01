@@ -266,9 +266,11 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       console.log("Deposit transaction confirmed:", depositHash);
       
       // Store the real transaction hash and show success
-      setCompletedTxHash(depositHash);
-      onTransactionComplete?.(depositHash);
-      setShowSuccess(true);
+      setTimeout(() => {
+        setCompletedTxHash(depositHash);
+        onTransactionComplete?.(depositHash);
+        setShowSuccess(true);
+      }, 5000);
 
     } catch (error) {
       console.error("Transaction error:", error);
@@ -324,9 +326,11 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       console.log("Withdraw transaction confirmed:", hash);
       
       // Store the real transaction hash and show success
-      setCompletedTxHash(hash);
-      onTransactionComplete?.(hash);
-      setShowSuccess(true);
+      setTimeout(() => {
+        setCompletedTxHash(hash);
+        onTransactionComplete?.(hash);
+        setShowSuccess(true);
+      }, 5000);
 
     } catch (error) {
       console.error("Withdraw transaction error:", error);
