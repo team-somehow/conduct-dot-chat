@@ -85,14 +85,14 @@ export const config = {
 
   // Agent Discovery: Use blockchain contracts instead of hardcoded URLs
   AGENT_DISCOVERY: {
-    SOURCE: "blockchain", // "blockchain" | "hardcoded"
+    SOURCE: "hardcoded", // "blockchain" | "hardcoded"
     FALLBACK_AGENTS: AGENTS, // Fallback if blockchain is unavailable
     REFRESH_INTERVAL: 300000, // 5 minutes
   },
 
   // Reputation & Cost Management: Use blockchain contracts
-  REPUTATION_SOURCE: "blockchain", // "blockchain" | "local"
-  COST_SOURCE: "blockchain", // "blockchain" | "agent"
+  REPUTATION_SOURCE: "local", // "blockchain" | "local"
+  COST_SOURCE: "agent", // "blockchain" | "agent"
 };
 
 /**

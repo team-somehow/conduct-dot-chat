@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import WorkflowGraph from './WorkflowGraph';
-import { useWorkflowStore } from '../store/workflow';
-import orchestratorAPI from '../api/orchestrator';
-import { Check, DollarSign, Clock, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import WorkflowGraph from "./WorkflowGraph";
+import { useWorkflowStore } from "../store/workflow";
+import orchestratorAPI from "../api/orchestrator";
+import {
+  Check,
+  DollarSign,
+  Clock,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 interface WorkflowOption {
   id: string;
@@ -12,7 +19,7 @@ interface WorkflowOption {
   edges: any[];
   estimatedCost: number;
   estimatedDuration: number;
-  complexity: 'Simple' | 'Moderate' | 'Complex';
+  complexity: "Simple" | "Moderate" | "Complex";
   steps: any[];
 }
 
@@ -37,61 +44,91 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
   useEffect(() => {
     // If pre-generated workflows are provided, use them
     if (preGeneratedWorkflows && preGeneratedWorkflows.length > 0) {
-      console.log("🔍 Using pre-generated workflows:", preGeneratedWorkflows.map(w => ({
-        id: w.id,
-        workflowId: w.workflow?.workflowId,
-        name: w.workflow?.name
-      })));
+      console.log(
+        "🔍 Using pre-generated workflows:",
+        preGeneratedWorkflows.map((w) => ({
+          id: w.id,
+          workflowId: w.workflow?.workflowId,
+          name: w.workflow?.name,
+        }))
+      );
       setWorkflows(preGeneratedWorkflows);
       setIsLoading(false);
-      addLog(`Using ${preGeneratedWorkflows.length} pre-generated workflows`, 'success');
+      addLog(
+        `Using ${preGeneratedWorkflows.length} pre-generated workflows`,
+        "success"
+      );
       return;
     }
 
     // Otherwise, generate workflows as before
     const generateWorkflows = async () => {
       setIsLoading(true);
-      addLog('Generating multiple workflow options via orchestrator...', 'info');
-      
+      addLog(
+        "Generating multiple workflow options via orchestrator...",
+        "info"
+      );
+
       try {
         // Generate workflows sequentially to avoid API conflicts
-        addLog('Creating standard workflow...', 'info');
-        const standardWorkflow = await generateSingleWorkflow(prompt, 'standard');
-        
-        addLog('Creating optimized workflow...', 'info');
-        const optimizedWorkflow = await generateSingleWorkflow(prompt, 'optimized');
+        addLog("Creating standard workflow...", "info");
+        const standardWorkflow = await generateSingleWorkflow(
+          prompt,
+          "standard"
+        );
 
-        const successfulWorkflows = [standardWorkflow, optimizedWorkflow].filter(Boolean);
-        
+        addLog("Creating optimized workflow...", "info");
+        const optimizedWorkflow = await generateSingleWorkflow(
+          prompt,
+          "optimized"
+        );
+
+        const successfulWorkflows = [
+          standardWorkflow,
+          optimizedWorkflow,
+        ].filter(Boolean);
+
         setWorkflows(successfulWorkflows);
-        addLog(`Generated ${successfulWorkflows.length} workflow options successfully`, 'success');
-        
+        addLog(
+          `Generated ${successfulWorkflows.length} workflow options successfully`,
+          "success"
+        );
+
         // Log whether workflows were created via API or fallback
-        const apiWorkflows = successfulWorkflows.filter(w => w.workflow.workflowId && !w.workflow.workflowId.includes('workflow-'));
+        const apiWorkflows = successfulWorkflows.filter(
+          (w) =>
+            w.workflow.workflowId &&
+            !w.workflow.workflowId.includes("workflow-")
+        );
         const mockWorkflows = successfulWorkflows.length - apiWorkflows.length;
-        
+
         if (apiWorkflows.length > 0) {
-          addLog(`${apiWorkflows.length} workflows created via orchestrator API`, 'success');
+          addLog(
+            `${apiWorkflows.length} workflows created via orchestrator API`,
+            "success"
+          );
         }
         if (mockWorkflows > 0) {
-          addLog(`${mockWorkflows} workflows created via fallback (API unavailable)`, 'info');
+          addLog(
+            `${mockWorkflows} workflows created via fallback (API unavailable)`,
+            "info"
+          );
         }
-        
       } catch (error) {
-        console.error('Error generating workflows:', error);
-        addLog('Failed to generate workflow options', 'error');
-        
+        console.error("Error generating workflows:", error);
+        addLog("Failed to generate workflow options", "error");
+
         // Generate fallback workflows if everything fails
         try {
           const fallbackWorkflows = [
-            generateMockWorkflow(prompt, 'standard'),
-            generateMockWorkflow(prompt, 'optimized')
+            generateMockWorkflow(prompt, "standard"),
+            generateMockWorkflow(prompt, "optimized"),
           ];
           setWorkflows(fallbackWorkflows);
-          addLog('Using fallback workflows due to API errors', 'info');
+          addLog("Using fallback workflows due to API errors", "info");
         } catch (fallbackError) {
-          console.error('Even fallback failed:', fallbackError);
-          addLog('Failed to generate any workflows', 'error');
+          console.error("Even fallback failed:", fallbackError);
+          addLog("Failed to generate any workflows", "error");
         }
       } finally {
         setIsLoading(false);
@@ -104,20 +141,21 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
   }, [prompt, preGeneratedWorkflows]);
 
   const generateSingleWorkflow = async (
-    workflowPrompt: string, 
-    variant: 'standard' | 'optimized'
+    workflowPrompt: string,
+    variant: "standard" | "optimized"
   ): Promise<WorkflowOption> => {
     try {
       // Create a modified prompt for the optimized variant
-      const finalPrompt = variant === 'optimized' 
-        ? `${workflowPrompt} (optimize for speed and cost-effectiveness)`
-        : workflowPrompt;
-      
+      const finalPrompt =
+        variant === "optimized"
+          ? `${workflowPrompt} (optimize for speed and cost-effectiveness)`
+          : workflowPrompt;
+
       // Call the orchestrator API directly to avoid store conflicts
       const { workflow } = await orchestratorAPI.createWorkflow(finalPrompt);
-      
+
       if (!workflow) {
-        throw new Error('Failed to create workflow');
+        throw new Error("Failed to create workflow");
       }
 
       // Convert workflow steps to nodes and edges manually - only show unique agents
@@ -127,7 +165,7 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
         if (!uniqueAgentsForNodes.has(agentName)) {
           uniqueAgentsForNodes.set(agentName, {
             ...step,
-            originalIndex: uniqueAgentsForNodes.size
+            originalIndex: uniqueAgentsForNodes.size,
           });
         }
       });
@@ -135,25 +173,27 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
 
       const nodes = uniqueStepsForNodes.map((step: any, index: number) => ({
         id: `${variant}-${step.stepId}`,
-        type: 'brutal',
+        type: "brutal",
         position: { x: index * 250, y: 50 },
         data: {
           id: `${variant}-${step.stepId}`,
           name: step.agentName,
           description: step.description,
-          status: 'IDLE',
-          modelType: 'AI MODEL',
+          status: "IDLE",
+          modelType: "AI MODEL",
           cost: getCostForAgent(step.agentName),
-          icon: getIconForAgent(step.agentName)
-        }
+          icon: getIconForAgent(step.agentName),
+        },
       }));
 
-      const edges = uniqueStepsForNodes.slice(1).map((step: any, index: number) => ({
-        id: `edge-${variant}-${uniqueStepsForNodes[index].stepId}-${step.stepId}`,
-        source: `${variant}-${uniqueStepsForNodes[index].stepId}`,
-        target: `${variant}-${step.stepId}`,
-        type: 'brutal'
-      }));
+      const edges = uniqueStepsForNodes
+        .slice(1)
+        .map((step: any, index: number) => ({
+          id: `edge-${variant}-${uniqueStepsForNodes[index].stepId}-${step.stepId}`,
+          source: `${variant}-${uniqueStepsForNodes[index].stepId}`,
+          target: `${variant}-${step.stepId}`,
+          type: "brutal",
+        }));
 
       // Convert to steps format for the WorkflowGraph component - only show unique agents
       const uniqueAgents = new Map();
@@ -164,11 +204,11 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
             id: `${variant}-${step.stepId}`,
             order: uniqueAgents.size + 1,
             name: agentName,
-            modelType: 'AI MODEL',
+            modelType: "AI MODEL",
             description: step.description,
-            status: 'IDLE' as const,
+            status: "IDLE" as const,
             icon: getIconForAgent(agentName),
-            cost: getCostForAgent(agentName)
+            cost: getCostForAgent(agentName),
           });
         }
       });
@@ -188,14 +228,21 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
         edges,
         estimatedCost: totalCost,
         estimatedDuration,
-        complexity: workflow.steps.length <= 2 ? 'Simple' : 
-                    workflow.steps.length <= 3 ? 'Moderate' : 'Complex',
-        steps
+        complexity:
+          workflow.steps.length <= 2
+            ? "Simple"
+            : workflow.steps.length <= 3
+            ? "Moderate"
+            : "Complex",
+        steps,
       };
     } catch (error) {
       console.error(`Failed to generate ${variant} workflow via API:`, error);
-      addLog(`Failed to generate ${variant} workflow via orchestrator, using fallback`, 'error');
-      
+      addLog(
+        `Failed to generate ${variant} workflow via orchestrator, using fallback`,
+        "error"
+      );
+
       // Fallback to mock workflow if API fails
       return generateMockWorkflow(workflowPrompt, variant);
     }
@@ -208,46 +255,52 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
       "DALL-E 3 Image Generator": 0.15,
       "NFT Deployer Agent": 0.08,
       "GPT-4": 0.12,
-      "Stable Diffusion": 0.10,
-      "Claude": 0.09,
+      "Stable Diffusion": 0.1,
+      Claude: 0.09,
     };
-    return costMap[agentName] || 0.05 + Math.random() * 0.1;
+    return (costMap[agentName] || 0.05 + Math.random() * 0.1) * 1.1;
   };
 
   // Fallback mock workflow generator
-  const generateMockWorkflow = (workflowPrompt: string, variant: 'standard' | 'optimized'): WorkflowOption => {
+  const generateMockWorkflow = (
+    workflowPrompt: string,
+    variant: "standard" | "optimized"
+  ): WorkflowOption => {
     const mockWorkflow = {
       workflowId: `workflow-${variant}-${Date.now()}`,
       name: `${variant.charAt(0).toUpperCase() + variant.slice(1)} Workflow`,
       description: workflowPrompt,
-      steps: variant === 'standard' ? [
-        {
-          stepId: 'step-1',
-          agentName: 'Hello World Agent',
-          description: 'Generate a personalized greeting message',
-        },
-        {
-          stepId: 'step-2',
-          agentName: 'DALL-E 3 Image Generator',
-          description: 'Create an image for the NFT',
-        },
-        {
-          stepId: 'step-3',
-          agentName: 'NFT Deployer Agent',
-          description: 'Deploy and mint the NFT',
-        }
-      ] : [
-        {
-          stepId: 'step-1',
-          agentName: 'GPT-4',
-          description: 'Generate greeting and image prompt',
-        },
-        {
-          stepId: 'step-2',
-          agentName: 'NFT Deployer Agent',
-          description: 'Deploy NFT with generated content',
-        }
-      ]
+      steps:
+        variant === "standard"
+          ? [
+              {
+                stepId: "step-1",
+                agentName: "Hello World Agent",
+                description: "Generate a personalized greeting message",
+              },
+              {
+                stepId: "step-2",
+                agentName: "DALL-E 3 Image Generator",
+                description: "Create an image for the NFT",
+              },
+              {
+                stepId: "step-3",
+                agentName: "NFT Deployer Agent",
+                description: "Deploy and mint the NFT",
+              },
+            ]
+          : [
+              {
+                stepId: "step-1",
+                agentName: "GPT-4",
+                description: "Generate greeting and image prompt",
+              },
+              {
+                stepId: "step-2",
+                agentName: "NFT Deployer Agent",
+                description: "Deploy NFT with generated content",
+              },
+            ],
     };
 
     // Convert to nodes and edges - only show unique agents
@@ -257,7 +310,7 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
       if (!uniqueAgentsForNodes.has(agentName)) {
         uniqueAgentsForNodes.set(agentName, {
           ...step,
-          originalIndex: uniqueAgentsForNodes.size
+          originalIndex: uniqueAgentsForNodes.size,
         });
       }
     });
@@ -265,24 +318,24 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
 
     const nodes = uniqueStepsForNodes.map((step, index) => ({
       id: `${variant}-${step.stepId}`,
-      type: 'brutal',
+      type: "brutal",
       position: { x: index * 250, y: 50 },
       data: {
         id: `${variant}-${step.stepId}`,
         name: step.agentName,
         description: step.description,
-        status: 'IDLE',
-        modelType: 'AI MODEL',
+        status: "IDLE",
+        modelType: "AI MODEL",
         cost: getCostForAgent(step.agentName),
-        icon: getIconForAgent(step.agentName)
-      }
+        icon: getIconForAgent(step.agentName),
+      },
     }));
 
     const edges = uniqueStepsForNodes.slice(1).map((step, index) => ({
       id: `edge-${variant}-${uniqueStepsForNodes[index].stepId}-${step.stepId}`,
       source: `${variant}-${uniqueStepsForNodes[index].stepId}`,
       target: `${variant}-${step.stepId}`,
-      type: 'brutal'
+      type: "brutal",
     }));
 
     // Convert to steps format for the WorkflowGraph component - only show unique agents
@@ -294,17 +347,20 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
           id: `${variant}-${step.stepId}`,
           order: uniqueAgents.size + 1,
           name: agentName,
-          modelType: 'AI MODEL',
+          modelType: "AI MODEL",
           description: step.description,
-          status: 'IDLE' as const,
+          status: "IDLE" as const,
           icon: getIconForAgent(agentName),
-          cost: getCostForAgent(agentName)
+          cost: getCostForAgent(agentName),
         });
       }
     });
     const steps = Array.from(uniqueAgents.values());
 
-    const totalCost = mockWorkflow.steps.reduce((sum, step) => sum + getCostForAgent(step.agentName), 0);
+    const totalCost = mockWorkflow.steps.reduce(
+      (sum, step) => sum + getCostForAgent(step.agentName),
+      0
+    );
     const estimatedDuration = mockWorkflow.steps.length * 30;
 
     return {
@@ -314,44 +370,51 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
       edges,
       estimatedCost: totalCost,
       estimatedDuration,
-      complexity: mockWorkflow.steps.length <= 2 ? 'Simple' : 
-                  mockWorkflow.steps.length <= 3 ? 'Moderate' : 'Complex',
-      steps
+      complexity:
+        mockWorkflow.steps.length <= 2
+          ? "Simple"
+          : mockWorkflow.steps.length <= 3
+          ? "Moderate"
+          : "Complex",
+      steps,
     };
   };
 
   const getIconForAgent = (agentName: string): string => {
     const name = agentName.toLowerCase();
-    if (name.includes('hello') || name.includes('greet')) return '👋';
-    if (name.includes('image') || name.includes('dall')) return '🎨';
-    if (name.includes('nft') || name.includes('deploy')) return '💎';
-    if (name.includes('gpt') || name.includes('claude')) return '🧠';
-    return '⚡';
+    if (name.includes("hello") || name.includes("greet")) return "👋";
+    if (name.includes("image") || name.includes("dall")) return "🎨";
+    if (name.includes("nft") || name.includes("deploy")) return "💎";
+    if (name.includes("gpt") || name.includes("claude")) return "🧠";
+    return "⚡";
   };
 
   const handleConfirmWorkflow = (workflowId: string) => {
-    console.log("🔍 MultiWorkflowComparison: handleConfirmWorkflow called with:", workflowId);
-    
+    console.log(
+      "🔍 MultiWorkflowComparison: handleConfirmWorkflow called with:",
+      workflowId
+    );
+
     // Find the workflow being confirmed
-    const confirmedWorkflow = workflows.find(w => w.id === workflowId);
+    const confirmedWorkflow = workflows.find((w) => w.id === workflowId);
     console.log("🔍 Found workflow to confirm:", confirmedWorkflow);
-    
+
     if (confirmedWorkflow) {
       console.log("🔍 Workflow details:", {
         id: confirmedWorkflow.id,
         workflowId: confirmedWorkflow.workflow?.workflowId,
         name: confirmedWorkflow.workflow?.name,
-        steps: confirmedWorkflow.workflow?.steps?.length
+        steps: confirmedWorkflow.workflow?.steps?.length,
       });
     }
-    
+
     setSelectedWorkflow(workflowId);
     console.log("🔍 About to call onConfirmWorkflow with:", workflowId);
     onConfirmWorkflow(workflowId);
   };
 
   const toggleStepsExpansion = (workflowId: string) => {
-    setExpandedSteps(prev => {
+    setExpandedSteps((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(workflowId)) {
         newSet.delete(workflowId);
@@ -367,7 +430,9 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="animate-spin w-12 h-12 border-4 border-black border-t-transparent"></div>
         <p className="text-lg font-bold">Generating workflow options...</p>
-        <p className="text-sm text-gray-600">Creating multiple approaches for your request</p>
+        <p className="text-sm text-gray-600">
+          Creating multiple approaches for your request
+        </p>
       </div>
     );
   }
@@ -384,7 +449,8 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
           Choose Your Workflow
         </h2>
         <p className="text-gray-600 font-medium">
-          We've generated {workflows.length} different approaches for your request
+          We've generated {workflows.length} different approaches for your
+          request
         </p>
       </motion.div>
 
@@ -397,7 +463,7 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: index * 0.2 }}
             className={`bg-white border-4 border-black shadow-neo p-6 space-y-4 min-h-[600px] flex flex-col ${
-              selectedWorkflow === option.id ? 'ring-4 ring-[#7C82FF]' : ''
+              selectedWorkflow === option.id ? "ring-4 ring-[#7C82FF]" : ""
             }`}
           >
             {/* Workflow Header */}
@@ -407,20 +473,24 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
                   Option {index + 1}: {option.workflow.name}
                 </h3>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className={`px-2 py-1 border-2 border-black font-bold ${
-                    option.complexity === 'Simple' ? 'bg-green-200' :
-                    option.complexity === 'Moderate' ? 'bg-yellow-200' :
-                    'bg-red-200'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 border-2 border-black font-bold ${
+                      option.complexity === "Simple"
+                        ? "bg-green-200"
+                        : option.complexity === "Moderate"
+                        ? "bg-yellow-200"
+                        : "bg-red-200"
+                    }`}
+                  >
                     {option.complexity}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock size={14} />
-                    ~{Math.round(option.estimatedDuration / 60)}min
+                    <Clock size={14} />~
+                    {Math.round(option.estimatedDuration / 60)}min
                   </span>
                 </div>
               </div>
-              
+
               {/* Cost Display */}
               <div className="text-right flex-shrink-0">
                 <div className="flex items-center gap-1 text-2xl font-black">
@@ -433,9 +503,7 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
 
             {/* Workflow Graph */}
             <div className="h-[250px] border-2 border-gray-300 bg-gray-50 flex-shrink-0 overflow-hidden">
-              <WorkflowGraph 
-                steps={option.steps} 
-              />
+              <WorkflowGraph steps={option.steps} />
             </div>
 
             {/* Step Breakdown with Costs */}
@@ -458,14 +526,14 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
                   <ChevronDown size={16} className="text-gray-600" />
                 )}
               </button>
-              
+
               <AnimatePresence>
                 {expandedSteps.has(option.id) && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
+                    animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden space-y-2"
                   >
                     {option.steps.map((step, stepIndex) => (
@@ -480,11 +548,15 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
                           <span className="text-lg">{step.icon}</span>
                           <div>
                             <p className="font-bold text-sm">{step.name}</p>
-                            <p className="text-xs text-gray-600">{step.description}</p>
+                            <p className="text-xs text-gray-600">
+                              {step.description}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-black text-sm">${(step as any).cost?.toFixed(2) || '0.00'}</p>
+                          <p className="font-black text-sm">
+                            ${(step as any).cost?.toFixed(2) || "0.00"}
+                          </p>
                         </div>
                       </motion.div>
                     ))}
@@ -501,14 +573,23 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
                 >
                   <div className="flex items-center gap-2 flex-wrap">
                     {option.steps.slice(0, 3).map((step, index) => (
-                      <span key={step.id} className="text-sm flex items-center gap-1">
+                      <span
+                        key={step.id}
+                        className="text-sm flex items-center gap-1"
+                      >
                         <span>{step.icon}</span>
-                        <span className="truncate max-w-[120px]">{step.name}</span>
-                        {index < Math.min(option.steps.length - 1, 2) && <span>→</span>}
+                        <span className="truncate max-w-[120px]">
+                          {step.name}
+                        </span>
+                        {index < Math.min(option.steps.length - 1, 2) && (
+                          <span>→</span>
+                        )}
                       </span>
                     ))}
                     {option.steps.length > 3 && (
-                      <span className="text-xs text-gray-500">+{option.steps.length - 3} more</span>
+                      <span className="text-xs text-gray-500">
+                        +{option.steps.length - 3} more
+                      </span>
                     )}
                   </div>
                   <span className="text-xs text-gray-600 font-medium whitespace-nowrap ml-2">
@@ -524,10 +605,10 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
               disabled={selectedWorkflow !== null}
               className={`w-full px-6 py-4 font-black text-lg uppercase tracking-tight border-4 border-black transition-all duration-200 flex items-center justify-center gap-2 flex-shrink-0 ${
                 selectedWorkflow === option.id
-                  ? 'bg-green-500 text-white'
+                  ? "bg-green-500 text-white"
                   : selectedWorkflow !== null
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-[#FF5484] text-white hover:bg-[#FFE37B] hover:text-black shadow-neo hover:shadow-neo-hover'
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-[#FF5484] text-white hover:bg-[#FFE37B] hover:text-black shadow-neo hover:shadow-neo-hover"
               }`}
             >
               {selectedWorkflow === option.id ? (
@@ -559,15 +640,24 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="font-black text-2xl">${Math.min(...workflows.map(w => w.estimatedCost)).toFixed(2)}</p>
+              <p className="font-black text-2xl">
+                ${Math.min(...workflows.map((w) => w.estimatedCost)).toFixed(2)}
+              </p>
               <p className="text-sm">Lowest Cost</p>
             </div>
             <div className="text-center">
-              <p className="font-black text-2xl">{Math.min(...workflows.map(w => Math.round(w.estimatedDuration / 60)))}min</p>
+              <p className="font-black text-2xl">
+                {Math.min(
+                  ...workflows.map((w) => Math.round(w.estimatedDuration / 60))
+                )}
+                min
+              </p>
               <p className="text-sm">Fastest Option</p>
             </div>
             <div className="text-center">
-              <p className="font-black text-2xl">{Math.min(...workflows.map(w => w.steps.length))}</p>
+              <p className="font-black text-2xl">
+                {Math.min(...workflows.map((w) => w.steps.length))}
+              </p>
               <p className="text-sm">Fewest Steps</p>
             </div>
           </div>
@@ -577,4 +667,4 @@ const MultiWorkflowComparison: React.FC<MultiWorkflowComparisonProps> = ({
   );
 };
 
-export default MultiWorkflowComparison; 
+export default MultiWorkflowComparison;

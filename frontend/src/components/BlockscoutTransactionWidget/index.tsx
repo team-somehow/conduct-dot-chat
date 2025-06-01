@@ -1,6 +1,8 @@
 import type { TransactionResponse } from "@/hooks/useBlockscoutTransaction";
 import useBlockscoutTransaction from "@/hooks/useBlockscoutTransaction";
 import { useEffect, useState } from "react";
+import { transactionHashAtom } from "../AaveIntegration";
+import { useAtom } from "jotai";
 
 type Props = {
 };

@@ -14,7 +14,7 @@ import { parseUnits } from "viem";
 import { sepolia } from "viem/chains";
 import { useAccount, useConfig, useSwitchChain, useWriteContract } from "wagmi";
 import { readContract, waitForTransactionReceipt } from "@wagmi/core";
-import { atom } from "jotai";
+import { atom, useSetAtom } from "jotai";
 
 export const transactionHashAtom = atom<string>("");
 
@@ -84,7 +84,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
   const { writeContractAsync } = useWriteContract();
   const { openTxToast } = useNotification();
 
-  const [amount, setAmount] = useState("0.00000001");
+  const [amount, setAmount] = useState("10");
   const [storageWarning, setStorageWarning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completedTxHash, setCompletedTxHash] = useState<string>("");
@@ -265,7 +265,7 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       }
 
       setTransactionHash(depositHash);
-      
+
       // Wait for deposit transaction to be confirmed
       await waitForTransactionReceipt(config, {
         hash: depositHash,
@@ -273,12 +273,11 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       });
 
       console.log("Deposit transaction confirmed:", depositHash);
-      
+
       // Store the real transaction hash and show success
       setCompletedTxHash(depositHash);
       onTransactionComplete?.(depositHash);
       setShowSuccess(true);
-
     } catch (error) {
       console.error("Transaction error:", error);
 
@@ -331,12 +330,11 @@ const AaveIntegration: React.FC<AaveIntegrationProps> = ({
       });
 
       console.log("Withdraw transaction confirmed:", hash);
-      
+
       // Store the real transaction hash and show success
       setCompletedTxHash(hash);
       onTransactionComplete?.(hash);
       setShowSuccess(true);
-
     } catch (error) {
       console.error("Withdraw transaction error:", error);
 

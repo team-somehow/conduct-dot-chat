@@ -11,7 +11,7 @@ kill_port() {
 }
 
 # Kill default ports 3001-3006 and 8080
-default_ports="3001 3002 3003 3004 3005 3006 8080 7030 7031 7032 7033 7034 7035 7036 7037 7038 7039 7040"
+default_ports="7030 7031 7032 7033 7034 7035 7036 7037 7038 7039 7040"
 
 # Combine default ports with any additional ports provided as arguments
 all_ports="$default_ports $@"
