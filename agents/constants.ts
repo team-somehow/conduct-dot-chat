@@ -3,11 +3,14 @@ export const CHAIN_EXPLORERS: { [chainId: number]: string } = {
   545: "https://evm-testnet.flowscan.io", // Flow EVM Testnet (correct explorer)
   747: "https://www.flowscan.io", // Flow EVM Mainnet
   11155111: "https://sepolia.etherscan.io", // Sepolia Testnet
+  296: "hashscan.io/testnet/dashboard", // Hedera Testnet
 };
 
 // Helper to map chainId to Hardhat network name
 export function getNetworkName(chainId: number): string {
   switch (chainId) {
+    case 296:
+      return "hederaTestnet";
     case 545:
       return "flowEvmTestnet";
     case 747:
@@ -44,7 +47,11 @@ export const CHAIN_CONFIG: {
     chainId: 11155111,
     url: "https://eth-sepolia.public.blastapi.io",
   },
-}; 
+  hederaTestnet: {
+    chainId: 296,
+    url: "testnet.hashio.io/api",
+  },
+};
 
 export const AAVE_CONFIG: {
   [chainId: number]: {

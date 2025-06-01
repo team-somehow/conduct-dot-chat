@@ -333,6 +333,10 @@ For integration questions or issues:
 - Check the test files for usage examples
 - Review the contract documentation above
 
+## 🔗 Blockscout Integration
+
+This project seamlessly integrates with Blockscout to provide a rich and detailed view of on-chain activities, leveraging its robust APIs and SDK for enhanced user experience and real-time transaction feedback. The smooth integration allows for easy addition of UI components, with potential for more customizable widgets in the future.
+
 ---
 
 **Ready to decentralize your AI agent orchestration!** 🚀
